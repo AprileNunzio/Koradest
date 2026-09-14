@@ -3,6 +3,11 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.1.1] - 2026-09-14
+
+### Corretto
+- **App Store vuoto**: il catalogo delle applicazioni veniva cercato in `nunziotech.it/software/koradest/marketplace.json`, un indirizzo che non esiste. Ora viene letto da `nunziotech.it/software/adestio/marketplace.json`, dove è pubblicato insieme ai pacchetti. Con questa correzione compaiono **Alunni 1.0.0** e **Viaggi di Istruzione 2.0.0**.
+
 ## [1.1.0] - 2026-09-14
 
 Piattaforma per le applicazioni v2: isolate, più semplici da scrivere e controllate dal core.

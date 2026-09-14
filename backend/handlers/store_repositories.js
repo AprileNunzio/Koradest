@@ -5,7 +5,8 @@ const accessGuard = require('../core/access_guard');
 const sessionManager = require('../core/session_manager');
 const crypto = require('crypto');
 
-const PRIMARY_MARKETPLACE_URL = 'https://nunziotech.it/software/koradest/marketplace.json';
+// Cartella pubblica dell'account FTP del Marketplace: catalogo e pacchetti stanno qui.
+const PRIMARY_MARKETPLACE_URL = 'https://nunziotech.it/software/adestio/marketplace.json';
 // Il Marketplace NunzioTech non e pubblicato su GitHub: nessuna sorgente di riserva.
 const FALLBACK_MARKETPLACE_URL = null;
 
