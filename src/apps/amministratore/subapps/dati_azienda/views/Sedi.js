@@ -316,7 +316,8 @@ export default {
             });
 
             const deleteSede = async (id) => {
-                if (confirm('Sei sicuro di voler eliminare questa Sede?')) {
+                const { conferma } = await import('../../../../../js/utils.js');
+                if (await conferma({ titolo: 'Eliminare questa sede?', testo: 'La sede verrà rimossa dai dati aziendali di tutti i nodi.', etichetta: 'Elimina', pericolosa: true })) {
                     try {
                         await window.electronAPI.datiAzienda.deleteSede(id);
                         toast('Sede eliminata', 'success');

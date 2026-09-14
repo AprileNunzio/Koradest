@@ -122,7 +122,8 @@ async function render(el, userId) {
         `;
         card.querySelectorAll('[data-remove]').forEach(btn => {
             btn.addEventListener('click', async () => {
-                if (!confirm('Rimuovere questa passkey?')) return;
+                const { conferma } = await import('../utils.js');
+                if (!(await conferma({ titolo: 'Rimuovere questa passkey?', testo: 'Il dispositivo non potrà più essere usato per accedere a questo account.', etichetta: 'Rimuovi', pericolosa: true }))) return;
                 const r = await window.electronAPI.twofa.webauthnRemove({ userId, credentialRowId: btn.getAttribute('data-remove') });
                 if (r && r.success) { toast('Passkey rimossa', 'success'); loadPasskeys(); }
                 else toast((r && r.error) || 'Errore rimozione', 'error');

@@ -392,11 +392,16 @@ export default {
                         }
                     }
                 });
-                el.querySelector('#btn-hard-reset').addEventListener('click', () => {
-                    if(confirm("ATTENZIONE! Vuoi davvero eliminare tutti i dati locali e resettare l'app? Questo disconnetterà la postazione.")) {
-                        if (window.electronAPI && window.electronAPI.resetApp) {
-                            window.electronAPI.resetApp();
-                        }
+                el.querySelector('#btn-hard-reset').addEventListener('click', async () => {
+                    const { conferma } = await import('../utils.js');
+                    const ok = await conferma({
+                        titolo: 'Eliminare tutti i dati locali?',
+                        testo: 'L\'app verrà ripristinata e la postazione disconnessa dalla rete.',
+                        etichetta: 'Elimina e ripristina',
+                        pericolosa: true
+                    });
+                    if (ok && window.electronAPI && window.electronAPI.resetApp) {
+                        window.electronAPI.resetApp();
                     }
                 });
                 el.querySelector('#btn-check-updates').addEventListener('click', () => {

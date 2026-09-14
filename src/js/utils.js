@@ -1,3 +1,7 @@
+import { conferma, avviso, chiedi } from './shell/dialogo.js';
+
+export { conferma, avviso, chiedi };
+
 export const Router = {
     history: [],
     currentPage: null,
@@ -30,8 +34,8 @@ export const Router = {
     },
     back: () => {
         if (Router.history.length > 1) {
-            Router.history.pop(); 
-            const prev = Router.history[Router.history.length - 1]; 
+            Router.history.pop();
+            const prev = Router.history[Router.history.length - 1];
             Router.navigate(prev.pageName, prev.params, true);
         } else {
             Router.history = [];
@@ -45,6 +49,7 @@ export const Router = {
         }
     }
 };
+
 const TOAST_ICONE = { info: 'info', success: 'check_circle', error: 'error', warning: 'warning' };
 const TOAST_DURATA_MS = 4000;
 
@@ -78,15 +83,14 @@ export const toast = (message, type = 'info') => {
         console.error(e);
     }
 };
+
 export const Modal = {
-    show: ({ title, content }) => {
-        try {
-            console.log(`[MODAL] ${title}: ${content}`);
-        } catch (e) {
-            console.error(e);
-        }
-    }
+    conferma,
+    avviso,
+    chiedi,
+    show: ({ title, content } = {}) => avviso({ titolo: title, testo: content })
 };
+
 export const fmt = {
     euro: (val) => {
         try {
@@ -107,9 +111,9 @@ export const fmt = {
 };
 export const dtFormat = (date) => {
     try {
-        return new Intl.DateTimeFormat('it-IT', { 
-            day: '2-digit', month: '2-digit', year: 'numeric', 
-            hour: '2-digit', minute: '2-digit', second: '2-digit' 
+        return new Intl.DateTimeFormat('it-IT', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
         }).format(new Date(date));
     } catch(e) {
         return date;

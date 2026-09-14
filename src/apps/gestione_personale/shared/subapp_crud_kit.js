@@ -124,7 +124,8 @@ export function renderPersonScopedCrudSubapp(el, config) {
         });
         grid.querySelectorAll('.crud-kit-btn-delete').forEach(btn => {
             btn.addEventListener('click', async () => {
-                if (!confirm('Sei sicuro di voler eliminare questo elemento?')) return;
+                const { conferma } = await import('../../../js/utils.js');
+                if (!(await conferma({ titolo: 'Eliminare questo elemento?', testo: 'L\'operazione non è reversibile.', etichetta: 'Elimina', pericolosa: true }))) return;
                 try {
                     await api.remove({ id: btn.getAttribute('data-id') });
                     toast('Eliminato con successo', 'success');

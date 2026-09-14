@@ -409,7 +409,8 @@ export default {
             el.querySelector('#gp-back').addEventListener('click', () => renderDirectory());
             const blockBtn = el.querySelector('#gp-block');
             if (blockBtn) blockBtn.addEventListener('click', async () => {
-                if (!confirm('Bloccare questa persona? Potrai ripristinarla in qualsiasi momento.')) return;
+                const { conferma } = await import('../../js/utils.js');
+                if (!(await conferma({ titolo: 'Bloccare questa persona?', testo: 'Potrai ripristinarla in qualsiasi momento.', etichetta: 'Blocca', pericolosa: true }))) return;
                 try { await window.electronAPI.anagrafica.persone.remove({ id: personaId }); toast('Persona bloccata', 'success'); openWorkspace(personaId); }
                 catch (e) { toast(e.message || 'Errore', 'error'); }
             });

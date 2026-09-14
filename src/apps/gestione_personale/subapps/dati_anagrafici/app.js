@@ -318,7 +318,8 @@ export default {
             const deleteBtn = el.querySelector('#btn-delete-scheda');
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', async () => {
-                    if (!confirm('Sei sicuro di voler bloccare questa persona?')) return;
+                    const { conferma } = await import('../../../../js/utils.js');
+                    if (!(await conferma({ titolo: 'Bloccare questa persona?', testo: 'Potrai ripristinarla in qualsiasi momento.', etichetta: 'Blocca', pericolosa: true }))) return;
                     await window.electronAPI.anagrafica.persone.remove({ id: personaId });
                     toast('Persona bloccata', 'success');
                     await renderScheda(personaId);
@@ -333,7 +334,14 @@ export default {
                 });
             }
             el.querySelector('#btn-harddelete-scheda').addEventListener('click', async () => {
-                if (!confirm('ATTENZIONE: Sei sicuro di voler ELIMINARE DEFINITIVAMENTE questa persona e tutti i suoi dati collegati (documenti, indirizzi, lavoro)?\nQuesta operazione è irreversibile e verrà propagata a tutti i nodi connessi.')) return;
+                const { conferma } = await import('../../../../js/utils.js');
+                const ok = await conferma({
+                    titolo: 'Eliminare definitivamente questa persona?',
+                    testo: 'Verranno cancellati anche documenti, indirizzi e rapporti di lavoro collegati.\nL\'operazione è irreversibile e si propaga a tutti i nodi connessi.',
+                    etichetta: 'Elimina definitivamente',
+                    pericolosa: true
+                });
+                if (!ok) return;
                 await window.electronAPI.anagrafica.persone.hardDelete({ id: personaId });
                 toast('Persona eliminata definitivamente', 'success');
                 await renderList();

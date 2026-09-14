@@ -1,114 +1,98 @@
 import { toast } from '../../../../../js/utils.js';
 
+const esc = (valore) => String(valore ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+const anteprima = (id, immagine) => `
+    <div id="${id}" style="width: 100%; height: 9rem; border-radius: var(--shape-md); border: 1px dashed var(--md-outline-variant); background: ${immagine ? `url(${immagine}) center/contain no-repeat` : 'var(--md-surface-container-low)'};"></div>`;
+
+const caricatore = ({ titolo, idAnteprima, idFile, immagine, accetta, etichetta, aiuto }) => `
+    <section class="k-card k-card--muted">
+        <div class="k-stack" style="--k-gap: var(--k-space-3);">
+            <h3 class="k-card-title" style="font-size: var(--k-font-base);">${titolo}</h3>
+            ${anteprima(idAnteprima, immagine)}
+            <input type="file" id="${idFile}" accept="${accetta}" hidden>
+            <button type="button" class="k-btn k-btn--block" data-apri-file="${idFile}">
+                <span class="material-symbols-rounded">upload</span>${etichetta}
+            </button>
+            <span class="k-hint" style="text-align: center;">${aiuto}</span>
+        </div>
+    </section>`;
+
 export default {
     render: async (container, configCache, saveConfig) => {
         try {
-            
-            
-            const style = document.createElement('style');
-            style.innerHTML = `
-                @font-face {
-                    font-family: 'Priestacy';
-                    src: url('../../../../../assets/fonts/Priestacy.otf') format('opentype');
-                }
-                @font-face {
-                    font-family: 'Signatie';
-                    src: url('../../../../../assets/fonts/Signatie.otf') format('opentype');
-                }
-                .firma-font-priestacy { font-family: 'Priestacy', cursive; }
-                .firma-font-signatie { font-family: 'Signatie', cursive; }
-            `;
-            document.head.appendChild(style);
+            if (!document.getElementById('da-font-firme')) {
+                const style = document.createElement('style');
+                style.id = 'da-font-firme';
+                style.textContent = `
+                    @font-face { font-family: 'Priestacy'; src: url('../../../../../assets/fonts/Priestacy.otf') format('opentype'); }
+                    @font-face { font-family: 'Signatie'; src: url('../../../../../assets/fonts/Signatie.otf') format('opentype'); }
+                `;
+                document.head.appendChild(style);
+            }
 
             container.innerHTML = `
-                <div class="card fade-in-up" style="padding:1.5rem; background:var(--md-surface); border-radius:16px; border:1px solid var(--md-surface-variant); max-width:900px; margin:0 auto;">
-                    <div style="margin-bottom:1.5rem;">
-                        <h3 style="margin:0; font-size:1.4rem; color:var(--md-on-surface);">Brand, Timbri e Firme</h3>
-                        <p style="margin:0.2rem 0 0; color:var(--md-on-surface-variant); font-size:0.9rem;">Immagini utilizzate per la generazione automatica di stampe, PDF e contrattualistica ufficiale.</p>
+                <div class="k-card fade-in-up" style="max-width: 60rem; margin: 0 auto;">
+                    <div class="k-card-header">
+                        <div>
+                            <h2 class="k-card-title"><span class="material-symbols-rounded">palette</span>Brand, timbri e firme</h2>
+                            <p class="k-card-subtitle">Immagini usate per stampe, PDF e documenti ufficiali generati automaticamente.</p>
+                        </div>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:1.5rem;">
-                        
-                        <!-- Logo Aziendale -->
-                        <div style="background:var(--md-surface-variant); padding:1.5rem; border-radius:12px; border:1px solid var(--md-outline-variant); display:flex; flex-direction:column; align-items:center;">
-                            <h4 style="margin:0 0 1rem; color:var(--md-primary); font-size:1rem;">Logo Aziendale</h4>
-                            <div class="image-preview" id="da-preview-logo" style="width:100%; height:150px; background:${configCache.img_logo ? 'url('+configCache.img_logo+') center/contain no-repeat' : '#eee'}; border-radius:8px; margin-bottom:1rem; border:1px dashed var(--md-outline);"></div>
-                            <input type="file" id="da-file-logo" accept="image/png, image/jpeg, image/svg+xml" style="display:none;">
-                            <button class="btn" onclick="document.getElementById('da-file-logo').click()" style="width:100%; padding:0.6rem; display:flex; justify-content:center; gap:0.5rem; align-items:center;">
-                                <span class="material-symbols-rounded">upload</span> Carica Logo
-                            </button>
-                            <p style="margin:0.5rem 0 0; font-size:0.75rem; color:var(--md-on-surface-variant); text-align:center;">PNG, JPG o SVG. Consigliato: 500x500px.</p>
-                        </div>
+                    <div class="k-grid" style="--k-grid-min: 15rem;">
+                        ${caricatore({ titolo: 'Logo aziendale', idAnteprima: 'da-preview-logo', idFile: 'da-file-logo', immagine: configCache.img_logo, accetta: 'image/png, image/jpeg, image/svg+xml', etichetta: 'Carica logo', aiuto: 'PNG, JPG o SVG, consigliato 500×500 px.' })}
+                        ${caricatore({ titolo: 'Timbro ufficiale', idAnteprima: 'da-preview-timbro', idFile: 'da-file-timbro', immagine: configCache.img_timbro, accetta: 'image/png', etichetta: 'Carica timbro', aiuto: 'Solo PNG con sfondo trasparente.' })}
 
-                        <!-- Timbro Ufficiale -->
-                        <div style="background:var(--md-surface-variant); padding:1.5rem; border-radius:12px; border:1px solid var(--md-outline-variant); display:flex; flex-direction:column; align-items:center;">
-                            <h4 style="margin:0 0 1rem; color:var(--md-primary); font-size:1rem;">Timbro Ufficiale</h4>
-                            <div class="image-preview" id="da-preview-timbro" style="width:100%; height:150px; background:${configCache.img_timbro ? 'url('+configCache.img_timbro+') center/contain no-repeat' : '#eee'}; border-radius:8px; margin-bottom:1rem; border:1px dashed var(--md-outline);"></div>
-                            <input type="file" id="da-file-timbro" accept="image/png" style="display:none;">
-                            <button class="btn" onclick="document.getElementById('da-file-timbro').click()" style="width:100%; padding:0.6rem; display:flex; justify-content:center; gap:0.5rem; align-items:center;">
-                                <span class="material-symbols-rounded">upload</span> Carica Timbro
-                            </button>
-                            <p style="margin:0.5rem 0 0; font-size:0.75rem; color:var(--md-on-surface-variant); text-align:center;">Solo PNG con sfondo trasparente.</p>
-                        </div>
-
-                        <!-- Firma Legale Rappresentante -->
-                        <div style="grid-column:1 / -1; background:var(--md-surface-variant); padding:1.5rem; border-radius:12px; border:1px solid var(--md-outline-variant);">
-                            <h4 style="margin:0 0 1rem; color:var(--md-primary); font-size:1rem; text-align:center;">Firma Legale Rappresentante</h4>
-                            
-                            <div style="display:flex; gap:1rem; margin-bottom:1.5rem; justify-content:center;">
-                                <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
-                                    <input type="radio" name="firma_mode" value="upload" checked style="accent-color:var(--md-primary);"> Carica PNG
-                                </label>
-                                <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
-                                    <input type="radio" name="firma_mode" value="generate" style="accent-color:var(--md-primary);"> Genera da Testo
-                                </label>
-                            </div>
-
-                            <div style="display:flex; flex-wrap:wrap; gap:1.5rem; align-items:flex-start;">
-                                
-                                <div style="flex:1; min-width:250px;">
-                                    <div class="image-preview" id="da-preview-firma" style="width:100%; height:150px; background:${configCache.img_firma ? 'url('+configCache.img_firma+') center/contain no-repeat' : '#eee'}; border-radius:8px; margin-bottom:1rem; border:1px dashed var(--md-outline);"></div>
-                                    
-                                    <div id="da-firma-upload-container">
-                                        <input type="file" id="da-file-firma" accept="image/png" style="display:none;">
-                                        <button class="btn" onclick="document.getElementById('da-file-firma').click()" style="width:100%; padding:0.6rem; display:flex; justify-content:center; gap:0.5rem; align-items:center;">
-                                            <span class="material-symbols-rounded">upload</span> Carica Firma
-                                        </button>
-                                        <p style="margin:0.5rem 0 0; font-size:0.75rem; color:var(--md-on-surface-variant); text-align:center;">Solo PNG con sfondo trasparente.</p>
-                                    </div>
-                                    
-                                    <div id="da-firma-generate-container" style="display:none; flex-direction:column; gap:0.8rem;">
-                                        <input type="text" id="da-firma-text" value="${configCache.istituto_rappresentante || ''}" placeholder="Nome e Cognome" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
-                                        
-                                        <select id="da-firma-font" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
-                                            <option value="Priestacy">Font: Priestacy</option>
-                                            <option value="Signatie">Font: Signatie</option>
-                                        </select>
-                                        
-                                        <button class="btn" id="da-btn-generate-firma" style="width:100%; padding:0.6rem; display:flex; justify-content:center; gap:0.5rem; align-items:center; background:var(--md-secondary); color:var(--md-on-secondary);">
-                                            <span class="material-symbols-rounded">draw</span> Genera Immagine Firma
-                                        </button>
+                        <section class="k-card k-card--muted" style="grid-column: 1 / -1;">
+                            <div class="k-stack">
+                                <div class="k-row k-row--between">
+                                    <h3 class="k-card-title" style="font-size: var(--k-font-base);">Firma del legale rappresentante</h3>
+                                    <div class="k-segmented" role="tablist" aria-label="Origine della firma">
+                                        <button type="button" data-modo-firma="upload" aria-selected="true"><span class="material-symbols-rounded">upload</span>Carica PNG</button>
+                                        <button type="button" data-modo-firma="generate" aria-selected="false"><span class="material-symbols-rounded">draw</span>Genera da testo</button>
                                     </div>
                                 </div>
-                                
-                                <div style="flex:1; min-width:250px; background:var(--md-surface); padding:1rem; border-radius:8px; border:1px solid var(--md-outline);">
-                                    <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer;">
-                                        <input type="checkbox" id="da-firma-legale-chk" ${configCache.firma_legale_cad === 'true' ? 'checked' : ''} style="margin-top:0.3rem; width:18px; height:18px; accent-color:var(--md-primary);">
-                                        <span style="font-size:0.9rem; color:var(--md-on-surface); line-height:1.4;">
-                                            <strong>Apponi dicitura di legge</strong><br>
-                                            "Firma autografa sostituita a mezzo stampa ai sensi dell'art. 3 comma 2 del D.Lgs n.39/1993 e Firma Elettronica ai sensi dell'art. 21 del D.Lgs 82/2005 (CAD)"
+                                <div class="k-grid" style="--k-grid-min: 15rem; align-items: start;">
+                                    <div class="k-stack" style="--k-gap: var(--k-space-3);">
+                                        ${anteprima('da-preview-firma', configCache.img_firma)}
+                                        <div id="da-firma-upload-container" class="k-stack" style="--k-gap: var(--k-space-2);">
+                                            <input type="file" id="da-file-firma" accept="image/png" hidden>
+                                            <button type="button" class="k-btn k-btn--block" data-apri-file="da-file-firma">
+                                                <span class="material-symbols-rounded">upload</span>Carica firma
+                                            </button>
+                                            <span class="k-hint" style="text-align: center;">Solo PNG con sfondo trasparente.</span>
+                                        </div>
+                                        <div id="da-firma-generate-container" class="k-stack" style="--k-gap: var(--k-space-2); display: none;">
+                                            <input type="text" id="da-firma-text" class="k-input" value="${esc(configCache.istituto_rappresentante || '')}" placeholder="Nome e cognome">
+                                            <select id="da-firma-font" class="k-select">
+                                                <option value="Priestacy">Carattere Priestacy</option>
+                                                <option value="Signatie">Carattere Signatie</option>
+                                            </select>
+                                            <button type="button" class="k-btn k-btn--tonal k-btn--block" id="da-btn-generate-firma">
+                                                <span class="material-symbols-rounded">draw</span>Genera immagine firma
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <label class="k-choice" for="da-firma-legale-chk">
+                                        <input type="checkbox" id="da-firma-legale-chk" ${configCache.firma_legale_cad === 'true' ? 'checked' : ''}>
+                                        <span>
+                                            <span class="k-choice-title">Apponi la dicitura di legge</span>
+                                            <span class="k-choice-text">"Firma autografa sostituita a mezzo stampa ai sensi dell'art. 3 comma 2 del D.Lgs n.39/1993 e Firma Elettronica ai sensi dell'art. 21 del D.Lgs 82/2005 (CAD)". Viene aggiunta sotto la firma nei documenti generati.</span>
                                         </span>
                                     </label>
-                                    <p style="margin:0.5rem 0 0 2rem; font-size:0.75rem; color:var(--md-on-surface-variant);">Se spuntato, il sistema aggiungerà automaticamente questa dicitura sotto la firma nei documenti generati.</p>
                                 </div>
-                                
                             </div>
-                        </div>
+                        </section>
                     </div>
 
-                    <div style="margin-top:2rem; display:flex; justify-content:flex-end;">
-                        <button id="da-btn-save-brand" class="btn primary" style="display:flex; align-items:center; gap:0.5rem; padding:0.8rem 1.5rem;">
-                            <span class="material-symbols-rounded">save</span> Salva Asset Brand
+                    <div class="k-card-footer">
+                        <button id="da-btn-save-brand" class="k-btn k-btn--primary">
+                            <span class="material-symbols-rounded">save</span>Salva asset grafici
                         </button>
                     </div>
                 </div>
@@ -118,54 +102,44 @@ export default {
             let b64Timbro = configCache.img_timbro || '';
             let b64Firma = configCache.img_firma || '';
 
-            
+            container.querySelectorAll('[data-apri-file]').forEach(pulsante => {
+                pulsante.addEventListener('click', () => container.querySelector('#' + pulsante.dataset.apriFile)?.click());
+            });
+
             const uploadCont = container.querySelector('#da-firma-upload-container');
             const genCont = container.querySelector('#da-firma-generate-container');
-            container.querySelectorAll('input[name="firma_mode"]').forEach(radio => {
-                radio.addEventListener('change', (e) => {
-                    if (e.target.value === 'upload') {
-                        uploadCont.style.display = 'block';
-                        genCont.style.display = 'none';
-                    } else {
-                        uploadCont.style.display = 'none';
-                        genCont.style.display = 'flex';
-                    }
+            container.querySelectorAll('[data-modo-firma]').forEach(pulsante => {
+                pulsante.addEventListener('click', () => {
+                    const genera = pulsante.dataset.modoFirma === 'generate';
+                    container.querySelectorAll('[data-modo-firma]').forEach(p => p.setAttribute('aria-selected', String(p === pulsante)));
+                    uploadCont.style.display = genera ? 'none' : 'flex';
+                    genCont.style.display = genera ? 'flex' : 'none';
                 });
             });
 
-            
             const generateFirmaLive = () => {
                 const text = container.querySelector('#da-firma-text').value.trim();
                 const font = container.querySelector('#da-firma-font').value;
-                if (!text) {
-                    return; 
-                }
-
+                if (!text) return;
                 const canvas = document.createElement('canvas');
                 canvas.width = 600;
                 canvas.height = 200;
                 const ctx = canvas.getContext('2d');
-                
-                
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                
                 ctx.font = `60px ${font}`;
-                ctx.fillStyle = '#000080'; 
+                ctx.fillStyle = '#000080';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
                 b64Firma = canvas.toDataURL('image/png');
                 container.querySelector('#da-preview-firma').style.background = 'url(' + b64Firma + ') center/contain no-repeat';
             };
 
             container.querySelector('#da-firma-text').addEventListener('input', generateFirmaLive);
             container.querySelector('#da-firma-font').addEventListener('change', generateFirmaLive);
-
             container.querySelector('#da-btn-generate-firma').addEventListener('click', () => {
                 generateFirmaLive();
-                toast('Firma confermata! Ricorda di salvare.', 'success');
+                toast('Firma generata: ricordati di salvare.', 'success');
             });
 
             const setupUploader = (inputId, previewId, callback) => {
@@ -174,12 +148,10 @@ export default {
                 input.addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
-                    
                     if (file.size > 2 * 1024 * 1024) {
-                        toast('Il file è troppo grande (Max 2MB).', 'error');
+                        toast('Il file supera i 2 MB consentiti.', 'error');
                         return;
                     }
-
                     const reader = new FileReader();
                     reader.onload = (event) => {
                         const b64 = event.target.result;
@@ -190,36 +162,30 @@ export default {
                 });
             };
 
-            setupUploader('da-file-logo', 'da-preview-logo', (val) => b64Logo = val);
-            setupUploader('da-file-timbro', 'da-preview-timbro', (val) => b64Timbro = val);
-            setupUploader('da-file-firma', 'da-preview-firma', (val) => b64Firma = val);
+            setupUploader('da-file-logo', 'da-preview-logo', (val) => { b64Logo = val; });
+            setupUploader('da-file-timbro', 'da-preview-timbro', (val) => { b64Timbro = val; });
+            setupUploader('da-file-firma', 'da-preview-firma', (val) => { b64Firma = val; });
 
             container.querySelector('#da-btn-save-brand').addEventListener('click', async (ev) => {
                 const btn = ev.currentTarget;
-                const old = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Salvataggio...';
-                
+                btn.setAttribute('aria-busy', 'true');
                 try {
-                    const patch = {
+                    const ok = await saveConfig({
                         img_logo: b64Logo,
                         img_timbro: b64Timbro,
                         img_firma: b64Firma,
                         firma_legale_cad: container.querySelector('#da-firma-legale-chk').checked ? 'true' : 'false'
-                    };
-                    const ok = await saveConfig(patch);
-                    toast(ok ? 'Asset grafici salvati con successo' : 'Errore nel salvataggio', ok ? 'success' : 'error');
+                    });
+                    toast(ok ? 'Asset grafici salvati' : 'Salvataggio non riuscito', ok ? 'success' : 'error');
                 } catch (e) {
                     toast('Errore: ' + e.message, 'error');
                 } finally {
-                    btn.disabled = false;
-                    btn.innerHTML = old;
+                    btn.removeAttribute('aria-busy');
                 }
             });
-
         } catch (e) {
             console.error(e);
-            container.innerHTML = '<div style="color:var(--md-error);">Errore rendering Brand: ' + e.message + '</div>';
+            container.innerHTML = '<div class="k-alert k-alert--danger"><span class="material-symbols-rounded">error</span><div>Errore di caricamento della sezione Brand.</div></div>';
         }
     }
 };

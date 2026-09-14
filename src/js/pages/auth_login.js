@@ -135,10 +135,17 @@ const AuthLogin = {
             if (resetBtn) {
                 resetBtn.addEventListener('click', async () => {
                     try {
-                        if (confirm("Attenzione: il ripristino elimina TUTTE le reti blockchain registrate su questa postazione, i loro archivi cifrati e la configurazione locale. Sei sicuro?")) {
-                            await window.electronAPI.resetApp();
-                        }
-                    } catch (_) {}
+                        const { conferma } = await import('../utils.js');
+                        const ok = await conferma({
+                            titolo: 'Ripristinare la postazione?',
+                            testo: 'Verranno eliminate tutte le reti registrate su questo PC, i loro archivi cifrati e la configurazione locale.',
+                            etichetta: 'Ripristina postazione',
+                            pericolosa: true
+                        });
+                        if (ok) await window.electronAPI.resetApp();
+                    } catch (e) {
+                        console.error('[Accesso] Ripristino postazione non riuscito:', e);
+                    }
                 });
             }
         } catch (_) {}

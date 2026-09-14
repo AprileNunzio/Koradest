@@ -321,7 +321,8 @@ const subapp = {
             }
         });
         btnDelete.addEventListener('click', async () => {
-            if (!confirm('Sei sicuro di voler eliminare questo contatto?')) return;
+            const { conferma } = await import('../../../../js/utils.js');
+            if (!(await conferma({ titolo: 'Eliminare questo contatto?', etichetta: 'Elimina', pericolosa: true }))) return;
             try {
                 btnDelete.disabled = true;
                 await window.electronAPI.anagrafica.contatti.remove({ id: inputId.value });
