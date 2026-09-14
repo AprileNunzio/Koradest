@@ -59,6 +59,7 @@
       "!.gemini${/*}",
       "!.github${/*}",
       "!.cursorrules",
+      "!patch_*.js",
       "!**/CLAUDE.md",
       "!**/AGENTS.md",
       "!**/GEMINI.md",
