@@ -3,6 +3,33 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.1.0] - 2026-09-14
+
+Piattaforma per le applicazioni v2: isolate, più semplici da scrivere e controllate dal core.
+
+### Aggiunto
+- **Manifest v2** per le app del Marketplace, validato durante l'installazione e a ogni avvio: identificativo, versione, ingresso dell'interfaccia e del backend, dati, dipendenze, permessi, ruoli. I file dichiarati devono esistere nel pacchetto; ogni errore viene spiegato.
+- **App isolate**: l'interfaccia di ogni app gira in un iframe sandbox con origine opaca e una Content-Security-Policy dedicata. Non accede a `electronAPI`, alla rete, all'archiviazione del browser né ai file del core.
+- **Ponte fra app e core** basato su messaggi: l'identità dell'app è decisa dal core e non può essere falsificata; l'utente collegato accompagna ogni chiamata.
+- **Runtime del backend** `attiva(k)`: le app dichiarano azioni con ruolo, schema di validazione e scrittura; il core controlla i ruoli dell'utente, valida i dati, salva l'archivio e restituisce il risultato senza doppio involucro. Le chiamate verso altre app portano con sé l'utente.
+- **SDK** `koradest-app://sdk/v2/koradest.js` con router a rotte e ruoli, dialoghi e notifiche del core, formati italiani, validazione di codice fiscale e partita IVA, HTML con escaping automatico.
+- **Componenti web** per le app: `<k-tabella>` (ricerca, ordinamento, azioni, stato vuoto), `<k-modulo>` (campi tipizzati, validazione, invio con attesa ed errori), `<k-intestazione>`, `<k-statistica>`, `<k-vuoto>`, `<k-caricamento>`.
+- Il design system, i font e il tema chiaro/scuro del core vengono applicati automaticamente alle app.
+- Dialoghi di conferma, avviso e richiesta del core al posto delle finestre di sistema.
+- Test del formato dei manifest e del runtime delle azioni.
+
+### Modificato
+- **Layout adattivo**: le pagine non hanno più una larghezza massima. Sugli schermi larghi le corsie della dashboard e le sezioni dei moduli si affiancano, i campi arrivano a quattro per riga; su smartphone tutto si impila. I testi non si ingrandiscono.
+- Dati azienda senza larghezze e colonne fisse.
+- Ruoli e permessi, Utenti, Errori di sincronizzazione, Registro errori, Brand e firme, Diagnostica P2P, Sicurezza account e le viste di stato dell'accesso ridisegnati con i componenti `k-`, senza gestori inline né variabili globali.
+
+### Rimosso
+- Installazione e caricamento delle app del Marketplace con il manifest precedente: vanno aggiornate al formato v2.
+
+### Sicurezza
+- I ruoli delle app sono verificati nel backend per ogni azione.
+- La pagina di un'app non può incorporare altre pagine, inviare form verso l'esterno né aprire connessioni.
+
 ## [1.0.1] - 2026-09-14
 
 Interfaccia rinnovata e correzioni emerse dopo il primo rilascio.
