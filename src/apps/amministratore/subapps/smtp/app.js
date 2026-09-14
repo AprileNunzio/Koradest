@@ -1,111 +1,153 @@
 import { toast } from '../../../../js/utils.js';
+
+const campo = (id, etichetta, attributi = '', aiuto = '') => `
+    <div class="k-field">
+        <label class="k-label" for="${id}">${etichetta}</label>
+        <input id="${id}" class="k-input" ${attributi}>
+        ${aiuto ? `<span class="k-hint">${aiuto}</span>` : ''}
+    </div>`;
+
+const chiediEmailDiTest = () => new Promise((resolve) => {
+    const sfondo = document.createElement('div');
+    sfondo.className = 'k-dialog-backdrop';
+    sfondo.innerHTML = `
+        <div class="k-dialog" role="dialog" aria-modal="true" aria-labelledby="smtp-test-title">
+            <div class="k-dialog-header">
+                <span class="k-page-icon material-symbols-rounded">forward_to_inbox</span>
+                <div>
+                    <h2 id="smtp-test-title" class="k-dialog-title">Test SMTP</h2>
+                    <p class="k-hint">Invia un messaggio di prova con la configurazione attuale.</p>
+                </div>
+            </div>
+            <div class="k-dialog-body">
+                <div class="k-field">
+                    <label class="k-label" for="smtp-test-email-input">Indirizzo destinatario</label>
+                    <input type="email" id="smtp-test-email-input" class="k-input" placeholder="nome@esempio.it" autocomplete="email">
+                </div>
+            </div>
+            <div class="k-dialog-footer">
+                <button id="smtp-test-email-cancel" class="k-btn k-btn--ghost">Annulla</button>
+                <button id="smtp-test-email-ok" class="k-btn k-btn--primary"><span class="material-symbols-rounded">send</span>Invia</button>
+            </div>
+        </div>`;
+    const chiudi = (valore) => {
+        sfondo.remove();
+        resolve(valore);
+    };
+    document.body.appendChild(sfondo);
+    const input = sfondo.querySelector('#smtp-test-email-input');
+    sfondo.querySelector('#smtp-test-email-ok').addEventListener('click', () => chiudi(input.value.trim()));
+    sfondo.querySelector('#smtp-test-email-cancel').addEventListener('click', () => chiudi(null));
+    sfondo.addEventListener('click', (e) => { if (e.target === sfondo) chiudi(null); });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') chiudi(input.value.trim());
+        if (e.key === 'Escape') chiudi(null);
+    });
+    setTimeout(() => input.focus(), 50);
+});
+
 export default {
     render: async (el) => {
         try {
             el.innerHTML = `
-                <div class="fade-in-up" style="display: flex; flex-direction: column; height: 100%; padding: 1.5rem; overflow-y: auto; overflow-x: hidden;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
-                        <div>
-                            <h2 style="margin: 0 0 0.5rem 0; font-size: 2rem; color: var(--md-on-surface); font-weight: 800; letter-spacing: -0.02em;">Server SMTP</h2>
-                            <p style="margin: 0; color: var(--md-on-surface-variant); font-size: 1.1rem;">Configura il server di posta in uscita per l'invio delle comunicazioni di sistema.</p>
-                        </div>
-                        <div style="display: flex; gap: 1rem;">
-                            <button id="btn-test-smtp" class="btn secondary" style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="material-symbols-rounded">science</span> Test Connessione
-                            </button>
-                            <button id="btn-save-smtp" class="btn primary" style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="material-symbols-rounded">save</span> Salva Configurazione
-                            </button>
-                        </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-                        <!-- Configurazione Rete -->
-                        <div class="card" style="padding: 1.5rem; background: var(--md-surface); border-radius: 16px; border: 1px solid var(--md-surface-variant); display: flex; flex-direction: column; gap: 1.5rem;">
-                            <div style="display: flex; align-items: center; gap: 0.8rem; border-bottom: 1px solid var(--md-surface-variant); padding-bottom: 1rem;">
-                                <span class="material-symbols-rounded" style="color: var(--md-primary); font-size: 1.8rem;">router</span>
-                                <h3 style="margin: 0; font-size: 1.2rem; color: var(--md-on-surface);">Parametri di Rete</h3>
-                            </div>
+                <div class="k-page fade-in-up">
+                    <header class="k-page-header">
+                        <div class="k-page-heading">
+                            <span class="k-page-icon material-symbols-rounded">mail</span>
                             <div>
-                                <label class="text-label" style="display: block; margin-bottom: 0.5rem; color: var(--md-on-surface-variant); font-weight: 500;">Host SMTP</label>
-                                <input type="text" id="smtp-host" class="input-field" placeholder="es. smtp.office365.com" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface);">
+                                <h1 class="k-page-title">Server SMTP</h1>
+                                <p class="k-page-subtitle">Server di posta in uscita usato dal kernel per le comunicazioni di sistema e dalle applicazioni.</p>
                             </div>
-                            <div style="display: flex; gap: 1rem;">
-                                <div style="flex: 1;">
-                                    <label class="text-label" style="display: block; margin-bottom: 0.5rem; color: var(--md-on-surface-variant); font-weight: 500;">Porta</label>
-                                    <input type="number" id="smtp-port" class="input-field" placeholder="es. 587" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface);">
+                        </div>
+                        <div class="k-page-actions">
+                            <button id="btn-test-smtp" class="k-btn">
+                                <span class="material-symbols-rounded">science</span>Test connessione
+                            </button>
+                            <button id="btn-save-smtp" class="k-btn k-btn--primary">
+                                <span class="material-symbols-rounded">save</span>Salva configurazione
+                            </button>
+                        </div>
+                    </header>
+
+                    <div class="k-grid k-grid--lg">
+                        <section class="k-card">
+                            <div class="k-card-header">
+                                <h2 class="k-card-title"><span class="material-symbols-rounded">router</span>Parametri di rete</h2>
+                            </div>
+                            <div class="k-form-grid">
+                                <div class="k-field k-field--full">
+                                    <label class="k-label" for="smtp-host">Host SMTP</label>
+                                    <input type="text" id="smtp-host" class="k-input" placeholder="es. smtp.office365.com">
                                 </div>
-                                <div style="flex: 2;">
-                                    <label class="text-label" style="display: block; margin-bottom: 0.5rem; color: var(--md-on-surface-variant); font-weight: 500;">Protocollo di Sicurezza</label>
-                                    <select id="smtp-security" class="input-field" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface);">
-                                        <option value="none">Nessuna (Insecure)</option>
-                                        <option value="starttls" selected>STARTTLS (Consigliata)</option>
-                                        <option value="ssl">SSL/TLS Implicito</option>
+                                ${campo('smtp-port', 'Porta', 'type="number" placeholder="587"')}
+                                <div class="k-field">
+                                    <label class="k-label" for="smtp-security">Sicurezza</label>
+                                    <select id="smtp-security" class="k-select">
+                                        <option value="none">Nessuna (non sicura)</option>
+                                        <option value="starttls" selected>STARTTLS (consigliata)</option>
+                                        <option value="ssl">SSL/TLS implicito</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div>
-                                <label class="text-label" style="display: block; margin-bottom: 0.5rem; color: var(--md-on-surface-variant); font-weight: 500;">Timeout Connessione (ms)</label>
-                                <input type="number" id="smtp-timeout" class="input-field" placeholder="10000" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface);">
-                            </div>
-                        </div>
-                        <!-- Credenziali -->
-                        <div class="card" style="padding: 1.5rem; background: var(--md-surface); border-radius: 16px; border: 1px solid var(--md-surface-variant); display: flex; flex-direction: column; gap: 1.5rem;">
-                            <div style="display: flex; align-items: center; gap: 0.8rem; border-bottom: 1px solid var(--md-surface-variant); padding-bottom: 1rem;">
-                                <span class="material-symbols-rounded" style="color: var(--md-primary); font-size: 1.8rem;">passkey</span>
-                                <h3 style="margin: 0; font-size: 1.2rem; color: var(--md-on-surface);">Autenticazione</h3>
-                            </div>
-                            <div>
-                                <label class="text-label" style="display: block; margin-bottom: 0.5rem; color: var(--md-on-surface-variant); font-weight: 500;">Nome Utente</label>
-                                <input type="text" id="smtp-user" class="input-field" placeholder="admin@azienda.com" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface);">
-                            </div>
-                            <div>
-                                <label class="text-label" style="display: block; margin-bottom: 0.5rem; color: var(--md-on-surface-variant); font-weight: 500;">Password / App Password</label>
-                                <div style="position: relative;">
-                                    <input type="password" id="smtp-pass" class="input-field" placeholder="••••••••••••" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface);">
-                                    <button id="btn-toggle-pass" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--md-on-surface-variant); padding: 5px;">
-                                        <span class="material-symbols-rounded" id="icon-toggle-pass">visibility</span>
-                                    </button>
+                                <div class="k-field k-field--full">
+                                    <label class="k-label" for="smtp-timeout">Timeout di connessione (ms)</label>
+                                    <input type="number" id="smtp-timeout" class="k-input" placeholder="10000">
                                 </div>
-                                <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: var(--md-on-surface-variant);">Per Google o Microsoft, utilizza una App Password invece della password dell'account.</p>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
-                                <input type="checkbox" id="smtp-allow-self-signed" style="width: 1.2rem; height: 1.2rem; cursor: pointer;">
-                                <label for="smtp-allow-self-signed" style="color: var(--md-on-surface); font-size: 0.95rem; cursor: pointer;">Ignora errori certificato SSL (Self-Signed TLS)</label>
+                        </section>
+
+                        <section class="k-card">
+                            <div class="k-card-header">
+                                <h2 class="k-card-title"><span class="material-symbols-rounded">passkey</span>Autenticazione</h2>
                             </div>
-                        </div>
-                        <!-- Mittente -->
-                        <div class="card" style="padding: 1.5rem; background: var(--md-surface); border-radius: 16px; border: 1px solid var(--md-surface-variant); display: flex; flex-direction: column; gap: 1.5rem;">
-                            <div style="display: flex; align-items: center; gap: 0.8rem; border-bottom: 1px solid var(--md-surface-variant); padding-bottom: 1rem;">
-                                <span class="material-symbols-rounded" style="color: var(--md-primary); font-size: 1.8rem;">contact_mail</span>
-                                <h3 style="margin: 0; font-size: 1.2rem; color: var(--md-on-surface);">Identità Mittente</h3>
+                            <div class="k-stack">
+                                ${campo('smtp-user', 'Nome utente', 'type="text" placeholder="admin@azienda.it" autocomplete="off"')}
+                                <div class="k-field">
+                                    <label class="k-label" for="smtp-pass">Password o App Password</label>
+                                    <div class="k-input-group">
+                                        <span class="material-symbols-rounded">key</span>
+                                        <input type="password" id="smtp-pass" class="k-input" placeholder="••••••••••••" autocomplete="new-password" style="padding-right: 2.75rem;">
+                                        <button id="btn-toggle-pass" type="button" class="k-btn k-btn--ghost k-btn--icon k-btn--sm k-input-action" aria-label="Mostra o nascondi la password">
+                                            <span class="material-symbols-rounded" id="icon-toggle-pass">visibility</span>
+                                        </button>
+                                    </div>
+                                    <span class="k-hint">Con Google o Microsoft usa una App Password, non la password dell'account.</span>
+                                </div>
+                                <label class="k-check">
+                                    <input type="checkbox" id="smtp-allow-self-signed">
+                                    Ignora errori del certificato (TLS autofirmato)
+                                </label>
                             </div>
-                            <div>
-                                <label class="text-label" style="display: block; margin-bottom: 0.5rem; color: var(--md-on-surface-variant); font-weight: 500;">Email Mittente (Da)</label>
-                                <input type="text" id="smtp-sender-email" class="input-field" placeholder="noreply@azienda.com" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface);">
+                        </section>
+
+                        <section class="k-card">
+                            <div class="k-card-header">
+                                <h2 class="k-card-title"><span class="material-symbols-rounded">contact_mail</span>Identità mittente</h2>
                             </div>
-                            <div>
-                                <label class="text-label" style="display: block; margin-bottom: 0.5rem; color: var(--md-on-surface-variant); font-weight: 500;">Nome Visualizzato</label>
-                                <input type="text" id="smtp-sender-name" class="input-field" placeholder="KORADEST" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--md-outline); background: var(--md-surface); color: var(--md-on-surface);">
+                            <div class="k-stack">
+                                ${campo('smtp-sender-email', 'Email mittente', 'type="text" placeholder="noreply@azienda.it"')}
+                                ${campo('smtp-sender-name', 'Nome visualizzato', 'type="text" placeholder="KORADEST"')}
                             </div>
-                        </div>
+                        </section>
                     </div>
-                    <!-- Console Debug (Nascosta di default) -->
-                    <div id="smtp-console-container" style="display: none; flex-direction: column; gap: 1rem; margin-top: 1rem;">
-                        <h3 style="margin: 0; font-size: 1.2rem; color: var(--md-on-surface); display: flex; align-items: center; gap: 0.5rem;"><span class="material-symbols-rounded" style="color: var(--md-primary);">terminal</span> Handshake Trace</h3>
-                        <div id="smtp-console" style="background: #1e1e1e; color: #d4d4d4; padding: 1.5rem; border-radius: 12px; font-family: 'Fira Code', monospace; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; border: 1px solid #333;"></div>
-                    </div>
+
+                    <section id="smtp-console-container" class="k-section" style="display: none;">
+                        <div class="k-section-header">
+                            <h2 class="k-section-title k-row" style="--k-gap: var(--k-space-2);"><span class="material-symbols-rounded" style="color: var(--md-primary);">terminal</span>Traccia della connessione</h2>
+                        </div>
+                        <div id="smtp-console" class="k-console" role="log" aria-live="polite"></div>
+                    </section>
                 </div>
             `;
             const config = await window.electronAPI.readConfig() || {};
-            const hostIn = document.getElementById('smtp-host');
-            const portIn = document.getElementById('smtp-port');
-            const secIn = document.getElementById('smtp-security');
-            const timeoutIn = document.getElementById('smtp-timeout');
-            const userIn = document.getElementById('smtp-user');
-            const passIn = document.getElementById('smtp-pass');
-            const selfSignIn = document.getElementById('smtp-allow-self-signed');
-            const sEmailIn = document.getElementById('smtp-sender-email');
-            const sNameIn = document.getElementById('smtp-sender-name');
+            const hostIn = el.querySelector('#smtp-host');
+            const portIn = el.querySelector('#smtp-port');
+            const secIn = el.querySelector('#smtp-security');
+            const timeoutIn = el.querySelector('#smtp-timeout');
+            const userIn = el.querySelector('#smtp-user');
+            const passIn = el.querySelector('#smtp-pass');
+            const selfSignIn = el.querySelector('#smtp-allow-self-signed');
+            const sEmailIn = el.querySelector('#smtp-sender-email');
+            const sNameIn = el.querySelector('#smtp-sender-name');
             if (config.smtp_host) hostIn.value = config.smtp_host;
             if (config.smtp_port) portIn.value = config.smtp_port;
             if (config.smtp_security) secIn.value = config.smtp_security;
@@ -115,106 +157,76 @@ export default {
             if (config.smtp_allow_self_signed) selfSignIn.checked = true;
             if (config.smtp_sender_email) sEmailIn.value = config.smtp_sender_email;
             if (config.smtp_sender_name) sNameIn.value = config.smtp_sender_name;
-            document.getElementById('btn-toggle-pass').addEventListener('click', () => {
-                const icon = document.getElementById('icon-toggle-pass');
-                if (passIn.type === 'password') {
-                    passIn.type = 'text';
-                    icon.innerText = 'visibility_off';
-                } else {
-                    passIn.type = 'password';
-                    icon.innerText = 'visibility';
-                }
+
+            el.querySelector('#btn-toggle-pass').addEventListener('click', () => {
+                const icon = el.querySelector('#icon-toggle-pass');
+                const mostra = passIn.type === 'password';
+                passIn.type = mostra ? 'text' : 'password';
+                icon.textContent = mostra ? 'visibility_off' : 'visibility';
             });
-            const getFormData = () => {
-                return {
-                    smtp_host: hostIn.value.trim(),
-                    smtp_port: parseInt(portIn.value) || null,
-                    smtp_security: secIn.value,
-                    smtp_timeout: parseInt(timeoutIn.value) || null,
-                    smtp_user: userIn.value.trim(),
-                    smtp_pass: passIn.value,
-                    smtp_allow_self_signed: selfSignIn.checked,
-                    smtp_sender_email: sEmailIn.value.trim(),
-                    smtp_sender_name: sNameIn.value.trim()
-                };
+
+            const getFormData = () => ({
+                smtp_host: hostIn.value.trim(),
+                smtp_port: parseInt(portIn.value) || null,
+                smtp_security: secIn.value,
+                smtp_timeout: parseInt(timeoutIn.value) || null,
+                smtp_user: userIn.value.trim(),
+                smtp_pass: passIn.value,
+                smtp_allow_self_signed: selfSignIn.checked,
+                smtp_sender_email: sEmailIn.value.trim(),
+                smtp_sender_name: sNameIn.value.trim()
+            });
+
+            el.querySelector('#btn-save-smtp').addEventListener('click', async () => {
+                const btn = el.querySelector('#btn-save-smtp');
+                btn.setAttribute('aria-busy', 'true');
+                const success = await window.electronAPI.saveConfig({ ...config, ...getFormData() });
+                btn.removeAttribute('aria-busy');
+                toast(success ? 'Configurazione SMTP salvata' : 'Salvataggio della configurazione non riuscito', success ? 'success' : 'error');
+            });
+
+            const consoleCtn = el.querySelector('#smtp-console-container');
+            const consoleOut = el.querySelector('#smtp-console');
+            const scrivi = (testo, tono) => {
+                const riga = document.createElement('div');
+                if (tono) riga.className = `k-console-${tono}`;
+                riga.textContent = testo;
+                consoleOut.appendChild(riga);
+                consoleOut.scrollTop = consoleOut.scrollHeight;
             };
-            document.getElementById('btn-save-smtp').addEventListener('click', async () => {
-                const btn = document.getElementById('btn-save-smtp');
-                const oldHTML = btn.innerHTML;
-                btn.innerHTML = '<span class="material-symbols-rounded" style="animation: spin 1s linear infinite;">sync</span> Salvataggio...';
-                btn.disabled = true;
-                const formData = getFormData();
-                const newConfig = { ...config, ...formData };
-                const success = await window.electronAPI.saveConfig(newConfig);
-                btn.innerHTML = oldHTML;
-                btn.disabled = false;
-                if (success) {
-                    toast('Configurazione SMTP salvata con successo!', 'success');
-                } else {
-                    toast('Errore durante il salvataggio della configurazione.', 'error');
-                }
-            });
-            document.getElementById('btn-test-smtp').addEventListener('click', async () => {
+
+            el.querySelector('#btn-test-smtp').addEventListener('click', async () => {
                 const formData = getFormData();
                 if (!formData.smtp_host || !formData.smtp_port) {
-                    toast('Host e Porta sono obbligatori per il test.', 'warning');
+                    toast('Host e porta sono obbligatori per il test.', 'warning');
                     return;
                 }
-                const testEmail = await new Promise((resolve) => {
-                    const modal = document.createElement('div');
-                    modal.innerHTML = `
-                        <div style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center;">
-                            <div style="background:var(--md-surface); padding:2rem; border-radius:12px; width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
-                                <h3 style="margin-top:0;">Test SMTP</h3>
-                                <p>Inserisci l'indirizzo email a cui inviare il messaggio di test:</p>
-                                <input type="email" id="smtp-test-email-input" class="input-field" style="width:100%; box-sizing:border-box; padding:0.8rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); margin-bottom:1rem;">
-                                <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
-                                    <button id="smtp-test-email-cancel" class="btn secondary">Annulla</button>
-                                    <button id="smtp-test-email-ok" class="btn primary">Invia</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
-                    document.getElementById('smtp-test-email-ok').onclick = () => {
-                        const val = document.getElementById('smtp-test-email-input').value;
-                        document.body.removeChild(modal);
-                        resolve(val);
-                    };
-                    document.getElementById('smtp-test-email-cancel').onclick = () => {
-                        document.body.removeChild(modal);
-                        resolve(null);
-                    };
-                });
+                const testEmail = await chiediEmailDiTest();
                 if (!testEmail) return;
-                const btn = document.getElementById('btn-test-smtp');
-                const oldHTML = btn.innerHTML;
-                btn.innerHTML = '<span class="material-symbols-rounded" style="animation: spin 1s linear infinite;">sync</span> Test in corso...';
-                btn.disabled = true;
-                const consoleCtn = document.getElementById('smtp-console-container');
-                const consoleOut = document.getElementById('smtp-console');
+                const btn = el.querySelector('#btn-test-smtp');
+                btn.setAttribute('aria-busy', 'true');
                 consoleCtn.style.display = 'flex';
-                consoleOut.innerHTML = '<span style="color: #4CAF50;">[System]</span> Inizializzazione connessione verso ' + formData.smtp_host + ':' + formData.smtp_port + '...\\n';
+                consoleOut.textContent = '';
+                scrivi(`[Sistema] Connessione verso ${formData.smtp_host}:${formData.smtp_port}...`, 'sys');
                 try {
                     const res = await window.electronAPI.testSmtpConnection(formData, testEmail);
+                    if (res.logs) scrivi(String(res.logs));
                     if (res.success) {
-                        toast('Test SMTP completato con successo!', 'success');
-                        consoleOut.innerHTML += res.logs + '\\n\\n<span style="color: #4CAF50; font-weight: bold;">[Result] Connessione riuscita ed email inviata a ' + testEmail + '</span>';
+                        toast('Test SMTP completato', 'success');
+                        scrivi(`[Esito] Connessione riuscita, email inviata a ${testEmail}`, 'ok');
                     } else {
-                        toast('Errore di connessione SMTP', 'error');
-                        consoleOut.innerHTML += res.logs ? res.logs + '\\n\\n' : '';
-                        consoleOut.innerHTML += '<span style="color: #F44336; font-weight: bold;">[Result] ' + res.error + '</span>';
+                        toast('Connessione SMTP non riuscita', 'error');
+                        scrivi(`[Esito] ${res.error || 'Errore sconosciuto'}`, 'err');
                     }
-                } catch(e) {
-                    toast('Errore fatale: ' + e.message, 'error');
-                    consoleOut.innerHTML += '<span style="color: #F44336; font-weight: bold;">[Result] ' + e.message + '</span>';
+                } catch (e) {
+                    toast('Errore durante il test: ' + e.message, 'error');
+                    scrivi(`[Esito] ${e.message}`, 'err');
                 }
-                btn.innerHTML = oldHTML;
-                btn.disabled = false;
+                btn.removeAttribute('aria-busy');
             });
         } catch (e) {
             console.error(e);
-            el.innerHTML = '<div style="padding: 2rem; color: var(--md-error);">Errore di rendering modulo SMTP: ' + e.message + '</div>';
+            el.innerHTML = '<div class="k-alert k-alert--danger"><span class="material-symbols-rounded">error</span><div>Errore di caricamento del modulo SMTP.</div></div>';
         }
     }
 };

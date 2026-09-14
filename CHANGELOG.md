@@ -3,6 +3,30 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.0.1] - 2026-09-14
+
+Interfaccia rinnovata e correzioni emerse dopo il primo rilascio.
+
+### Aggiunto
+- **Design system KORADEST**: token per colori semantici, tipografia e spaziature fluide, altezze dei controlli, raggi ed elevazione; dimensione del testo che si adatta alla finestra.
+- **Libreria di componenti** `k-`: intestazioni di pagina, card, griglie responsive con container query, bottoni, campi, interruttori, scelte a card, tab segmentate, badge, tabelle, dialog, toast, stati vuoti, skeleton, console di log, barre di avanzamento.
+
+### Modificato
+- Schermata di avvio con il significato esteso corretto: **K**ernel **O**pe**R**ativo e **A**rchitettura **D**inamica per l'**E**spansione e lo **S**viluppo **T**ecnologico; lo stesso nella finestra Informazioni.
+- Barra del titolo e barra di stato più sottili; la barra di stato nasconde le etichette meno importanti sugli schermi stretti.
+- Dashboard, App Store, Reti, Accesso, Amministratore, Impostazioni, Profilo personale, Server SMTP, Database di rete e Aggiornamenti ridisegnati con i nuovi componenti.
+- Kit delle schede anagrafiche (Gestione personale, Profilo personale) più compatto e coerente.
+- Notifiche a comparsa in basso a destra, con varianti e testo sempre sicuro.
+- Azioni sui nodi del Database di rete confermate con dialog invece che con finestre di sistema.
+
+### Corretto
+- Credenziali di rete: il codice non compariva mai e veniva mostrato il messaggio fuorviante "Non disponibile sui database legacy". Ora PIN o password vengono verificati e l'errore reale viene spiegato.
+- Test del server SMTP: la traccia mostrava `\n` letterali invece di andare a capo.
+- Nomi e indirizzi dei nodi e dei moduli ora sono sottoposti a escaping prima di essere mostrati.
+
+### Rimosso
+- Importazione automatica degli spazi di lavoro legacy all'avvio.
+
 ## [1.0.0] - 2026-09-14
 
 Prima versione di **KORADEST** — Kernel Operativo e Architettura Dinamica per l'Espansione e lo Sviluppo Tecnologico.

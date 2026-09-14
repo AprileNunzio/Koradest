@@ -7,7 +7,7 @@ const RADICE = path.join(__dirname, '..');
 const SORGENTI = path.join(RADICE, 'src', 'js');
 const FOGLI = path.join(RADICE, 'src', 'css');
 
-const PREFISSI_NOSTRI = ['store-', 'info-', 'purge-', 'versione-', 'versioni-', 'app-', 'btn-', 'ds-', 'net-'];
+const PREFISSI_NOSTRI = ['store-', 'info-', 'purge-', 'versione-', 'versioni-', 'app-', 'btn-', 'ds-', 'net-', 'k-', 'tb-', 'splash-', 'status-'];
 
 const GANCI_JS = new Set([
     'btn-reset', 'btn-submit', 'btn-tab', 'btn-icon', 'btn-action', 'btn-danger',

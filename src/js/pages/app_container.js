@@ -1,23 +1,41 @@
 import { Router } from '../utils.js';
 
+const esc = (valore) => String(valore ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+const statoCentrato = ({ icona, tono = 'primary', titolo, testo, pulsante = null, animato = false }) => `
+    <div class="k-page k-page--narrow" style="justify-content: center; min-height: 100%;">
+        <div class="k-card k-empty">
+            <span class="material-symbols-rounded${animato ? ' spin' : ''}" style="color: var(--md-${tono}); background: var(--md-${tono}-container);">${icona}</span>
+            <div class="k-empty-title">${titolo}</div>
+            <p class="k-empty-text">${testo}</p>
+            ${pulsante ? `<button id="${pulsante.id}" class="k-btn ${pulsante.variante || ''}" style="margin-top: var(--k-space-2);">${pulsante.etichetta}</button>` : ''}
+        </div>
+    </div>
+`;
+
+const tornaAllaHome = () => {
+    Router.navigate((window.currentUser || sessionStorage.getItem('currentUserId')) ? 'dashboard' : 'auth_login');
+};
+
 export default {
     render: async (el, params) => {
         try {
             const appId = params?.appId;
             if (!appId) {
-                el.innerHTML = '<p>Errore: Nessun ID applicativo fornito.</p>';
+                el.innerHTML = statoCentrato({ icona: 'error', tono: 'error', titolo: 'Applicazione non indicata', testo: 'Nessun identificativo applicativo fornito.' });
                 return;
             }
             el.innerHTML = `
                 <div id="app-mount-point" style="height: 100%; width: 100%;">
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-                        <span class="material-symbols-rounded" style="font-size: 3rem; color: var(--md-primary); animation: spin 2s linear infinite;">sync</span>
-                        <p style="margin-top: 1rem; color: var(--md-on-surface-variant);">Avvio modulo in corso...</p>
+                    <div class="k-loading" style="height: 100%;">
+                        <div class="k-spinner" style="--k-spinner-size: 2rem;"></div>
+                        <span>Avvio modulo in corso...</span>
                     </div>
                 </div>
-                <style>
-                    @keyframes spin { 100% { transform: rotate(360deg); } }
-                </style>
             `;
             const mountPoint = el.querySelector('#app-mount-point');
             if (window.electronAPI) {
@@ -27,17 +45,14 @@ export default {
                     const viewPermId = `${appId}:view`;
                     const hasAccess = userPerms.includes('*') || userPerms.includes(viewPermId) || userPerms.some(p => p.startsWith(`${appId}:`));
                     if (!hasAccess) {
-                        mountPoint.innerHTML = `
-                            <div class="card" style="text-align: center; max-width: 500px; margin: 4rem auto; padding: 3rem;">
-                                <span class="material-symbols-rounded" style="font-size: 4rem; color: var(--md-error);">gpp_bad</span>
-                                <h2 style="color: var(--md-error); margin-top: 1rem;">Accesso Negato</h2>
-                                <p style="color: var(--md-on-surface-variant); margin: 1rem 0 2rem;">Non hai i permessi necessari per accedere a questa applicazione. Contatta l'amministratore di sistema per richiedere l'accesso.</p>
-                                <button id="btn-back-auth" class="btn" style="background: var(--md-primary); color: white;">Torna alla Dashboard</button>
-                            </div>
-                        `;
-                        el.querySelector('#btn-back-auth')?.addEventListener('click', () => {
-                            Router.navigate((window.currentUser || sessionStorage.getItem('currentUserId')) ? 'dashboard' : 'auth_login');
+                        mountPoint.innerHTML = statoCentrato({
+                            icona: 'gpp_bad',
+                            tono: 'error',
+                            titolo: 'Accesso negato',
+                            testo: 'Non hai i permessi necessari per questa applicazione. Chiedi l\'accesso all\'amministratore di sistema.',
+                            pulsante: { id: 'btn-back-auth', etichetta: 'Torna alla Dashboard', variante: 'k-btn--primary' }
                         });
+                        el.querySelector('#btn-back-auth')?.addEventListener('click', tornaAllaHome);
                         return;
                     }
                 }
@@ -47,13 +62,12 @@ export default {
                     if (updateRes && updateRes.success && Array.isArray(updateRes.data)) {
                         const pendingUpdate = updateRes.data.find(u => u.appId === appId);
                         if (pendingUpdate) {
-                            mountPoint.innerHTML = `
-                                <div class="card" style="text-align:center;max-width:480px;margin:4rem auto;padding:3rem;border:2px solid var(--md-primary);background:rgba(var(--md-primary-rgb,59,130,246),0.04);">
-                                    <span class="material-symbols-rounded" style="font-size:4rem;color:var(--md-primary);animation:spin 2s linear infinite;">system_update</span>
-                                    <h2 style="color:var(--md-primary);margin-top:1.2rem;letter-spacing:-0.02em;">Aggiornamento in corso</h2>
-                                    <p style="color:var(--md-on-surface-variant);margin:0.8rem 0 2rem;line-height:1.6;">Installazione automatica della versione <strong>v${pendingUpdate.availableVersion}</strong> per ${appId}...</p>
-                                </div>
-                            `;
+                            mountPoint.innerHTML = statoCentrato({
+                                icona: 'system_update',
+                                titolo: 'Aggiornamento in corso',
+                                testo: `Installazione automatica della versione <strong>v${esc(pendingUpdate.availableVersion)}</strong> per ${esc(appId)}...`,
+                                animato: true
+                            });
                             await window.electronAPI.store.install(pendingUpdate.appId);
                         }
                     }
@@ -62,16 +76,13 @@ export default {
                 try {
                     const lockRes = await window.electronAPI.store.isAppLocked(appId);
                     if (lockRes && lockRes.locked) {
-                        mountPoint.innerHTML = `
-                            <div class="card" style="text-align:center;max-width:480px;margin:4rem auto;padding:3rem;border:2px solid var(--md-primary);background:rgba(var(--md-primary-rgb,59,130,246),0.04);">
-                                <span class="material-symbols-rounded" style="font-size:4rem;color:var(--md-primary);animation:spin 2s linear infinite;">system_update</span>
-                                <h2 style="color:var(--md-primary);margin-top:1.2rem;letter-spacing:-0.02em;">Aggiornamento in corso</h2>
-                                <p style="color:var(--md-on-surface-variant);margin:0.8rem 0 2rem;line-height:1.6;">L'applicazione <strong>${appId}</strong> è in fase di aggiornamento. Sarà disponibile al termine del processo.</p>
-                                <div style="display:flex;gap:1rem;justify-content:center;">
-                                    <button id="btn-back-updating" class="btn btn-secondary">Torna alla Dashboard</button>
-                                </div>
-                            </div>
-                        `;
+                        mountPoint.innerHTML = statoCentrato({
+                            icona: 'system_update',
+                            titolo: 'Aggiornamento in corso',
+                            testo: `L'applicazione <strong>${esc(appId)}</strong> è in aggiornamento e sarà disponibile al termine.`,
+                            pulsante: { id: 'btn-back-updating', etichetta: 'Torna alla Dashboard' },
+                            animato: true
+                        });
                         mountPoint.querySelector('#btn-back-updating')?.addEventListener('click', () => {
                             Router.navigate('dashboard');
                         });
@@ -192,36 +203,29 @@ export default {
                         });
                     }
                 } else {
-
-                    mountPoint.innerHTML = `
-                        <div class="card" style="text-align: center;">
-                            <span class="material-symbols-rounded" style="font-size: 3rem; color: var(--md-error);">error</span>
-                            <h2 style="color: var(--md-error);">Errore di Caricamento</h2>
-                            <p>Il modulo <b>${appId}</b> non espone un punto di montaggio valido.</p>
-                            <button id="btn-back-error" class="btn btn-secondary" style="margin-top: 1rem;">Torna alla Dashboard</button>
-                        </div>
-                    `;
-                    el.querySelector('#btn-back-error')?.addEventListener('click', () => {
-                        Router.navigate((window.currentUser || sessionStorage.getItem('currentUserId')) ? 'dashboard' : 'auth_login');
+                    mountPoint.innerHTML = statoCentrato({
+                        icona: 'error',
+                        tono: 'error',
+                        titolo: 'Errore di caricamento',
+                        testo: `Il modulo <b>${esc(appId)}</b> non espone un punto di montaggio valido.`,
+                        pulsante: { id: 'btn-back-error', etichetta: 'Torna alla Dashboard' }
                     });
+                    el.querySelector('#btn-back-error')?.addEventListener('click', tornaAllaHome);
                 }
             } catch (importError) {
                 console.error("Dynamic import failed for app: " + appId, importError);
-                mountPoint.innerHTML = `
-                    <div class="card" style="text-align: center;">
-                        <span class="material-symbols-rounded" style="font-size: 3rem; color: var(--md-error);">broken_image</span>
-                        <h2 style="color: var(--md-error);">Modulo non trovato</h2>
-                        <p>Impossibile caricare il modulo <b>${appId}</b>. Il file app.js potrebbe essere assente o danneggiato.</p>
-                        <button id="btn-back-error" class="btn btn-secondary" style="margin-top: 1rem;">Torna alla Dashboard</button>
-                    </div>
-                `;
-                el.querySelector('#btn-back-error')?.addEventListener('click', () => {
-                    Router.navigate((window.currentUser || sessionStorage.getItem('currentUserId')) ? 'dashboard' : 'auth_login');
+                mountPoint.innerHTML = statoCentrato({
+                    icona: 'broken_image',
+                    tono: 'error',
+                    titolo: 'Modulo non trovato',
+                    testo: `Impossibile caricare il modulo <b>${esc(appId)}</b>: il file principale potrebbe essere assente o danneggiato.`,
+                    pulsante: { id: 'btn-back-error', etichetta: 'Torna alla Dashboard' }
                 });
+                el.querySelector('#btn-back-error')?.addEventListener('click', tornaAllaHome);
             }
         } catch (e) {
             console.error(e);
-            el.innerHTML = `<p>Errore critico App Container</p>`;
+            el.innerHTML = statoCentrato({ icona: 'error', tono: 'error', titolo: 'Errore critico', testo: 'Il contenitore dell\'applicazione non è riuscito ad avviarsi.' });
         }
     }
 };

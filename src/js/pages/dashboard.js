@@ -105,21 +105,24 @@ export default {
     render: async (el) => {
         try {
             el.innerHTML = `
-                <div class="page-container">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                        <div>
-                            <h1 class="text-title" style="margin-bottom: 0.2rem; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.03em;">Dashboard Principale</h1>
-                            <p class="text-body" style="color: var(--md-on-surface-variant); font-size: 0.95rem;">Seleziona un'applicazione per iniziare a lavorare</p>
+                <div class="k-page">
+                    <header class="k-page-header">
+                        <div class="k-page-heading">
+                            <span class="k-page-icon material-symbols-rounded">space_dashboard</span>
+                            <div>
+                                <h1 class="k-page-title">Dashboard</h1>
+                                <p class="k-page-subtitle">Seleziona un'applicazione per iniziare a lavorare</p>
+                            </div>
                         </div>
-                        <div class="search-box" style="position: relative; width: 280px;">
-                            <span class="material-symbols-rounded" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--md-on-surface-variant); pointer-events: none;">search</span>
-                            <input type="text" id="app-search" class="input" placeholder="Cerca applicativo..." style="padding-left: 2.8rem; width: 100%; border-radius: 20px; border: 1px solid var(--md-outline-variant); background: rgba(255, 255, 255, 0.7); color: var(--md-on-surface); height: 44px; font-size: 0.95rem;">
+                        <div class="k-input-group" style="flex: 1 1 16rem; max-width: 22rem;">
+                            <span class="material-symbols-rounded">search</span>
+                            <input type="search" id="app-search" class="k-input" placeholder="Cerca applicazione, autore o categoria..." aria-label="Cerca applicazione">
                         </div>
-                    </div>
+                    </header>
                     <div id="apps-lanes">
-                        <div style="text-align: center; padding: 3rem;">
-                            <span class="material-symbols-rounded spin" style="font-size: 3rem; color: var(--md-primary);">sync</span>
-                            <p style="margin-top: 1rem; color: var(--md-on-surface-variant);">Caricamento applicativi in corso...</p>
+                        <div class="k-loading">
+                            <div class="k-spinner" style="--k-spinner-size: 2rem;"></div>
+                            <span>Caricamento applicazioni...</span>
                         </div>
                     </div>
                 </div>

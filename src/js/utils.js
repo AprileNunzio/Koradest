@@ -45,60 +45,35 @@ export const Router = {
         }
     }
 };
+const TOAST_ICONE = { info: 'info', success: 'check_circle', error: 'error', warning: 'warning' };
+const TOAST_DURATA_MS = 4000;
+
 export const toast = (message, type = 'info') => {
     try {
-        console.log(`[TOAST ${type}]: ${message}`);
-        let container = document.getElementById('toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.style.cssText = 'position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none;';
-            document.body.appendChild(container);
+        let regione = document.getElementById('toast-container');
+        if (!regione) {
+            regione = document.createElement('div');
+            regione.id = 'toast-container';
+            regione.className = 'k-toast-region';
+            regione.setAttribute('role', 'status');
+            regione.setAttribute('aria-live', 'polite');
+            document.body.appendChild(regione);
         }
-        const toastEl = document.createElement('div');
-        let bgColor = 'var(--md-surface-variant)';
-        let icon = 'info';
-        let color = 'var(--md-on-surface)';
-        if (type === 'success') {
-            bgColor = 'rgba(76, 175, 80, 0.95)';
-            color = '#ffffff';
-            icon = 'check_circle';
-        } else if (type === 'error') {
-            bgColor = 'rgba(244, 67, 54, 0.95)';
-            color = '#ffffff';
-            icon = 'error';
-        }
-        toastEl.style.cssText = `
-            background: ${bgColor};
-            color: ${color};
-            padding: 0.8rem 1.5rem;
-            border-radius: 24px;
-            font-size: 0.95rem;
-            font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(8px);
-        `;
-        toastEl.innerHTML = `<span class="material-symbols-rounded" style="font-size: 1.2rem;">${icon}</span> <span>${message}</span>`;
-        container.appendChild(toastEl);
-        requestAnimationFrame(() => {
-            toastEl.style.opacity = '1';
-            toastEl.style.transform = 'translateY(0)';
-        });
+        const variante = TOAST_ICONE[type] ? type : 'info';
+        const elemento = document.createElement('div');
+        elemento.className = `k-toast k-toast--${variante}`;
+        const icona = document.createElement('span');
+        icona.className = 'material-symbols-rounded k-toast-icon';
+        icona.textContent = TOAST_ICONE[variante];
+        const testo = document.createElement('span');
+        testo.textContent = String(message ?? '');
+        elemento.append(icona, testo);
+        regione.appendChild(elemento);
+        requestAnimationFrame(() => elemento.classList.add('is-visible'));
         setTimeout(() => {
-            toastEl.style.opacity = '0';
-            toastEl.style.transform = 'translateY(-20px)';
-            setTimeout(() => {
-                try {
-                    if (container.contains(toastEl)) container.removeChild(toastEl);
-                } catch(e){}
-            }, 300);
-        }, 4000);
+            elemento.classList.remove('is-visible');
+            setTimeout(() => elemento.remove(), 250);
+        }, TOAST_DURATA_MS);
     } catch (e) {
         console.error(e);
     }

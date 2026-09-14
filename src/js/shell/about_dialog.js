@@ -26,7 +26,7 @@ const hero = (version) => `
             <div class="about-mark"><span class="material-symbols-rounded">hexagon</span></div>
             <div class="about-titles">
                 <h3 class="about-name">KORADEST</h3>
-                <p class="about-claim">Architettura Dinamica per l'Espansione e lo Sviluppo Tecnologico di Imprese e Organizzazioni</p>
+                <p class="about-claim">Kernel Operativo e Architettura Dinamica per l'Espansione e lo Sviluppo Tecnologico</p>
                 <span class="about-version"><span class="material-symbols-rounded">sell</span>Versione ${esc(version)}</span>
             </div>
         </div>

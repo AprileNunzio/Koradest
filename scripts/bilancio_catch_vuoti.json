@@ -1,5 +1,5 @@
 {
-  "totale": 520,
+  "totale": 516,
   "perArea": {
     "backend/core": 130,
     "backend/dag": 36,
@@ -14,8 +14,8 @@
     "backend/security": 23,
     "backend/sync": 8,
     "backend/updates_manager.js": 4,
-    "src/apps": 19,
-    "src/js": 140
+    "src/apps": 16,
+    "src/js": 139
   },
-  "aggiornatoIl": "2026-09-14T09:34:05.467Z"
+  "aggiornatoIl": "2026-09-14T10:05:44.347Z"
 }

@@ -1,54 +1,133 @@
+/* Design system KORADEST: token globali.
+   I nomi --md-* restano per compatibilita con le pagine esistenti;
+   i token --k-* descrivono scala, spaziature, controlli ed elevazione. */
 :root {
-        --md-bg-color: #f8fafc;
-    --md-surface: rgba(255, 255, 255, 0.85);
-    --md-surface-variant: rgba(241, 245, 249, 0.8);
-    --md-primary: #3b82f6;
-    --md-primary-hover: #2563eb;
-    --md-secondary: #8b5cf6;
-    --md-secondary-hover: #7c3aed;
-    --md-tertiary: #f4511e;
-    --md-tertiary-hover: #d84315;
-    --md-on-primary: #ffffff;
-    --md-on-secondary: #ffffff;
-    --md-on-tertiary: #ffffff;
-    --md-primary-rgb: 59, 130, 246;
-    --md-secondary-rgb: 139, 92, 246;
-    --md-tertiary-rgb: 244, 81, 30;
-    --md-error-rgb: 239, 68, 68;
-    --md-success-rgb: 16, 185, 129;
+    color-scheme: light;
+
+    /* Superfici */
+    --md-bg-color: #f4f6fb;
+    --md-surface: #ffffff;
+    --md-surface-variant: #f1f4f9;
     --md-surface-container-lowest: #ffffff;
     --md-surface-container-low: #f8fafc;
     --md-surface-container: #f1f5f9;
-    --md-surface-container-high: #e9eef5;
-    --md-primary-container: #dbeafe;
+    --md-surface-container-high: #e8edf4;
+    --md-surface-rgb: 255, 255, 255;
+
+    /* Colori di marca */
+    --md-primary: #2563eb;
+    --md-primary-hover: #1d4ed8;
+    --md-primary-rgb: 37, 99, 235;
+    --md-on-primary: #ffffff;
+    --md-primary-container: #dbe7ff;
     --md-on-primary-container: #1e3a8a;
+
+    --md-secondary: #7c3aed;
+    --md-secondary-hover: #6d28d9;
+    --md-secondary-rgb: 124, 58, 237;
+    --md-on-secondary: #ffffff;
     --md-secondary-container: #ede9fe;
     --md-on-secondary-container: #4c1d95;
-    --md-tertiary-container: #ffe0d6;
-    --md-on-tertiary-container: #8a2c0d;
-    --md-error-container: #fee2e2;
-    --md-on-error-container: #7f1d1d;
+
+    --md-tertiary: #ea580c;
+    --md-tertiary-hover: #c2410c;
+    --md-tertiary-rgb: 234, 88, 12;
+    --md-on-tertiary: #ffffff;
+    --md-tertiary-container: #ffedd5;
+    --md-on-tertiary-container: #7c2d12;
+
+    /* Stati */
+    --md-success: #059669;
+    --md-success-rgb: 5, 150, 105;
     --md-success-container: #d1fae5;
     --md-on-success-container: #065f46;
+
+    --md-warning: #d97706;
+    --md-warning-rgb: 217, 119, 6;
+    --md-warning-container: #fef3c7;
+    --md-on-warning-container: #78350f;
+
+    --md-error: #dc2626;
+    --md-error-rgb: 220, 38, 38;
+    --md-error-container: #fee2e2;
+    --md-on-error-container: #7f1d1d;
+
+    --md-info: #0284c7;
+    --md-info-container: #e0f2fe;
+    --md-on-info-container: #0c4a6e;
+
+    /* Testo e bordi */
     --md-on-bg: #0f172a;
     --md-on-surface: #1e293b;
-    --md-on-surface-variant: #475569;
-    --md-outline: rgba(0, 0, 0, 0.1);
+    --md-on-surface-variant: #526077;
+    --md-on-surface-muted: #8391a7;
+    --md-outline: #e2e8f0;
     --md-outline-variant: #cbd5e1;
-    --md-outline-focus: rgba(59, 130, 246, 0.5);
-    --md-error: #ef4444;
-    --md-success: #10b981;
-    --shape-xs: 8px;
-    --shape-sm: 12px;
-    --shape-md: 16px;
-    --shape-lg: 24px;
-    --shape-xl: 32px;
+    --md-outline-focus: rgba(37, 99, 235, 0.35);
+
+    /* Forme */
+    --shape-xs: 6px;
+    --shape-sm: 8px;
+    --shape-md: 12px;
+    --shape-lg: 16px;
+    --shape-xl: 20px;
     --shape-full: 999px;
-        --font-heading: 'Outfit', sans-serif;
-    --font-body: 'Inter', sans-serif;
-        --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08), 0 0 20px rgba(59, 130, 246, 0.05);
-    --glass-blur: blur(20px);
-    --glass-border: 1px solid rgba(255, 255, 255, 0.6);
-    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-medium: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Tipografia */
+    --font-heading: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'Cascadia Mono', 'Consolas', ui-monospace, monospace;
+
+    --k-font-2xs: 0.6875rem;
+    --k-font-xs: 0.75rem;
+    --k-font-sm: 0.8125rem;
+    --k-font-md: 0.875rem;
+    --k-font-base: 0.9375rem;
+    --k-font-lg: 1.0625rem;
+    --k-font-xl: clamp(1.125rem, 1rem + 0.35vw, 1.3125rem);
+    --k-font-2xl: clamp(1.3125rem, 1.1rem + 0.7vw, 1.625rem);
+    --k-font-3xl: clamp(1.5rem, 1.2rem + 1.1vw, 2.125rem);
+
+    /* Spaziature */
+    --k-space-1: 0.25rem;
+    --k-space-2: 0.5rem;
+    --k-space-3: 0.75rem;
+    --k-space-4: 1rem;
+    --k-space-5: 1.25rem;
+    --k-space-6: 1.5rem;
+    --k-space-7: 2rem;
+    --k-space-8: 2.5rem;
+    --k-space-9: 3rem;
+    --k-page-pad: clamp(0.875rem, 0.5rem + 1.6vw, 2rem);
+    --k-page-max: 1440px;
+
+    /* Controlli */
+    --k-control-h-sm: 2rem;
+    --k-control-h: 2.375rem;
+    --k-control-h-lg: 2.75rem;
+    --k-radius-control: 10px;
+
+    /* Elevazione */
+    --k-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --k-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.07), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --k-shadow-md: 0 6px 16px -6px rgba(15, 23, 42, 0.12), 0 2px 6px -2px rgba(15, 23, 42, 0.06);
+    --k-shadow-lg: 0 18px 40px -16px rgba(15, 23, 42, 0.22), 0 4px 12px -4px rgba(15, 23, 42, 0.08);
+    --k-shadow-focus: 0 0 0 3px var(--md-outline-focus);
+
+    /* Movimento */
+    --k-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --transition-fast: 0.16s var(--k-ease);
+    --transition-medium: 0.3s var(--k-ease);
+
+    /* Vetro (compatibilita) */
+    --glass-shadow: var(--k-shadow-sm);
+    --glass-blur: blur(14px);
+    --glass-border: 1px solid var(--md-outline);
+
+    /* Livelli */
+    --k-z-sticky: 50;
+    --k-z-dropdown: 900;
+    --k-z-shell: 1000;
+    --k-z-dialog: 10000;
+    --k-z-toast: 10600;
 }

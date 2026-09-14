@@ -1,14 +1,8 @@
 const { BrowserWindow } = require('electron');
-const networkMigrator = require('../networks/lifecycle/network_migrator');
 const networkSession = require('../networks/session/network_session');
 
 class BootManager {
     static async runStartupSequence() {
-        try {
-            await networkMigrator.importLegacyWorkspace();
-        } catch (e) {
-            console.error('[BootManager] Migrazione rete legacy fallita:', e.message);
-        }
         try {
             require('../diagnostics_api').startDiagnosticsServer();
         } catch (e) {
