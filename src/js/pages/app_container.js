@@ -21,6 +21,132 @@ const tornaAllaHome = () => {
     Router.navigate((window.currentUser || sessionStorage.getItem('currentUserId')) ? 'dashboard' : 'auth_login');
 };
 
+async function smontaAppCorrente() {
+    const corrente = window.__currentMountedApp;
+    window.__currentMountedApp = null;
+    if (corrente && typeof corrente.unmount === 'function') {
+        try {
+            await corrente.unmount();
+        } catch (e) {
+            console.error('[AppContainer] Chiusura dell\'app precedente non riuscita:', e);
+        }
+    }
+}
+
+function ascoltaCicloDiVita(el, appId, appFolder) {
+    const store = window.electronAPI && window.electronAPI.store;
+    if (!store) return;
+    const riguarda = (data) => data && (data.appId === appId || data.appId === appFolder);
+    const rimuoviStile = () => document.querySelector(`link[data-app-css="${appFolder}"]`)?.remove();
+    if (typeof store.onAppUpdated === 'function') {
+        store.onAppUpdated(async (data) => {
+            if (!riguarda(data)) return;
+            await smontaAppCorrente();
+            rimuoviStile();
+            el.innerHTML = '';
+            Router.navigate('app_container', { appId });
+        });
+    }
+    if (typeof store.onAppUninstalled === 'function') {
+        store.onAppUninstalled(async (data) => {
+            if (!riguarda(data)) return;
+            await smontaAppCorrente();
+            rimuoviStile();
+            Router.navigate('dashboard');
+        });
+    }
+}
+
+async function verificaAccesso(el, mountPoint, appId) {
+    const userId = sessionStorage.getItem('currentUserId');
+    if (!userId) return true;
+    const userPerms = await window.electronAPI.rbac.getEffectiveUserPermissions(userId);
+    const hasAccess = userPerms.includes('*') || userPerms.includes(`${appId}:view`) || userPerms.some(p => p.startsWith(`${appId}:`));
+    if (hasAccess) return true;
+    mountPoint.innerHTML = statoCentrato({
+        icona: 'gpp_bad',
+        tono: 'error',
+        titolo: 'Accesso negato',
+        testo: 'Non hai i permessi necessari per questa applicazione. Chiedi l\'accesso all\'amministratore di sistema.',
+        pulsante: { id: 'btn-back-auth', etichetta: 'Torna alla Dashboard', variante: 'k-btn--primary' }
+    });
+    el.querySelector('#btn-back-auth')?.addEventListener('click', tornaAllaHome);
+    return false;
+}
+
+async function attendiAggiornamenti(el, mountPoint, appId) {
+    try {
+        const updateRes = await window.electronAPI.store.checkUpdates();
+        const pendingUpdate = updateRes && updateRes.success && Array.isArray(updateRes.data)
+            ? updateRes.data.find(u => u.appId === appId)
+            : null;
+        if (pendingUpdate) {
+            mountPoint.innerHTML = statoCentrato({
+                icona: 'system_update',
+                titolo: 'Aggiornamento in corso',
+                testo: `Installazione automatica della versione <strong>v${esc(pendingUpdate.availableVersion)}</strong> per ${esc(appId)}...`,
+                animato: true
+            });
+            await window.electronAPI.store.install(pendingUpdate.appId);
+        }
+    } catch (checkErr) {
+        console.warn('[AppContainer] Controllo aggiornamenti non riuscito:', checkErr);
+    }
+
+    try {
+        const lockRes = await window.electronAPI.store.isAppLocked(appId);
+        if (!lockRes || !lockRes.locked) return true;
+        mountPoint.innerHTML = statoCentrato({
+            icona: 'system_update',
+            titolo: 'Aggiornamento in corso',
+            testo: `L'applicazione <strong>${esc(appId)}</strong> è in aggiornamento e sarà disponibile al termine.`,
+            pulsante: { id: 'btn-back-updating', etichetta: 'Torna alla Dashboard' },
+            animato: true
+        });
+        mountPoint.querySelector('#btn-back-updating')?.addEventListener('click', () => Router.navigate('dashboard'));
+        window.electronAPI.store.onAppUpdated?.(data => {
+            if (data && data.appId === appId) {
+                el.innerHTML = '';
+                Router.navigate('app_container', { appId });
+            }
+        });
+        return false;
+    } catch (lockErr) {
+        console.warn('[AppContainer] Stato di blocco non disponibile:', lockErr);
+        return true;
+    }
+}
+
+async function montaAppDiSistema(el, mountPoint, appId, appFolder, appManifest, params) {
+    const mainFile = (appManifest && appManifest.main) || 'app.js';
+    const stampToken = (appManifest?.version ? `${appManifest.version}_${Date.now()}` : `${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '_');
+    let appModule = null;
+    try {
+        appModule = await import(`../../apps/${appFolder}/${mainFile}?v=${stampToken}`);
+    } catch (e1) {
+        appModule = await import(`../../apps/${appId}/app.js?v=${stampToken}`);
+    }
+
+    const modInstance = appModule?.default || appModule;
+    const targetMount = modInstance && typeof modInstance.mount === 'function'
+        ? modInstance.mount
+        : (modInstance && typeof modInstance.render === 'function' ? modInstance.render : null);
+
+    if (!targetMount) {
+        mountPoint.innerHTML = statoCentrato({
+            icona: 'error',
+            tono: 'error',
+            titolo: 'Errore di caricamento',
+            testo: `Il modulo <b>${esc(appId)}</b> non espone un punto di montaggio valido.`,
+            pulsante: { id: 'btn-back-error', etichetta: 'Torna alla Dashboard' }
+        });
+        el.querySelector('#btn-back-error')?.addEventListener('click', tornaAllaHome);
+        return;
+    }
+    window.__currentMountedApp = modInstance;
+    await targetMount(mountPoint, params);
+}
+
 export default {
     render: async (el, params) => {
         try {
@@ -38,182 +164,40 @@ export default {
                 </div>
             `;
             const mountPoint = el.querySelector('#app-mount-point');
+
+            let appManifest = null;
             if (window.electronAPI) {
-                const userId = sessionStorage.getItem('currentUserId');
-                if (userId) {
-                    const userPerms = await window.electronAPI.rbac.getEffectiveUserPermissions(userId);
-                    const viewPermId = `${appId}:view`;
-                    const hasAccess = userPerms.includes('*') || userPerms.includes(viewPermId) || userPerms.some(p => p.startsWith(`${appId}:`));
-                    if (!hasAccess) {
-                        mountPoint.innerHTML = statoCentrato({
-                            icona: 'gpp_bad',
-                            tono: 'error',
-                            titolo: 'Accesso negato',
-                            testo: 'Non hai i permessi necessari per questa applicazione. Chiedi l\'accesso all\'amministratore di sistema.',
-                            pulsante: { id: 'btn-back-auth', etichetta: 'Torna alla Dashboard', variante: 'k-btn--primary' }
-                        });
-                        el.querySelector('#btn-back-auth')?.addEventListener('click', tornaAllaHome);
-                        return;
-                    }
-                }
-
-                try {
-                    const updateRes = await window.electronAPI.store.checkUpdates();
-                    if (updateRes && updateRes.success && Array.isArray(updateRes.data)) {
-                        const pendingUpdate = updateRes.data.find(u => u.appId === appId);
-                        if (pendingUpdate) {
-                            mountPoint.innerHTML = statoCentrato({
-                                icona: 'system_update',
-                                titolo: 'Aggiornamento in corso',
-                                testo: `Installazione automatica della versione <strong>v${esc(pendingUpdate.availableVersion)}</strong> per ${esc(appId)}...`,
-                                animato: true
-                            });
-                            await window.electronAPI.store.install(pendingUpdate.appId);
-                        }
-                    }
-                } catch (checkErr) {}
-
-                try {
-                    const lockRes = await window.electronAPI.store.isAppLocked(appId);
-                    if (lockRes && lockRes.locked) {
-                        mountPoint.innerHTML = statoCentrato({
-                            icona: 'system_update',
-                            titolo: 'Aggiornamento in corso',
-                            testo: `L'applicazione <strong>${esc(appId)}</strong> è in aggiornamento e sarà disponibile al termine.`,
-                            pulsante: { id: 'btn-back-updating', etichetta: 'Torna alla Dashboard' },
-                            animato: true
-                        });
-                        mountPoint.querySelector('#btn-back-updating')?.addEventListener('click', () => {
-                            Router.navigate('dashboard');
-                        });
-                        if (window.electronAPI.store.onAppUpdated) {
-                            window.electronAPI.store.onAppUpdated(data => {
-                                try {
-                                    if (data && data.appId === appId) {
-                                        el.innerHTML = '';
-                                        Router.navigate('app_container', { appId });
-                                    }
-                                } catch (e) {}
-                            });
-                        }
-                        return;
-                    }
-                } catch (lockErr) {}
-            }
-
-            try {
-                let appModule = null;
-                let appFolder = appId;
-                let mainFile = 'app.js';
-                let isMarketplace = false;
-                let appManifest = null;
-
-                if (window.electronAPI) {
-                    const allApps = await window.electronAPI.getAppsRegistry();
-                    appManifest = allApps.find(a => a.folder === appId || a.id === appId);
-                    if (appManifest) {
-                        appFolder = appManifest.folder || appManifest.id || appId;
-                        mainFile = appManifest.main || 'app.js';
-                        if (!appManifest.core && !appManifest.bundled) {
-                            isMarketplace = true;
-                        }
-                    }
-                }
-
-                const stampToken = (appManifest?.version ? `${appManifest.version}_${Date.now()}` : `${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '_');
-
-                if (isMarketplace) {
-                    const hostToken = `${appFolder}--v${stampToken}`;
-                    const cssPath = `koradest-app://${hostToken}/css/style.css`;
-                    const existingLink = document.querySelector(`link[data-app-css="${appFolder}"]`);
-                    if (existingLink) {
-                        existingLink.href = cssPath;
-                    } else {
-                        const link = document.createElement('link');
-                        link.rel = 'stylesheet';
-                        link.href = cssPath;
-                        link.setAttribute('data-app-css', appFolder);
-                        document.head.appendChild(link);
-                    }
-                    try {
-                        appModule = await import(`koradest-app://${hostToken}/${mainFile}`);
-                    } catch (impErr) {
-                        try {
-                            appModule = await import(`koradest-app://${appFolder}/${mainFile}?v=${stampToken}`);
-                        } catch (eFallback) {
-                            appModule = await import(`koradest-app://${appFolder}/${mainFile}`);
-                        }
-                    }
-                } else {
-                    try {
-                        appModule = await import(`../../apps/${appFolder}/${mainFile}?v=${stampToken}`);
-                    } catch (e1) {
-                        try {
-                            appModule = await import(`../../apps/${appId}/app.js?v=${stampToken}`);
-                        } catch (e2) {
-                            appModule = await import(`../apps/${appFolder}/${mainFile}?v=${stampToken}`);
-                        }
-                    }
-                }
-
-                const modInstance = appModule?.default || appModule;
-                const targetMount = (modInstance && typeof modInstance.mount === 'function')
-                    ? modInstance.mount
-                    : ((modInstance && typeof modInstance.render === 'function') ? modInstance.render : null);
-
-                if (targetMount) {
-                    if (window.__currentMountedApp && typeof window.__currentMountedApp.unmount === 'function') {
-                        try {
-                            await window.__currentMountedApp.unmount();
-                        } catch (_) {}
-                    }
-                    window.__currentMountedApp = modInstance;
-                    await targetMount(mountPoint, params);
-
-                    if (window.electronAPI?.store?.onAppUpdated) {
-                        window.electronAPI.store.onAppUpdated(async data => {
-                            try {
-                                if (data && (data.appId === appId || data.appId === appFolder)) {
-                                    if (window.__currentMountedApp && typeof window.__currentMountedApp.unmount === 'function') {
-                                        try { await window.__currentMountedApp.unmount(); } catch (_) {}
-                                    }
-                                    window.__currentMountedApp = null;
-                                    const oldCss = document.querySelector(`link[data-app-css="${appFolder}"]`);
-                                    if (oldCss) oldCss.remove();
-                                    el.innerHTML = '';
-                                    Router.navigate('app_container', { appId });
-                                }
-                            } catch (_) {}
-                        });
-                    }
-
-                    if (window.electronAPI?.store?.onAppUninstalled) {
-                        window.electronAPI.store.onAppUninstalled(async data => {
-                            try {
-                                if (data && (data.appId === appId || data.appId === appFolder)) {
-                                    if (window.__currentMountedApp && typeof window.__currentMountedApp.unmount === 'function') {
-                                        try { await window.__currentMountedApp.unmount(); } catch (_) {}
-                                    }
-                                    window.__currentMountedApp = null;
-                                    const oldCss = document.querySelector(`link[data-app-css="${appFolder}"]`);
-                                    if (oldCss) oldCss.remove();
-                                    Router.navigate('dashboard');
-                                }
-                            } catch (_) {}
-                        });
-                    }
-                } else {
+                if (!(await verificaAccesso(el, mountPoint, appId))) return;
+                if (!(await attendiAggiornamenti(el, mountPoint, appId))) return;
+                const allApps = await window.electronAPI.getAppsRegistry();
+                appManifest = (Array.isArray(allApps) ? allApps : []).find(a => a.folder === appId || a.id === appId) || null;
+                if (!appManifest) {
                     mountPoint.innerHTML = statoCentrato({
-                        icona: 'error',
+                        icona: 'extension_off',
                         tono: 'error',
-                        titolo: 'Errore di caricamento',
-                        testo: `Il modulo <b>${esc(appId)}</b> non espone un punto di montaggio valido.`,
+                        titolo: 'Applicazione non disponibile',
+                        testo: `<b>${esc(appId)}</b> non è installata oppure il suo manifest non è compatibile con questa versione di KORADEST. Aggiornala dallo App Store.`,
                         pulsante: { id: 'btn-back-error', etichetta: 'Torna alla Dashboard' }
                     });
                     el.querySelector('#btn-back-error')?.addEventListener('click', tornaAllaHome);
+                    return;
                 }
+            }
+
+            const appFolder = appManifest?.folder || appManifest?.id || appId;
+            await smontaAppCorrente();
+
+            try {
+                if (appManifest && appManifest.manifestVersion === 2) {
+                    const { montaAppIsolata } = await import('../shell/app_bridge.js');
+                    const istanza = montaAppIsolata(mountPoint, appManifest, params || {});
+                    window.__currentMountedApp = { unmount: istanza.distruggi };
+                } else {
+                    await montaAppDiSistema(el, mountPoint, appId, appFolder, appManifest, params);
+                }
+                ascoltaCicloDiVita(el, appId, appFolder);
             } catch (importError) {
-                console.error("Dynamic import failed for app: " + appId, importError);
+                console.error('[AppContainer] Caricamento dell\'app non riuscito: ' + appId, importError);
                 mountPoint.innerHTML = statoCentrato({
                     icona: 'broken_image',
                     tono: 'error',

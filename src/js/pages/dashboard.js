@@ -119,7 +119,7 @@ export default {
                             <input type="search" id="app-search" class="k-input" placeholder="Cerca applicazione, autore o categoria..." aria-label="Cerca applicazione">
                         </div>
                     </header>
-                    <div id="apps-lanes">
+                    <div id="apps-lanes" class="app-lanes">
                         <div class="k-loading">
                             <div class="k-spinner" style="--k-spinner-size: 2rem;"></div>
                             <span>Caricamento applicazioni...</span>
@@ -167,6 +167,7 @@ export default {
                     const corsia = document.createElement('section');
                     corsia.className = 'app-lane';
                     corsia.dataset.categoria = categoria.id;
+                    corsia.style.setProperty('--k-corsia-app', String(Math.min(nellaCorsia.length, 12)));
                     corsia.innerHTML = `
                         <header class="app-lane-header">
                             <span class="material-symbols-rounded app-lane-icon">${esc(categoria.icona)}</span>

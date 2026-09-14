@@ -203,7 +203,7 @@ class CapabilityBroker {
                 throw new Error(`Azione non trovata su target ${targetAppId}: ${action}`);
             }
 
-            const result = await Promise.resolve(handler(sourceAppId, payload));
+            const result = await Promise.resolve(handler(sourceAppId, payload, opzioni.contesto || null));
             appMetrics.recordIpcInvocation(targetAppId, action, Date.now() - start, true);
             return result;
         } catch (error) {

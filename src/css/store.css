@@ -1,6 +1,5 @@
 .store-view-container {
     width: 100%;
-    max-width: var(--k-page-max);
     min-height: 100%;
     margin-inline: auto;
     padding-bottom: var(--k-space-7);

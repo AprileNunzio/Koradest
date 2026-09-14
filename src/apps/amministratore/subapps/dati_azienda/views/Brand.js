@@ -36,7 +36,7 @@ export default {
             }
 
             container.innerHTML = `
-                <div class="k-card fade-in-up" style="max-width: 60rem; margin: 0 auto;">
+                <div class="k-card fade-in-up">
                     <div class="k-card-header">
                         <div>
                             <h2 class="k-card-title"><span class="material-symbols-rounded">palette</span>Brand, timbri e firme</h2>

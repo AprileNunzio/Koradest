@@ -74,6 +74,11 @@ if (!gotTheLock) {
 
                 session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
                     try {
+                        // Le pagine delle app isolate portano la propria CSP dal protocollo koradest-app.
+                        if (String(details.url || '').startsWith('koradest-app:')) {
+                            callback({ responseHeaders: details.responseHeaders });
+                            return;
+                        }
                         callback({
                             responseHeaders: {
                                 ...details.responseHeaders,

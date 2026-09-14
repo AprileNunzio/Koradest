@@ -28,8 +28,9 @@ function _processAppsDir(basePath, db, ts) {
                 try {
                     const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
                     const appIdKey = m.id || d.name;
-                    if (m.rbacPermissions && Array.isArray(m.rbacPermissions)) {
-                        for (const p of m.rbacPermissions) {
+                    const ruoli = m.manifestVersion === 2 ? m.roles : m.rbacPermissions;
+                    if (Array.isArray(ruoli)) {
+                        for (const p of ruoli) {
                             if (!p || typeof p !== 'object' || !p.id) continue;
                             const contestoApp = m.name || d.name;
                             _upsertPermission(db, `${appIdKey}:${p.id}`, p, `Permesso ${p.label || p.id} per app ${contestoApp}`, ts, contestoApp);

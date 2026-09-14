@@ -1,0 +1,111 @@
+/* Stile delle app KORADEST v2: stesso design system del core, caricato dall'SDK. */
+@import url('../css/fonts.css');
+@import url('../css/variables.css');
+@import url('../css/componenti.css');
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+    margin: 0;
+    font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+    font-size: var(--k-font-base, 0.9375rem);
+    line-height: 1.5;
+    color: var(--md-on-surface);
+    background: var(--md-background, var(--md-surface));
+    -webkit-font-smoothing: antialiased;
+}
+
+[hidden] { display: none !important; }
+
+.material-symbols-rounded {
+    font-family: 'Material Symbols Rounded';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+}
+
+.k-app {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    height: 100%;
+}
+
+.k-app--senza-menu { grid-template-columns: minmax(0, 1fr); }
+
+.k-app-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--k-space-2, 0.5rem);
+    padding: var(--k-space-4, 1rem) var(--k-space-3, 0.75rem);
+    border-right: 1px solid var(--md-outline);
+    background: var(--md-surface);
+    overflow-y: auto;
+}
+
+.k-app-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2, 0.5rem);
+    padding: 0 var(--k-space-2, 0.5rem) var(--k-space-3, 0.75rem);
+    font-family: var(--font-heading, inherit);
+    font-weight: 700;
+    font-size: var(--k-font-lg, 1.05rem);
+    color: var(--md-on-surface);
+    min-width: 0;
+}
+
+.k-app-brand .material-symbols-rounded { color: var(--md-primary); font-size: 1.5rem; }
+
+.k-app-menu { display: flex; flex-direction: column; gap: 2px; }
+
+.k-app-link {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-3, 0.75rem);
+    min-height: 2.5rem;
+    padding: 0 var(--k-space-3, 0.75rem);
+    border-radius: var(--k-radius-md, 0.625rem);
+    color: var(--md-on-surface-variant);
+    text-decoration: none;
+    font-weight: 500;
+    min-width: 0;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.k-app-link:hover { background: var(--md-surface-variant, rgba(0, 0, 0, 0.05)); color: var(--md-on-surface); }
+.k-app-link:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.k-app-link[aria-current="page"] { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+
+.k-app-main { overflow-y: auto; min-width: 0; outline: none; }
+
+@media (max-width: 760px) {
+    .k-app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .k-app-nav {
+        flex-direction: row;
+        align-items: center;
+        border-right: 0;
+        border-bottom: 1px solid var(--md-outline);
+        padding: var(--k-space-2, 0.5rem);
+        overflow-x: auto;
+    }
+    .k-app-brand { padding: 0 var(--k-space-2, 0.5rem); flex: none; }
+    .k-app-brand .k-truncate { display: none; }
+    .k-app-menu { flex-direction: row; }
+    .k-app-link { flex: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .k-app-link { transition: none; }
+}

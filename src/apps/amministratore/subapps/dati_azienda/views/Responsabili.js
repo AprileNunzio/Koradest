@@ -16,13 +16,13 @@ export default {
             }
 
             container.innerHTML = `
-                <div class="card fade-in-up" style="padding:1.5rem; background:var(--md-surface); border-radius:16px; border:1px solid var(--md-surface-variant); max-width:900px; margin:0 auto;">
+                <div class="card fade-in-up" style="padding:1.5rem; background:var(--md-surface); border-radius:16px; border:1px solid var(--md-surface-variant);">
                     <div style="margin-bottom:1.5rem;">
                         <h3 style="margin:0; font-size:1.4rem; color:var(--md-on-surface);">Organigramma e Responsabili</h3>
                         <p style="margin:0.2rem 0 0; color:var(--md-on-surface-variant); font-size:0.9rem;">Nomine dei responsabili per la sicurezza, privacy e altre figure legali richieste.</p>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1.2rem;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, max(16rem, calc((100% - 3.6rem) / 4))), 1fr)); gap:1.2rem;">
                         <!-- Privacy & GDPR -->
                         <div style="grid-column:1 / -1; margin-top:1rem;">
                             <h4 style="margin:0 0 0.5rem; color:var(--md-primary); border-bottom:1px solid var(--md-outline-variant); padding-bottom:0.3rem;">Privacy & GDPR</h4>

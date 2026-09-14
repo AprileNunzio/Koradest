@@ -78,6 +78,17 @@ function verificaContenuto(stagingDir, appId, versioneAttesa) {
         if (versioneAttesa && manifest.version && String(manifest.version) !== String(versioneAttesa)) {
             return { valido: false, motivo: `versione ${manifest.version} invece della ${versioneAttesa} richiesta` };
         }
+        const { valida } = require('./manifest/manifest_v2');
+        let versioneCore = null;
+        try {
+            versioneCore = require('electron').app.getVersion();
+        } catch (e) {
+            versioneCore = null;
+        }
+        const verifica = valida(manifest, { cartella: stagingDir, versioneCore });
+        if (!verifica.valido) {
+            return { valido: false, motivo: `manifest non conforme al formato KORADEST v2: ${verifica.errori.join('; ')}` };
+        }
         return { valido: true, manifest };
     } catch (e) {
         return { valido: false, motivo: e.message };

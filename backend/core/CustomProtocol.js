@@ -3,6 +3,25 @@ const { protocol, net, app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+// Le app con manifest v2 girano in un iframe con origine opaca: caricano solo i propri file
+// e l'SDK, non aprono connessioni di rete e non possono incorporare altre pagine.
+const CSP_APP = [
+    "default-src 'none'",
+    'script-src koradest-app:',
+    "style-src koradest-app: 'unsafe-inline'",
+    'img-src koradest-app: data: blob:',
+    'font-src koradest-app: data:',
+    'media-src koradest-app: blob:',
+    "connect-src 'none'",
+    "frame-src 'none'",
+    "object-src 'none'",
+    "form-action 'none'",
+    "base-uri 'none'",
+    'frame-ancestors http://127.0.0.1:* http://localhost:*'
+].join('; ');
+
+const CARTELLE_SDK_CONDIVISE = ['css', 'fonts', 'assets'];
+
 function radiceSorgenti() {
     try {
         return app.isPackaged
@@ -18,21 +37,88 @@ function cartellaAppDiSistema() {
 }
 
 function getMimeType(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    const tipi = {
+        '.css': 'text/css; charset=utf-8',
+        '.js': 'text/javascript; charset=utf-8',
+        '.mjs': 'text/javascript; charset=utf-8',
+        '.html': 'text/html; charset=utf-8',
+        '.json': 'application/json; charset=utf-8',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.ico': 'image/x-icon',
+        '.svg': 'image/svg+xml',
+        '.woff2': 'font/woff2',
+        '.woff': 'font/woff',
+        '.ttf': 'font/ttf'
+    };
+    return tipi[ext] || null;
+}
+
+function dentro(radice, assoluto) {
+    const r = path.resolve(radice);
+    const a = path.resolve(assoluto);
+    return a === r || a.startsWith(r + path.sep);
+}
+
+function fileEsistente(percorso) {
     try {
-        const ext = path.extname(filePath).toLowerCase();
-        if (ext === '.css') return 'text/css; charset=utf-8';
-        if (ext === '.js' || ext === '.mjs') return 'text/javascript; charset=utf-8';
-        if (ext === '.html') return 'text/html; charset=utf-8';
-        if (ext === '.json') return 'application/json; charset=utf-8';
-        if (ext === '.png') return 'image/png';
-        if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
-        if (ext === '.svg') return 'image/svg+xml';
-        if (ext === '.woff2') return 'font/woff2';
-        return null;
+        return fs.existsSync(percorso) && fs.statSync(percorso).isFile();
+    } catch (e) {
+        return false;
+    }
+}
+
+function leggiManifest(cartella) {
+    try {
+        return JSON.parse(fs.readFileSync(path.join(cartella, 'manifest.json'), 'utf8'));
     } catch (e) {
         return null;
     }
 }
+
+// koradest-app://sdk/v2/...  -> src/sdk/v2/...
+// koradest-app://sdk/css/... -> src/css/... (design system condiviso con le app isolate)
+function fileSdk(filePath) {
+    const primo = String(filePath).split('/')[0];
+    const src = radiceSorgenti();
+    let limite = null;
+    let radice = null;
+    if (primo === 'v2') {
+        radice = path.join(src, 'sdk');
+        limite = path.join(radice, 'v2');
+    } else if (CARTELLE_SDK_CONDIVISE.includes(primo)) {
+        radice = src;
+        limite = path.join(src, primo);
+    }
+    if (!radice) return null;
+    const assoluto = path.resolve(radice, filePath);
+    return dentro(limite, assoluto) && fileEsistente(assoluto) ? assoluto : null;
+}
+
+function fileAppV2(cartella, manifest, appId, filePath) {
+    if (manifest.id !== appId && path.basename(cartella) !== appId) return null;
+    const assoluto = path.resolve(cartella, filePath);
+    return dentro(cartella, assoluto) && fileEsistente(assoluto) ? assoluto : null;
+}
+
+async function servi(assoluto) {
+    const contenuto = await fs.promises.readFile(assoluto);
+    const intestazioni = new Headers();
+    intestazioni.set('Content-Type', getMimeType(assoluto) || 'application/octet-stream');
+    intestazioni.set('Access-Control-Allow-Origin', '*');
+    intestazioni.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    intestazioni.set('X-Content-Type-Options', 'nosniff');
+    if (path.extname(assoluto).toLowerCase() === '.html') {
+        intestazioni.set('Content-Security-Policy', CSP_APP);
+    }
+    return new Response(contenuto, { status: 200, headers: intestazioni });
+}
+
+const nonTrovato = () => new Response('File non trovato', { status: 404 });
 
 function _resolveAppFile(targetAppDir, filePath) {
     try {
@@ -51,15 +137,10 @@ function _resolveAppFile(targetAppDir, filePath) {
         }
 
         if (filePath === 'app.js' || filePath === 'main.js' || filePath === 'index.js') {
-            const manifestPath = path.join(targetAppDir, 'manifest.json');
-            if (fs.existsSync(manifestPath)) {
-                try {
-                    const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-                    if (m.main) {
-                        const mainCandidate = path.resolve(targetAppDir, m.main);
-                        if (fs.existsSync(mainCandidate) && fs.statSync(mainCandidate).isFile()) return mainCandidate;
-                    }
-                } catch (_) {}
+            const m = leggiManifest(targetAppDir);
+            if (m && m.main) {
+                const mainCandidate = path.resolve(targetAppDir, m.main);
+                if (fs.existsSync(mainCandidate) && fs.statSync(mainCandidate).isFile()) return mainCandidate;
             }
         }
 
@@ -95,15 +176,12 @@ function _findAppDirectory(appsDir, appId) {
             for (const ent of entries) {
                 if (ent.isDirectory()) {
                     const dirPath = path.join(dir, ent.name);
-                    const mPath = path.join(dirPath, 'manifest.json');
-                    if (fs.existsSync(mPath)) {
-                        try {
-                            const m = JSON.parse(fs.readFileSync(mPath, 'utf8'));
-                            if (m.id === appId || m.folder === appId || ent.name === appId) return dirPath;
-                            const cleanManifestId = (m.id || '').toLowerCase().replace(/[-_]/g, '');
-                            const cleanFolder = (m.folder || ent.name).toLowerCase().replace(/[-_]/g, '');
-                            if (cleanManifestId === cleanAppId || cleanFolder === cleanAppId) return dirPath;
-                        } catch (_) {}
+                    const m = leggiManifest(dirPath);
+                    if (m) {
+                        if (m.id === appId || m.folder === appId || ent.name === appId) return dirPath;
+                        const cleanManifestId = (m.id || '').toLowerCase().replace(/[-_]/g, '');
+                        const cleanFolder = (m.folder || ent.name).toLowerCase().replace(/[-_]/g, '');
+                        if (cleanManifestId === cleanAppId || cleanFolder === cleanAppId) return dirPath;
                     }
                     const cleanName = ent.name.toLowerCase().replace(/[-_]/g, '');
                     if (cleanName === cleanAppId || cleanName.includes(cleanAppId) || cleanAppId.includes(cleanName)) {
@@ -126,17 +204,14 @@ function registerCustomProtocol() {
                 let filePath = decodeURIComponent(url.pathname);
                 if (filePath.startsWith('/')) filePath = filePath.substring(1);
                 if (!filePath) filePath = 'index.html';
-                
-                const coreSrcPath = app.isPackaged 
-                    ? path.join(process.resourcesPath, 'app.asar', 'src')
-                    : path.join(__dirname, '..', '..', 'src');
-                    
+
+                const coreSrcPath = radiceSorgenti();
                 const absolutePath = path.resolve(coreSrcPath, filePath);
                 if (!absolutePath.startsWith(path.resolve(coreSrcPath))) {
                     return new Response('Accesso negato', { status: 403 });
                 }
                 if (!fs.existsSync(absolutePath)) {
-                    return new Response('File non trovato', { status: 404 });
+                    return nonTrovato();
                 }
                 const response = await net.fetch(`file:///${absolutePath.replace(/\\/g, '/')}`);
                 const newHeaders = new Headers(response.headers);
@@ -159,6 +234,17 @@ function registerCustomProtocol() {
 
         protocol.handle('koradest-app', async (request) => {
             try {
+                if (request.method === 'OPTIONS') {
+                    return new Response(null, {
+                        status: 204,
+                        headers: {
+                            'Access-Control-Allow-Origin': '*',
+                            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                            'Access-Control-Allow-Headers': '*'
+                        }
+                    });
+                }
+
                 const url = new URL(request.url);
                 const rawHost = url.hostname || (url.host ? url.host.split(':')[0] : '') || '';
                 const rawAppId = decodeURIComponent(rawHost);
@@ -167,10 +253,21 @@ function registerCustomProtocol() {
                 if (filePath.startsWith('/')) filePath = filePath.substring(1);
                 if (!filePath) filePath = 'app.js';
 
+                if (appId === 'sdk') {
+                    const file = fileSdk(filePath);
+                    return file ? servi(file) : nonTrovato();
+                }
+
                 const appsDir = path.join(app.getPath('userData'), 'installed_apps');
                 const targetAppDir = _findAppDirectory(appsDir, appId) || path.join(appsDir, appId);
-                let absolutePath = _resolveAppFile(targetAppDir, filePath);
 
+                const manifestApp = leggiManifest(targetAppDir);
+                if (manifestApp && manifestApp.manifestVersion === 2) {
+                    const file = fileAppV2(targetAppDir, manifestApp, appId, filePath);
+                    return file ? servi(file) : nonTrovato();
+                }
+
+                let absolutePath = _resolveAppFile(targetAppDir, filePath);
                 let radiceConsentita = path.resolve(targetAppDir);
 
                 if (!absolutePath) {
@@ -183,42 +280,19 @@ function registerCustomProtocol() {
                 }
 
                 if (!absolutePath || !fs.existsSync(absolutePath)) {
-                    return new Response('File non trovato', { status: 404 });
+                    return nonTrovato();
                 }
-
-                if (!path.resolve(absolutePath).startsWith(radiceConsentita)) {
+                if (!dentro(radiceConsentita, absolutePath)) {
                     return new Response('Accesso negato', { status: 403 });
                 }
-
-                if (request.method === 'OPTIONS') {
-                    return new Response(null, {
-                        status: 204,
-                        headers: {
-                            'Access-Control-Allow-Origin': '*',
-                            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-                            'Access-Control-Allow-Headers': '*'
-                        }
-                    });
-                }
-
-                const fileBuffer = await fs.promises.readFile(absolutePath);
-                const newHeaders = new Headers();
-                const mime = getMimeType(absolutePath) || 'application/octet-stream';
-                newHeaders.set('Content-Type', mime);
-                newHeaders.set('Access-Control-Allow-Origin', '*');
-                newHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-                newHeaders.set('Pragma', 'no-cache');
-                newHeaders.set('Expires', '0');
-                
-                return new Response(fileBuffer, {
-                    status: 200,
-                    headers: newHeaders
-                });
+                return servi(absolutePath);
             } catch (e) {
                 return new Response('Internal Server Error', { status: 500 });
             }
         });
-    } catch (e) {}
+    } catch (e) {
+        console.error('[CustomProtocol] Registrazione dei protocolli non riuscita:', e.message);
+    }
 }
 
-module.exports = { registerCustomProtocol };
+module.exports = { registerCustomProtocol, fileSdk, fileAppV2, CSP_APP };

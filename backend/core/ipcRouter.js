@@ -59,8 +59,11 @@ function registerAllIPCHandlers(windowManager) {
             if (!data || !data.sourceApp || !data.targetApp || !data.action) {
                 throw new Error('Parametri IPC non validi');
             }
+            const contesto = data.contesto && typeof data.contesto.userId === 'string' && data.contesto.userId
+                ? { userId: data.contesto.userId }
+                : null;
             const result = await appWatchdog.guardAction(data.targetApp, data.action, async () => {
-                return await capabilityBroker.routeIpcCall(data.sourceApp, data.targetApp, data.action, data.payload, { origin: 'ipc' });
+                return await capabilityBroker.routeIpcCall(data.sourceApp, data.targetApp, data.action, data.payload, { origin: 'ipc', contesto });
             });
             if (result && typeof result === 'object' && result.success === false && result.error) {
                 return result;

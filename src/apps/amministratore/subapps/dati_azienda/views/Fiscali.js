@@ -6,13 +6,13 @@ export default {
             const isScuola = configCache.is_scuola === true || configCache.is_scuola === 'true';
 
             container.innerHTML = `
-                <div class="card fade-in-up" style="padding:1.5rem; background:var(--md-surface); border-radius:16px; border:1px solid var(--md-surface-variant); max-width:800px; margin:0 auto;">
+                <div class="card fade-in-up" style="padding:1.5rem; background:var(--md-surface); border-radius:16px; border:1px solid var(--md-surface-variant);">
                     <div style="margin-bottom:1.5rem;">
                         <h3 style="margin:0; font-size:1.4rem; color:var(--md-on-surface);">Dati Fiscali / Tesoreria</h3>
                         <p style="margin:0.2rem 0 0; color:var(--md-on-surface-variant); font-size:0.9rem;">Impostazioni bancarie, tesoreria e fondi pensione dell'ente.</p>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1.2rem;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, max(16rem, calc((100% - 3.6rem) / 4))), 1fr)); gap:1.2rem;">
                         <div style="grid-column:1 / -1;">
                             <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
                                 <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">account_balance</span>Banca / Istituto Tesoreria

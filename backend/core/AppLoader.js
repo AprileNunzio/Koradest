@@ -143,6 +143,10 @@ async function loadApp(manifest) {
             auditLogger.logEvent('system', 'APP_KERNEL_MODULES_REFUSED', 'app', appId, { rifiutati: moduliKernel.rifiutati });
         }
 
+        if (manifest.manifestVersion === 2) {
+            return await caricaAppV2(manifest, appDir);
+        }
+
         const backendPath = path.join(appDir, manifest.backend || 'backend.js');
 
         if (fs.existsSync(backendPath)) {
@@ -208,8 +212,39 @@ async function loadApp(manifest) {
         auditLogger.logEvent('system', 'APP_LOADED', 'app', appId, { version: manifest.version });
         return true;
     } catch (e) {
+        auditLogger.logEvent('system', 'APP_LOAD_FAILED', 'app', manifest && manifest.id, { errore: e.message });
+        console.error(`[AppLoader] Caricamento di ${manifest && manifest.id} non riuscito:`, e.message);
         return false;
     }
+}
+
+// Backend delle app v2: il modulo esporta attiva(koradest) e riceve dal runtime
+// azioni, archivio, chiamate verso le altre app e servizi del kernel.
+async function caricaAppV2(manifest, appDir) {
+    const appId = manifest.id;
+    capabilityBroker.generateAppToken(appId, permessiDi(manifest));
+
+    if (manifest.backend) {
+        const percorso = path.resolve(appDir, manifest.backend);
+        if (!percorso.startsWith(path.resolve(appDir) + path.sep)) {
+            throw new Error('entry.backend punta fuori dalla cartella dell\'app');
+        }
+        delete require.cache[percorso];
+        const modulo = require(percorso);
+        if (!modulo || typeof modulo.attiva !== 'function') {
+            throw new Error('entry.backend deve esportare la funzione attiva(koradest)');
+        }
+        const runtime = require('./app_runtime_v2').crea(manifest, {
+            kernel: kernel.creaKernel(manifest),
+            replica: creaReplicatore(manifest)
+        });
+        await modulo.attiva(runtime.api);
+        runtime.registraNelBroker(capabilityBroker);
+    }
+
+    _loaded.set(appId, { manifest, isProcess: false, directBackend: true, v2: true });
+    auditLogger.logEvent('system', 'APP_LOADED', 'app', appId, { version: manifest.version, manifestVersion: 2 });
+    return true;
 }
 
 async function unloadApp(appId) {

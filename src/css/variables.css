@@ -99,7 +99,8 @@
     --k-space-8: 2.5rem;
     --k-space-9: 3rem;
     --k-page-pad: clamp(0.875rem, 0.5rem + 1.6vw, 2rem);
-    --k-page-max: 1440px;
+    /* Nessun tetto: dallo smartphone all'8K le pagine usano tutta la larghezza e ridistribuiscono le colonne. */
+    --k-page-max: none;
 
     /* Controlli */
     --k-control-h-sm: 2rem;

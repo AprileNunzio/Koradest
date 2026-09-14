@@ -26,8 +26,17 @@
     flex-direction: column;
     gap: var(--k-space-6);
 }
+/* Le pagine occupano tutto lo spazio: sugli schermi larghi gli elementi si ridistribuiscono
+   in piu colonne invece di ingrandirsi. Solo gli stati centrati (errori, attese) restano stretti. */
 .k-page--narrow { max-width: 880px; }
-.k-page--form { max-width: 1080px; }
+@media (min-width: 1680px) {
+    .k-page--form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 38rem), 1fr));
+        align-items: start;
+    }
+    .k-page--form > :not(.k-card) { grid-column: 1 / -1; }
+}
 
 .k-page-header {
     display: flex;
@@ -96,6 +105,10 @@
 @media (min-width: 1100px) {
     .k-split { grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr); }
     .k-split--wide-aside { grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem); }
+}
+@media (min-width: 2400px) {
+    .k-split { grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr); }
+    .k-split--wide-aside { grid-template-columns: minmax(0, 1fr) minmax(24rem, 32rem); }
 }
 .k-divider { height: 1px; background: var(--md-outline); border: 0; margin: var(--k-space-2) 0; }
 .k-muted { color: var(--md-on-surface-variant); }
@@ -204,9 +217,10 @@
 }
 
 /* ── Campi ──────────────────────────────────────────────── */
+/* Campi di almeno 15rem, al massimo 4 per riga: righe leggibili anche su un 8K. */
 .k-form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, max(15rem, calc((100% - 3 * var(--k-space-5)) / 4))), 1fr));
     gap: var(--k-space-4) var(--k-space-5);
 }
 .k-form-grid .k-field--full { grid-column: 1 / -1; }

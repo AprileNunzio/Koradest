@@ -1,7 +1,6 @@
 /* Classi storiche usate dalle pagine esistenti, riallineate al design system. */
 .page-container {
     width: 100%;
-    max-width: var(--k-page-max);
     margin-inline: auto;
 }
 .card {
@@ -104,8 +103,18 @@ textarea.input-field, textarea.input { height: auto; min-height: 6rem; padding: 
     grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
     gap: 0.9rem;
 }
+/* Corsie affiancabili: ognuna chiede lo spazio delle proprie card e va a capo quando serve.
+   Sullo smartphone si impilano, su un monitor largo stanno una accanto all'altra. */
+.app-lanes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--k-space-6) var(--k-space-7);
+}
+.app-lanes > :not(.app-lane) { flex: 1 1 100%; }
 .app-lane {
-    margin-bottom: 1.6rem;
+    flex: var(--k-corsia-app, 1) 1 calc(var(--k-corsia-app, 1) * (168px + 0.9rem));
+    min-width: min(100%, 22rem);
 }
 .app-lane-header {
     display: flex;
