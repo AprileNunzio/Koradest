@@ -1,0 +1,21 @@
+{
+  "totale": 520,
+  "perArea": {
+    "backend/core": 130,
+    "backend/dag": 36,
+    "backend/db": 30,
+    "backend/db.js": 5,
+    "backend/diagnostics_auth.js": 2,
+    "backend/handlers": 41,
+    "backend/logger.js": 11,
+    "backend/networks": 7,
+    "backend/observability": 13,
+    "backend/p2p": 51,
+    "backend/security": 23,
+    "backend/sync": 8,
+    "backend/updates_manager.js": 4,
+    "src/apps": 19,
+    "src/js": 140
+  },
+  "aggiornatoIl": "2026-09-14T09:34:05.467Z"
+}

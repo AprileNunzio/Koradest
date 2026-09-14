@@ -1,0 +1,21 @@
+{
+    "id": "rbac",
+    "name": "RBAC e Ruoli",
+    "description": "Gestione ruoli, permessi e policy",
+    "icon": "icon.png",
+    "main": "app.js",
+    "rbacPermissions": [
+        {
+            "id": "view",
+            "label": "Visualizza Applicazione"
+        },
+        {
+            "id": "create",
+            "label": "Crea Nuovo Gruppo"
+        },
+        {
+            "id": "edit",
+            "label": "Modifica Dati"
+        }
+    ]
+}

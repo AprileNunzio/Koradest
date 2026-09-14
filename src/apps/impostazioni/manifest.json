@@ -1,0 +1,50 @@
+{
+    "id": "impostazioni",
+    "name": "Impostazioni Sistema",
+    "description": "Configurazione avanzata del nodo locale, notifiche e credenziali",
+    "icon": "icon.png",
+    "version": "1.0.0",
+    "author": "KORADEST",
+    "category": "utility",
+    "tags": [
+        "sistema",
+        "sicurezza",
+        "notifiche"
+    ],
+    "core": true,
+    "roles": [
+        "superadmin",
+        "admin"
+    ],
+    "subApps": [
+        {
+            "id": "credenziali",
+            "name": "Credenziali",
+            "icon": "key"
+        },
+        {
+            "id": "notifiche",
+            "name": "Notifiche",
+            "icon": "notifications"
+        }
+    ],
+    "rbacPermissions": [
+        {
+            "id": "card_view",
+            "label": "Dashboard & Menu: Visualizzazione card e icona applicazione"
+        },
+        {
+            "id": "view",
+            "label": "Visualizza Applicazione",
+            "default": true
+        },
+        {
+            "id": "create",
+            "label": "Crea Nuove Configurazioni"
+        },
+        {
+            "id": "edit",
+            "label": "Modifica Dati"
+        }
+    ]
+}

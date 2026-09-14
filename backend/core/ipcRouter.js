@@ -1,0 +1,1329 @@
+const { ipcMain: rawIpcMain, app, BrowserWindow } = require('electron');
+const { createGuardedIpc } = require('../security/ipc_guard');
+const ipcMain = createGuardedIpc(rawIpcMain);
+const path = require('path');
+const fs = require('fs');
+const _IPV4_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
+function _isValidPeerIp(ip) {
+    if (typeof ip !== 'string' || !_IPV4_RE.test(ip)) return false;
+    const parts = ip.split('.');
+    if (parts.some(o => { const n = parseInt(o, 10); return isNaN(n) || n < 0 || n > 255; })) return false;
+    if (parseInt(parts[0], 10) === 127) return false;
+    if (parseInt(parts[0], 10) === 0) return false;
+    return true;
+}
+const authHandlers = require('../handlers/auth');
+const configHandlers = require('../config');
+const diagnosticsHandlers = require('../handlers/diagnostics');
+const usersHandlers = require('../handlers/users');
+const rbacHandlers = require('../handlers/rbac');
+const anagraficaPersoneHandlers = require('../handlers/anagrafica_persone');
+const anagraficaDocumentiHandlers = require('../handlers/anagrafica_documenti');
+const anagraficaResidenzaHandlers = require('../handlers/anagrafica_residenza');
+const anagraficaLavoroHandlers = require('../handlers/anagrafica_lavoro');
+const anagraficaTitoliStudioHandlers = require('../handlers/anagrafica_titoli_studio');
+const anagraficaDatiBancariHandlers = require('../handlers/anagrafica_dati_bancari');
+const anagraficaContattiHandlers = require('../handlers/anagrafica_contatti');
+const anagraficaFamiliariHandlers = require('../handlers/anagrafica_familiari');
+const anagraficaAuditHandlers = require('../handlers/anagrafica_audit');
+const anagraficaRiferimentiHandlers = require('../handlers/anagrafica_riferimenti');
+const twofaHandlers = require('../handlers/twofa');
+const notificationsHandlers = require('../handlers/notifications');
+const storeHandlers = require('../handlers/store');
+const collegamentiHandlers = require('../handlers/collegamenti');
+const datiAziendaHandlers = require('../handlers/dati_azienda');
+const appsRegistry = require('./appsRegistry');
+const { registerNetworkChannels } = require('../networks/handlers/networks_channels');
+const accessGuard = require('./access_guard');
+function withActorBackend(args) {
+    try {
+        const sessionManager = require('./session_manager');
+        const actorUserId = sessionManager.getCurrentUserId() || '';
+        if (args && typeof args === 'object') {
+            return Object.assign({}, args, { actorUserId });
+        }
+        return { actorUserId };
+    } catch (e) {
+        return { actorUserId: '' };
+    }
+}
+
+function registerAllIPCHandlers(windowManager) {
+    try {
+        ipcMain.removeHandler('koradestNative:callAppApi');
+        ipcMain.handle('apriCollegamento', async (evento, indirizzo) => collegamentiHandlers.apri(indirizzo));
+    ipcMain.handle('koradestNative:callAppApi', async (event, data) => {
+        try {
+            const capabilityBroker = require('../security/capabilityBroker');
+            const appWatchdog = require('./appWatchdog');
+            if (!data || !data.sourceApp || !data.targetApp || !data.action) {
+                throw new Error('Parametri IPC non validi');
+            }
+            const result = await appWatchdog.guardAction(data.targetApp, data.action, async () => {
+                return await capabilityBroker.routeIpcCall(data.sourceApp, data.targetApp, data.action, data.payload, { origin: 'ipc' });
+            });
+            if (result && typeof result === 'object' && result.success === false && result.error) {
+                return result;
+            }
+            return { success: true, data: result };
+        } catch (err) {
+            return { success: false, error: err.message };
+        }
+    });
+
+
+        if (windowManager) {
+            ipcMain.removeHandler('window-minimize');
+            ipcMain.handle('window-minimize', () => {
+                try {
+                    const win = windowManager.getMainWindow();
+                    if (win && !win.isDestroyed()) win.minimize();
+                } catch (e) {}
+            });
+            ipcMain.removeHandler('window-maximize');
+            ipcMain.handle('window-maximize', () => {
+                try {
+                    const win = windowManager.getMainWindow();
+                    if (win && !win.isDestroyed()) {
+                        if (win.isMaximized()) win.restore();
+                        else win.maximize();
+                    }
+                } catch (e) {}
+            });
+            ipcMain.removeHandler('window-close');
+            ipcMain.handle('window-close', () => {
+                try {
+                    const win = windowManager.getMainWindow();
+                    if (win && !win.isDestroyed()) win.close();
+                } catch (e) {}
+            });
+        }
+
+        ipcMain.removeHandler('getLocalIPs');
+        ipcMain.handle('getLocalIPs', () => {
+            try {
+                const os = require('os');
+                const interfaces = os.networkInterfaces();
+                const ips = [];
+                for (const name of Object.keys(interfaces)) {
+                    for (const iface of interfaces[name]) {
+                        if (iface.family === 'IPv4' && !iface.internal) {
+                            ips.push(iface.address);
+                        }
+                    }
+                }
+                return ips;
+            } catch(e) { return []; }
+        });
+        ipcMain.removeHandler('getAppStatus');
+        ipcMain.handle('getAppStatus', () => {
+            try {
+                const { getConnectedNodesCount, PROTOCOL_VERSION } = require('../sync');
+                let sState = 'Sincronizzato';
+                try {
+                    const { getSyncState } = require('../sync_engine');
+                    if (typeof getSyncState === 'function') sState = getSyncState();
+                } catch(e) {}
+                const nodesCount = typeof getConnectedNodesCount === 'function' ? getConnectedNodesCount() : 0;
+                let height = 0;
+                let activeErrs = 0;
+                try {
+                    const { getTotalBlocksCount } = require('../dag/graph/dag_store');
+                    if (typeof getTotalBlocksCount === 'function') height = getTotalBlocksCount();
+                } catch(e) {}
+                try {
+                    const db = require('../db').getDB('auth');
+                    const res = db.query("SELECT COUNT(id) as c FROM distributed_logs WHERE is_deleted = 0 AND (level = 'error' OR level = 'warn')");
+                    if (res && res.length > 0) activeErrs = res[0].c;
+                } catch(e) {}
+                return { version: app.getVersion(), connectedNodes: nodesCount, isOk: true, syncState: sState, protocolVersion: PROTOCOL_VERSION || 2, ledgerHeight: height, activeErrors: activeErrs, isDevBuild: !app.isPackaged };
+            } catch(e) { 
+                return { version: app.getVersion(), connectedNodes: 0, isOk: true, syncState: 'Sincronizzato', protocolVersion: 2, ledgerHeight: 0, activeErrors: 0 };
+            }
+        });
+        ipcMain.removeHandler('resetApp');
+        ipcMain.handle('resetApp', async () => {
+            try {
+                let allowed = false;
+                try {
+                    if (accessGuard.isSuperadmin()) allowed = true;
+                    else {
+                        const usersRes = db.getDB('auth')?.query('SELECT COUNT(*) as c FROM users');
+                        if (usersRes && usersRes[0] && usersRes[0].c === 0) allowed = true;
+                    }
+                } catch(e) {
+                    allowed = true; 
+                }
+                if (!allowed) return { success: false, error: 'Permesso negato' };
+                const pathsToWipe = [
+                    path.join(app.getPath('appData'), 'Koradest'), 
+                    path.join(app.getPath('userData'), 'dbs'),
+                    path.join(app.getPath('userData'), 'Log'),
+                    path.join(app.getPath('userData'), 'backups')
+                ];
+                for (const p of pathsToWipe) {
+                    try {
+                        if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true });
+                    } catch(rmErr) { console.error('[Reset] rmSync error:', rmErr); }
+                }
+                const configPath = path.join(app.getPath('userData'), 'config.enc');
+                const keyPath = path.join(app.getPath('userData'), 'device.key');
+                try { if (fs.existsSync(configPath)) fs.unlinkSync(configPath); } catch(_) {}
+                try { if (fs.existsSync(keyPath)) fs.unlinkSync(keyPath); } catch(_) {}
+                app.relaunch();
+                app.exit();
+            } catch(e) { console.error(e); }
+        });
+        ipcMain.removeHandler('dbGetBackupStatus');
+        ipcMain.handle('dbGetBackupStatus', () => {
+            try {
+                const dbBasePath = path.join(app.getPath('userData'), 'dbs');
+                const getInfo = (dir) => {
+                    if (!fs.existsSync(dir)) return [];
+                    return fs.readdirSync(dir)
+                        .map(f => {
+                            const stat = fs.statSync(path.join(dir, f));
+                            if (!stat.isFile()) return null;
+                            return { name: f, size: stat.size };
+                        }).filter(Boolean);
+                };
+                let totalMainSize = 0;
+                let totalBackupsCount = 0;
+                if (fs.existsSync(dbBasePath)) {
+                    const domains = ['config.enc', 'auth.enc', 'ledger.enc', 'app.enc', 'store.enc', 'app_anagrafica.enc'];
+                    for (const d of domains) {
+                        const p = path.join(dbBasePath, d);
+                        if (fs.existsSync(p)) totalMainSize += fs.statSync(p).size;
+                    }
+                    const backupsPath = path.join(dbBasePath, 'backups');
+                    if (fs.existsSync(backupsPath)) {
+                        const domainsDirs = fs.readdirSync(backupsPath);
+                        for (const dDir of domainsDirs) {
+                            const subDirPath = path.join(backupsPath, dDir);
+                            if (fs.statSync(subDirPath).isDirectory()) {
+                                const bks = getInfo(subDirPath);
+                                totalBackupsCount += bks.length;
+                            }
+                        }
+                    }
+                }
+                return {
+                    primary: {
+                        appData: totalMainSize,
+                        docs: null
+                    },
+                    totalBackups: totalBackupsCount
+                };
+            } catch(e) { console.error(e); return null; }
+        });
+        ipcMain.handle('hasConfig', configHandlers.hasConfig);
+        ipcMain.handle('readConfig', configHandlers.readConfig);
+        ipcMain.handle('saveConfig', configHandlers.saveConfig);
+        ipcMain.handle('clearAppCache', async () => {
+            try {
+                const { session } = require('electron');
+                if (session && session.defaultSession) {
+                    await session.defaultSession.clearCache();
+                    await session.defaultSession.clearStorageData({
+                        storages: ['appcache', 'cachestorage', 'serviceworkers', 'shadercache', 'websql']
+                    });
+                }
+                const appsDir = path.join(app.getPath('userData'), 'installed_apps');
+                Object.keys(require.cache).forEach(key => {
+                    if (key.startsWith(appsDir) || key.includes('src\\apps') || key.includes('src/apps')) {
+                        delete require.cache[key];
+                    }
+                });
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('getUpdateSettings', async () => {
+            try {
+                const updatePolicy = require('./updatePolicy');
+                return {
+                    success: true,
+                    data: {
+                        ...updatePolicy.leggi(),
+                        intervalli_ammessi: updatePolicy.INTERVALLI_AMMESSI
+                    }
+                };
+            } catch (e) {
+                const updatePolicy = require('./updatePolicy');
+                return {
+                    success: false,
+                    error: e.message,
+                    data: {
+                        ...updatePolicy.PREDEFINITI,
+                        intervalli_ammessi: updatePolicy.INTERVALLI_AMMESSI
+                    }
+                };
+            }
+        });
+        ipcMain.handle('saveUpdateSettings', async (event, settings) => {
+            try {
+                if (!accessGuard.isSuperadmin()) return { success: false, error: 'Permesso negato' };
+                const updatePolicy = require('./updatePolicy');
+                const conf = configHandlers.readConfig() || {};
+                const normalizzate = updatePolicy.normalizza(settings || {});
+                const ok = configHandlers.saveConfig(null, { ...conf, ...normalizzate });
+                if (!ok) return { success: false, error: 'Salvataggio della configurazione fallito' };
+                updatePolicy.notificaCambiamento();
+                return { success: true, data: normalizzate };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('testSmtpConnection', async (event, smtpConfig, testEmail) => {
+            try {
+                const nodemailer = require('nodemailer');
+                let secure = false;
+                if (smtpConfig.smtp_security === 'ssl' || smtpConfig.smtp_port == 465) secure = true;
+                const transportOpts = {
+                    host: smtpConfig.smtp_host,
+                    port: parseInt(smtpConfig.smtp_port) || 587,
+                    secure: secure,
+                    auth: {
+                        user: smtpConfig.smtp_user,
+                        pass: smtpConfig.smtp_pass
+                    },
+                    tls: {
+                        rejectUnauthorized: !smtpConfig.smtp_allow_self_signed
+                    },
+                    connectionTimeout: smtpConfig.smtp_timeout || 10000,
+                    debug: true,
+                    logger: true
+                };
+                if (smtpConfig.smtp_security === 'starttls') {
+                    transportOpts.secure = false;
+                    transportOpts.requireTLS = true;
+                } else if (smtpConfig.smtp_security === 'none') {
+                    transportOpts.secure = false;
+                    transportOpts.ignoreTLS = true;
+                }
+                let logs = [];
+                const transporter = nodemailer.createTransport(transportOpts);
+                transporter.on('log', (log) => {
+                    logs.push(`[${log.name}] ${log.msg}`);
+                });
+                const fromStr = smtpConfig.smtp_sender_name 
+                    ? `"${smtpConfig.smtp_sender_name}" <${smtpConfig.smtp_sender_email}>` 
+                    : smtpConfig.smtp_sender_email;
+                await transporter.sendMail({
+                    from: fromStr,
+                    to: testEmail,
+                    subject: 'KORADEST - Test Configurazione SMTP',
+                    text: 'Se stai leggendo questo messaggio, la configurazione del server SMTP in KORADEST è funzionante.',
+                    html: '<div style="font-family: sans-serif; padding: 20px;"><h2>KORADEST</h2><p>Se stai leggendo questo messaggio, la configurazione del server SMTP in KORADEST è funzionante e attiva.</p></div>'
+                });
+                return { success: true, logs: logs.join('\\n') };
+            } catch(e) {
+                console.error('[SMTP Test Error]', e);
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('sendMail', async (event, mail) => {
+            try {
+                if (!mail || !mail.to) return { success: false, error: 'Destinatario mancante' };
+                const smtpConfig = configHandlers.readConfig() || {};
+                if (!smtpConfig.smtp_host || !smtpConfig.smtp_port) {
+                    return { success: false, error: 'Server SMTP non configurato. Vai in Amministratore > SMTP.' };
+                }
+                const nodemailer = require('nodemailer');
+                let secure = false;
+                if (smtpConfig.smtp_security === 'ssl' || smtpConfig.smtp_port == 465) secure = true;
+                const transportOpts = {
+                    host: smtpConfig.smtp_host,
+                    port: parseInt(smtpConfig.smtp_port) || 587,
+                    secure: secure,
+                    auth: { user: smtpConfig.smtp_user, pass: smtpConfig.smtp_pass },
+                    tls: { rejectUnauthorized: !smtpConfig.smtp_allow_self_signed },
+                    connectionTimeout: smtpConfig.smtp_timeout || 10000
+                };
+                if (smtpConfig.smtp_security === 'starttls') {
+                    transportOpts.secure = false;
+                    transportOpts.requireTLS = true;
+                } else if (smtpConfig.smtp_security === 'none') {
+                    transportOpts.secure = false;
+                    transportOpts.ignoreTLS = true;
+                }
+                const transporter = nodemailer.createTransport(transportOpts);
+                const fromStr = smtpConfig.smtp_sender_name
+                    ? `"${smtpConfig.smtp_sender_name}" <${smtpConfig.smtp_sender_email}>`
+                    : smtpConfig.smtp_sender_email;
+                const attachments = Array.isArray(mail.attachments) ? mail.attachments.map(a => ({
+                    filename: a.filename,
+                    content: a.contentBase64 ? Buffer.from(a.contentBase64, 'base64') : undefined,
+                    path: a.path || undefined
+                })) : [];
+                const info = await transporter.sendMail({
+                    from: fromStr,
+                    to: mail.to,
+                    cc: mail.cc || undefined,
+                    subject: mail.subject || '(nessun oggetto)',
+                    text: mail.text || '',
+                    html: mail.html || undefined,
+                    attachments
+                });
+                return { success: true, messageId: info.messageId };
+            } catch (e) {
+                console.error('[SendMail Error]', e);
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('getAppsRegistry', appsRegistry.getAppsRegistry);
+        ipcMain.handle('getUiExtensions', async (event, target, userId) => {
+            try {
+                const manifests = await appsRegistry.getAppsRegistry();
+                const db = require('../db').getDB('store');
+                const installedIds = db.query("SELECT app_id FROM installed_apps WHERE status = 'active'").map(r => r.app_id);
+                
+                const sessionManager = require('./session_manager');
+                const currentUserId = userId || sessionManager.getCurrentUserId();
+                const rbac = require('../handlers/rbac');
+                const perms = currentUserId ? rbac.getEffectiveUserPermissions(null, currentUserId) : ['*'];
+                const isSuper = Array.isArray(perms) && perms.includes('*');
+
+                const extensions = [];
+                for (const manifest of manifests) {
+                    if (manifest.core || installedIds.includes(manifest.id)) {
+                        if (manifest.ui_injections && Array.isArray(manifest.ui_injections)) {
+                            for (const inj of manifest.ui_injections) {
+                                if (inj.target === target) {
+                                    const requiredPerm = inj.requiredPermission || 'card_view';
+                                    const appId = manifest.id;
+                                    const hasAccess = isSuper || 
+                                        perms.includes(`${appId}:${requiredPerm}`) || 
+                                        perms.includes(`${appId}:card_view`) || 
+                                        perms.includes(`${appId}:view`) || 
+                                        perms.includes(`${appId}:*`);
+                                    if (hasAccess) {
+                                        extensions.push({
+                                            appId: manifest.id,
+                                            ...inj
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return { success: true, extensions };
+            } catch(e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('getSubAppsRegistry', appsRegistry.getSubAppsRegistry);
+        ipcMain.handle('store:getAvailable', () => storeHandlers.getAvailable());
+        ipcMain.handle('store:getInstalled', () => storeHandlers.getInstalled());
+        ipcMain.handle('store:getCoreApps', () => storeHandlers.getCoreApps());
+        ipcMain.handle('store:install', (e, appId) => storeHandlers.install(e, appId));
+        ipcMain.handle('store:elencaVersioni', (e, appId) => storeHandlers.elencaVersioni(e, appId));
+        ipcMain.handle('store:installaVersione', (e, args) => storeHandlers.installaVersione(e, args));
+        ipcMain.handle('store:anteprimaDisinstallazione', (e, appId) => storeHandlers.anteprimaDisinstallazione(e, appId));
+        ipcMain.handle('store:uninstall', (e, appId) => storeHandlers.uninstall(e, appId));
+        ipcMain.handle('store:checkUpdates', () => storeHandlers.checkUpdates());
+        ipcMain.handle('store:getUpdateQueue', () => {
+            try {
+                const AppUpdateManager = require('./AppUpdateManager');
+                return { success: true, data: AppUpdateManager.getQueueStatus() };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('store:getAppUpdateState', (e, appId) => {
+            try {
+                const AppUpdateManager = require('./AppUpdateManager');
+                return { success: true, data: AppUpdateManager.getAppState(appId) };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('store:isAppLocked', (e, appId) => {
+            try {
+                const AppUpdateManager = require('./AppUpdateManager');
+                return { success: true, locked: AppUpdateManager.isLocked(appId) };
+            } catch (e) {
+                return { success: false, locked: false };
+            }
+        });
+        ipcMain.handle('store:forceCheckUpdates', () => {
+            try {
+                const AppUpdateManager = require('./AppUpdateManager');
+                AppUpdateManager.forceCheckNow();
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('store:listRepositories', () => storeHandlers.listRepositories());
+        ipcMain.handle('store:addRepository', (e, args) => storeHandlers.addRepository(e, args));
+        ipcMain.handle('store:removeRepository', (e, id) => storeHandlers.removeRepository(e, id));
+        ipcMain.handle('store:rollbackAppVersion', (e, args) => storeHandlers.rollbackAppVersion(e, args));
+        ipcMain.handle('store:checkClusterHealth', () => storeHandlers.checkClusterHealth());
+        ipcMain.handle('store:getClusterAppMatrix', () => storeHandlers.getClusterAppMatrix());
+        ipcMain.handle('get_system_logs', () => storeHandlers.getSystemLogs());
+        ipcMain.handle('clear_system_logs', () => storeHandlers.clearSystemLogs());
+        ipcMain.handle('delete_system_log', (e, id) => storeHandlers.deleteSystemLog(id));
+
+
+        ipcMain.handle('system:getDiagnostics', async () => {
+            const SystemControlService = require('./SystemControlService');
+            return SystemControlService.getDiagnostics();
+        });
+        ipcMain.handle('system:getHardwareProfile', () => {
+            const hardwareProfiler = require('./HardwareProfiler');
+            return hardwareProfiler.getProfile();
+        });
+        ipcMain.handle('system:relaunch', () => {
+            const SystemControlService = require('./SystemControlService');
+            return SystemControlService.relaunch();
+        });
+        ipcMain.handle('system:forceReloadApp', (e, appId) => {
+            const SystemControlService = require('./SystemControlService');
+            return SystemControlService.forceReloadApp(appId);
+        });
+        ipcMain.handle('system:testAppAction', (e, targetAppId, action, payload) => {
+            const SystemControlService = require('./SystemControlService');
+            return SystemControlService.testAppAction(targetAppId, action, payload);
+        });
+
+        ipcMain.handle('forceNetworkDatabaseSync', async (event) => {
+            try {
+                if (!accessGuard.isSuperadmin()) return { success: false, error: 'Permesso negato' };
+                const { broadcastForceResync } = require('../p2p');
+                broadcastForceResync();
+                const { getDetailedNodes } = require('../sync');
+                const { getNetworkCodeHash } = require('../db');
+                const nodes = getDetailedNodes().filter(n => n.ip !== '127.0.0.1');
+                const http = require('http');
+                const { getLocalIPs } = require('../p2p/discovery/arp_scanner');
+                const myIps = getLocalIPs();
+                const myIp = myIps.length > 0 ? myIps[0] : '127.0.0.1';
+                const networkHash = await getNetworkCodeHash();
+                nodes.forEach(node => {
+                    const req = http.request(`http://${node.ip}:${node.port || 34567}/sync/force-nuke`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-koradest-network': networkHash || '' },
+                        timeout: 3000
+                    });
+                    req.on('error', () => {});
+                    req.write(JSON.stringify({ senderIp: myIp }));
+                    req.end();
+                });
+                return { success: true };
+            } catch(e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('checkIsRegistered', authHandlers.checkIsRegistered);
+        ipcMain.handle('registerUser', authHandlers.registerUser);
+        ipcMain.handle('loginUser', authHandlers.loginUser);
+        ipcMain.handle('loginUserVerify2fa', (e, data) => authHandlers.loginUserVerify2fa(e, data));
+        ipcMain.handle('loginWebauthnOptions', (e, data) => authHandlers.loginWebauthnOptions(e, data));
+        ipcMain.handle('logoutUser', (e, data) => authHandlers.logoutUser(e, data));
+        ipcMain.handle('getAccessLogs', async (event, requestedUserId) => {
+            try {
+                const sessionManager = require('./session_manager');
+                const sessionUserId = sessionManager.getCurrentUserId();
+                if (!sessionUserId) return { success: false, error: 'Non autenticato' };
+                const { isSuperadmin } = require('./access_guard');
+                const targetUserId = (isSuperadmin() && requestedUserId) ? requestedUserId : sessionUserId;
+                const db = require('../db').getDB('auth');
+                const logs = db.query('SELECT * FROM access_logs WHERE user_id = ? ORDER BY timestamp DESC LIMIT 50', [targetUserId]);
+                return { success: true, logs };
+            } catch(e) {
+                return { success: false, error: 'Errore interno' };
+            }
+        });
+        ipcMain.handle('getAllAccessLogs', (e, filters) => authHandlers.getAllAccessLogs(e, filters));
+        ipcMain.handle('getAccessLogsStats', (e, actorUserId) => authHandlers.getAccessLogsStats(e, actorUserId));
+        ipcMain.handle('broadcastLogin', async (event, userId) => {
+            try {
+                const { getNodeId, getNetworkName } = require('./node_identity');
+                const os = require('os');
+                let ipAddress = '127.0.0.1';
+                const ifaces = os.networkInterfaces();
+                for (const name of Object.keys(ifaces)) {
+                    for (const iface of ifaces[name]) {
+                        if (iface.family === 'IPv4' && !iface.internal) {
+                            ipAddress = iface.address;
+                            break;
+                        }
+                    }
+                }
+                const { broadcastToAll } = require('../p2p/protocol/rpc');
+                const pool = require('../p2p/transport/connection_pool');
+                broadcastToAll(pool.getAll(), 'user_logged_in', { 
+                    userId, 
+                    nodeId: getNodeId(), 
+                    nodeName: getNetworkName(),
+                    ipAddress,
+                    deviceInfo: os.hostname() || 'Unknown'
+                });
+                return { success: true };
+            } catch(e) {
+                console.error('[IPC] Errore in broadcastLogin:', e.message);
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('unlockDatabase', async (event, args) => {
+            const result = await authHandlers.unlockDatabase(event, args);
+            if (result && result.success) {
+                setTimeout(() => {
+                    try { require('../sync').loadPeerCache(); } catch(_) {}
+                }, 500);
+            }
+            return result;
+        });
+        ipcMain.handle('recoverDatabase', async (event, networkCode) => {
+            const networkSession = require('../networks/session/network_session');
+            const activator = require('../networks/lifecycle/network_activator');
+            const networkId = networkSession.getActiveId();
+            if (!networkId) return { success: false, error: 'Nessuna rete attiva su questa postazione.' };
+            try {
+                await activator.deactivate();
+                await activator.activate(networkId, networkCode);
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: 'Codice di rete errato o database corrotto.' };
+            }
+        });
+        registerNetworkChannels(ipcMain);
+        ipcMain.handle('getUsersList', authHandlers.getUsersList);
+        ipcMain.handle('getNetworkCode', (e, data) => authHandlers.getNetworkCode(e, data));
+        ipcMain.handle('scanNodes', authHandlers.handleScanNodes);
+        ipcMain.handle('cloneNetwork', authHandlers.handleCloneNetwork);
+        ipcMain.handle('checkNetworkProfile', authHandlers.checkNetworkProfile);
+        ipcMain.handle('setNetworkProfilePrivate', authHandlers.setNetworkProfilePrivate);
+        ipcMain.handle('pingNode', authHandlers.handlePingNode);
+        ipcMain.handle('forceSync', async () => {
+            try {
+                const { forceResync, getDetailedNodes } = require('../sync');
+                forceResync();
+                const nodes = getDetailedNodes().filter(n => n.ip !== '127.0.0.1' && n.status === 'Online');
+                if (nodes.length > 0) {
+                    const { triggerFullResync } = require('../sync_engine');
+                    triggerFullResync(nodes[0].ip, nodes[0].port || 34567).catch(() => {});
+                }
+                return true;
+            } catch(e) { return false; }
+        });
+        ipcMain.handle('openFirewallSettings', async () => {
+            try {
+                const { exec } = require('child_process');
+                exec('control firewall.cpl');
+                return true;
+            } catch(e) { console.error(e); return false; }
+        });
+        ipcMain.handle('forceFirewallRules', async () => {
+            try {
+                const { exec } = require('child_process');
+                const exePath = process.execPath.replace(/'/g, "''");
+                const psScript = `
+                    Get-NetFirewallRule -DisplayName "*Koradest*" -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue;
+                    New-NetFirewallRule -DisplayName "Koradest App (In)" -Group "Koradest" -Direction Inbound -Program "${exePath}" -Action Allow -Profile Any -EdgeTraversalPolicy Allow;
+                    New-NetFirewallRule -DisplayName "Koradest App (Out)" -Group "Koradest" -Direction Outbound -Program "${exePath}" -Action Allow -Profile Any;
+                    New-NetFirewallRule -DisplayName "Koradest Sync (TCP-In)" -Group "Koradest" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 34567,34568,34569,34570,34571,45891,7345 -Profile Any -EdgeTraversalPolicy Allow;
+                    New-NetFirewallRule -DisplayName "Koradest Discovery (UDP-In)" -Group "Koradest" -Direction Inbound -Action Allow -Protocol UDP -LocalPort 34568,5353,7346 -Profile Any -EdgeTraversalPolicy Allow;
+                    New-NetFirewallRule -DisplayName "Koradest Sync (TCP-Out)" -Group "Koradest" -Direction Outbound -Action Allow -Protocol TCP -LocalPort 34567,34568,34569,34570,34571,45891,7345 -Profile Any;
+                    New-NetFirewallRule -DisplayName "Koradest Discovery (UDP-Out)" -Group "Koradest" -Direction Outbound -Action Allow -Protocol UDP -LocalPort 34568,5353,7346 -Profile Any;
+                `.replace(/\n/g, ' ');
+                const command = `powershell.exe -WindowStyle Hidden -Command "Start-Process powershell.exe -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-Command', '${psScript}' -Verb RunAs -Wait"`;
+                await new Promise((resolve, reject) => {
+                    exec(command, (error, stdout, stderr) => {
+                        if (error) reject(error);
+                        else resolve();
+                    });
+                });
+                return true;
+            } catch(e) { console.error(e); return false; }
+        });
+        ipcMain.handle('ping', () => 'Pong da Electron!');
+        ipcMain.removeHandler('getDetailedNodes');
+        ipcMain.handle('getDetailedNodes', async () => {
+            try {
+                const { getDetailedNodes } = require('../sync');
+                return getDetailedNodes();
+            } catch(e) { return []; }
+        });
+        ipcMain.removeHandler('getNetworkSyncStatus');
+        ipcMain.handle('getNetworkSyncStatus', async () => {
+            try {
+                const { getDetailedNodes } = require('../sync');
+                const { getTotalBlocksCount } = require('../dag/graph/dag_store');
+                const http = require('http');
+                const localBlocks = getTotalBlocksCount();
+                const nodes = getDetailedNodes().filter(n => n.ip !== '127.0.0.1');
+                const fetchNodePing = (ip, port) => new Promise((resolve) => {
+                    const req = http.get(`http://${ip}:${port}/ping`, { timeout: 2000 }, (res) => {
+                        let data = '';
+                        res.on('data', chunk => data += chunk);
+                        res.on('end', () => {
+                            try { resolve(JSON.parse(data)); } catch(e) { resolve(null); }
+                        });
+                    });
+                    req.on('error', () => resolve(null));
+                    req.on('timeout', () => { req.destroy(); resolve(null); });
+                });
+                const enrichedNodes = await Promise.all(nodes.map(async (node) => {
+                    const pingData = await fetchNodePing(node.ip, node.port || 34567);
+                    const remoteBlocks = pingData && pingData.blockCount ? pingData.blockCount : 0;
+                    const syncPercentage = localBlocks > 0 ? Math.min(100, Math.round((remoteBlocks / localBlocks) * 100)) : (remoteBlocks > 0 ? 100 : 0);
+                    return { ...node, remoteBlocks, syncPercentage };
+                }));
+                return { localBlocks, nodes: enrichedNodes };
+            } catch(e) { return { localBlocks: 0, nodes: [] }; }
+        });
+        ipcMain.removeHandler('executeNodeAction');
+        ipcMain.handle('executeNodeAction', async (event, { action, ip, port }) => {
+            try {
+                if (!accessGuard.isLoggedIn()) return { success: false, error: 'Permesso negato' };
+                const p = port || 34567;
+                if (action === 'soft_sync') {
+                    const { triggerFullResync } = require('../sync_engine');
+                    const esito = await triggerFullResync(ip, p);
+                    if (esito) return { success: true };
+                    let motivo = 'Sincronizzazione non riuscita';
+                    try {
+                        const p2p = require('../p2p/index');
+                        motivo = (typeof p2p.ultimoErroreResync === 'function' && p2p.ultimoErroreResync()) || motivo;
+                    } catch (_) {}
+                    return { success: false, error: motivo };
+                } else if (action === 'hard_clone_from_remote') {
+                    if (!accessGuard.isSuperadmin()) return { success: false, error: 'Permesso negato' };
+                    const { forceNukeAndClone } = require('../p2p/index');
+                    forceNukeAndClone(ip, p);
+                    return { success: true };
+                } else if (action === 'hard_clone_to_remote') {
+                    if (!accessGuard.isSuperadmin()) return { success: false, error: 'Permesso negato' };
+                    const http = require('http');
+                    const { getLocalIPs } = require('../p2p/discovery/arp_scanner');
+                    const { getNetworkCodeHash } = require('../db');
+                    const myIps = getLocalIPs();
+                    const myIp = myIps.length > 0 ? myIps[0] : '127.0.0.1';
+                    const networkHash = await getNetworkCodeHash();
+                    return new Promise((resolve) => {
+                        const req = http.request(`http://${ip}:${p}/sync/force-nuke`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'x-koradest-network': networkHash || '' },
+                            timeout: 3000
+                        }, (res) => {
+                            resolve({ success: res.statusCode === 200 });
+                        });
+                        req.on('error', (e) => resolve({ success: false, error: e.message }));
+                        req.write(JSON.stringify({ senderIp: myIp }));
+                        req.end();
+                    });
+                }
+                return { success: false, error: 'Azione sconosciuta' };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.removeHandler('getExtendedNodeMetrics');
+        ipcMain.handle('getExtendedNodeMetrics', async () => {
+            try {
+                const { getExtendedNodeMetrics } = require('../handlers/nodes');
+                return getExtendedNodeMetrics();
+            } catch (e) { return null; }
+        });
+        ipcMain.removeHandler('getNodeId');
+        ipcMain.handle('getNodeId', () => {
+            try {
+                const { getNodeId } = require('../db');
+                return getNodeId();
+            } catch(e) { return null; }
+        });
+        ipcMain.removeHandler('blockchainFullResync');
+        ipcMain.handle('blockchainFullResync', async (event, data) => {
+            try {
+                const { triggerFullResync } = require('../sync_engine');
+                const { host, port } = data || {};
+                if (!host || !port) return { success: false, error: 'Parametri mancanti' };
+                if (!_isValidPeerIp(host)) return { success: false, error: 'IP non valido' };
+                const p = parseInt(port, 10);
+                if (isNaN(p) || p < 1024 || p > 65535) return { success: false, error: 'Porta non valida' };
+                const success = await triggerFullResync(host, p);
+                return { success };
+            } catch(e) {
+                return { success: false, error: 'Errore interno' };
+            }
+        });
+        ipcMain.removeHandler('blockchainRebuild');
+        ipcMain.handle('blockchainRebuild', async () => {
+            try {
+                const { rebuildStateFromLog } = require('../blockchain');
+                const success = rebuildStateFromLog();
+                return { success };
+            } catch(e) {
+                console.error(e);
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('checkForUpdates', async () => {
+            try {
+                const updaterService = require('./updaterService');
+                if (updaterService.isUpdateInProgress && updaterService.isUpdateInProgress()) {
+                    const pending = typeof updaterService.getPendingUpdateVersion === 'function' ? updaterService.getPendingUpdateVersion() : null;
+                    if (pending) {
+                        const win = BrowserWindow.getAllWindows()[0];
+                        if (win) win.webContents.send('update-ready-for-install', { version: pending });
+                    }
+                    return;
+                }
+                const updatesManager = require('../updates_manager');
+                const highest = updatesManager.getHighestLocalVersion();
+                if (highest && updatesManager.compareVersions(highest, app.getVersion()) > 0) {
+                    updaterService.checkUpdateConsensus();
+                    const win = BrowserWindow.getAllWindows()[0];
+                    if (win) win.webContents.send('update-ready-for-install', { version: highest });
+                    return;
+                }
+                const { getDetailedNodes } = require('../sync');
+                const lanNodes = getDetailedNodes().filter(n => n.ip !== '127.0.0.1' && n.status === 'Online');
+                const http = require('http');
+                let bestPeer = null;
+                let bestVersion = app.getVersion();
+                for (const node of lanNodes) {
+                    try {
+                        const p2pRes = await new Promise((resolve) => {
+                            const req = http.get(`http://${node.ip}:${node.port || 34567}/sync/update-info`, { timeout: 2000 }, (res) => {
+                                let data = '';
+                                res.on('data', c => data += c);
+                                res.on('end', () => {
+                                    try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
+                                });
+                            });
+                            req.on('error', () => resolve(null));
+                            req.on('timeout', () => { try { req.destroy(); } catch (_) {} resolve(null); });
+                        });
+                        if (p2pRes && p2pRes.version && updatesManager.compareVersions(p2pRes.version, bestVersion) > 0) {
+                            bestVersion = p2pRes.version;
+                            bestPeer = node;
+                        }
+                    } catch (_) {}
+                }
+                if (bestPeer) {
+                    updaterService.maybeAdoptLanUpdate(bestVersion, bestPeer.ip, bestPeer.port || 34567, true);
+                    return;
+                }
+                await updaterService.checkUpdatesManual();
+            } catch (e) {
+                const win = BrowserWindow.getAllWindows()[0];
+                if (win) win.webContents.send('update-status', { status: 'Sei aggiornato all\'ultima versione.', finished: true });
+            }
+        });
+        ipcMain.handle('forceP2PUpdate', async (event, peerIp) => {
+            try {
+                if (!_isValidPeerIp(peerIp)) return { success: false, error: 'IP non valido' };
+                const updaterService = require('./updaterService');
+                const http = require('http');
+                const p2pRes = await new Promise((resolve) => {
+                    const req = http.get(`http://${peerIp}:34567/sync/update-info`, { timeout: 3000 }, (res) => {
+                        let data = '';
+                        res.on('data', c => data += c);
+                        res.on('end', () => {
+                            try { resolve(JSON.parse(data)); } catch (_) { resolve(null); }
+                        });
+                    });
+                    req.on('error', () => resolve(null));
+                    req.on('timeout', () => { try { req.destroy(); } catch (_) {} resolve(null); });
+                });
+                if (p2pRes && p2pRes.version) {
+                    updaterService.maybeAdoptLanUpdate(p2pRes.version, peerIp, 34567, true);
+                    return { success: true };
+                }
+                return { success: false };
+            } catch (e) {
+                return { success: false };
+            }
+        });
+        ipcMain.handle('installPendingUpdate', async () => {
+            try {
+                const updaterService = require('./updaterService');
+                return typeof updaterService.installPendingUpdateNow === 'function' ? updaterService.installPendingUpdateNow() : false;
+            } catch (e) { return false; }
+        });
+        ipcMain.handle('forceUpdateConsensus', async () => {
+            try {
+                const updaterService = require('./updaterService');
+                if (typeof updaterService.forceUpdateConsensus === 'function') {
+                    updaterService.forceUpdateConsensus();
+                    return true;
+                }
+                return false;
+            } catch (e) { return false; }
+        });
+        ipcMain.handle('announce-local-update', async () => {
+            try {
+                const currentVersion = app.getVersion();
+                const distPath = path.join(__dirname, '../../dist');
+                if (!fs.existsSync(distPath)) {
+                    return { success: false, error: `Cartella dist/ non trovata. Esegui prima: npm run build:local` };
+                }
+                const canonicalName = `Koradest-Setup-${currentVersion}.exe`;
+                let installerPath = path.join(distPath, canonicalName);
+                if (!fs.existsSync(installerPath)) {
+                    const files = fs.readdirSync(distPath).filter(f => f.endsWith('.exe') && /koradest/i.test(f));
+                    if (files.length === 0) {
+                        return { success: false, error: `Nessun installer trovato in dist/. Esegui: npm run build:local` };
+                    }
+                    installerPath = path.join(distPath, files[0]);
+                }
+                const { announceLocalUpdate } = require('../sync');
+                announceLocalUpdate(currentVersion, installerPath);
+                return { success: true, version: currentVersion, installer: installerPath };
+            } catch(e) {
+                console.error('[IPC] announce-local-update error:', e);
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('openGitHub', async () => {
+            return collegamentiHandlers.apri('https://github.com/AprileNunzio/Koradest');
+        });
+        ipcMain.handle('logError', (event, errorMsg) => {
+            try {
+                if (typeof errorMsg !== 'string') return;
+                const sanitized = errorMsg.replace(/[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]/g, '').slice(0, 1024);
+                const { logError } = require('../logger');
+                logError('[FRONTEND] ' + sanitized);
+            } catch(e) {}
+        });
+        ipcMain.handle('toggleDevTools', () => {
+            if (app.isPackaged && !accessGuard.isSuperadmin()) {
+                return { success: false, error: 'Strumenti sviluppatore riservati agli amministratori della rete.' };
+            }
+            try {
+                const win = windowManager.getMainWindow() || BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+                if (win && win.webContents) win.webContents.toggleDevTools();
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('exportLogs', async () => {
+            try {
+                const { dialog } = require('electron');
+                const win = BrowserWindow.getFocusedWindow();
+                const logDir = path.join(app.getPath('userData'), 'Log');
+                if (!fs.existsSync(logDir)) return { success: false, error: 'Nessun log disponibile.' };
+                const { canceled, filePath } = await dialog.showSaveDialog(win, {
+                    title: 'Esporta Log di Sistema',
+                    defaultPath: path.join(app.getPath('documents'), `Koradest_Logs_${Date.now()}.txt`),
+                    filters: [{ name: 'Text Document', extensions: ['txt'] }]
+                });
+                if (canceled || !filePath) return { success: false, canceled: true };
+                const logFiles = fs.readdirSync(logDir).filter(f => f.endsWith('.txt'));
+                let combinedLogs = `--- KORADEST LOGS (${new Date().toLocaleString()}) ---\n\n`;
+                for (const file of logFiles) {
+                    combinedLogs += `\n--- FILE: ${file} ---\n`;
+                    combinedLogs += fs.readFileSync(path.join(logDir, file), 'utf8');
+                }
+                fs.writeFileSync(filePath, combinedLogs);
+                return { success: true, path: filePath };
+            } catch(e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('runDiagnostics', (e) => diagnosticsHandlers.runDiagnostics(e));
+        ipcMain.handle('fixDiagnostics', (e) => diagnosticsHandlers.fixDiagnostics(e));
+        ipcMain.handle('usersGetAll', (e, args) => usersHandlers.getAll(e, args));
+        ipcMain.handle('usersChangeOwnPassword', (e, args) => usersHandlers.changeOwnPassword(e, args));
+        ipcMain.handle('usersChangeOwnPin', (e, args) => usersHandlers.changeOwnPin(e, args));
+        ipcMain.handle('usersCreate', (e, args) => usersHandlers.create(e, withActorBackend(args)));
+        ipcMain.handle('usersUpdate', (e, args) => usersHandlers.update(e, withActorBackend(args)));
+        ipcMain.handle('usersDelete', (e, args) => usersHandlers.remove(e, withActorBackend(args)));
+        ipcMain.handle('usersRestore', (e, args) => usersHandlers.restore(e, withActorBackend(args)));
+        ipcMain.handle('usersHardDelete', (e, args) => usersHandlers.hardDelete(e, withActorBackend(args)));
+        ipcMain.handle('rbac:getAllUsers', (e) => rbacHandlers.getAllUsers(e));
+        ipcMain.handle('rbac:getAllRoles', (e) => rbacHandlers.getAllRoles(e));
+        ipcMain.handle('rbac:createRole', (e, name, desc) => rbacHandlers.createRole(e, name, desc));
+        ipcMain.handle('rbac:assignRoleToUser', (e, userId, roleId) => rbacHandlers.assignRoleToUser(e, userId, roleId));
+        ipcMain.handle('rbac:removeRoleFromUser', (e, userId, roleId) => rbacHandlers.removeRoleFromUser(e, userId, roleId));
+        ipcMain.handle('rbac:syncPermissionsFromManifests', (e) => rbacHandlers.syncPermissionsFromManifests(e));
+        ipcMain.handle('rbac:getAllGroups', (e) => rbacHandlers.getAllGroups(e));
+        ipcMain.handle('rbac:createGroup', (e, name, desc, isSuperadmin) => rbacHandlers.createGroup(e, name, desc, isSuperadmin));
+        ipcMain.handle('rbac:getGroupPermissions', (e, groupId) => rbacHandlers.getGroupPermissions(e, groupId));
+        ipcMain.handle('rbac:getUserPermissions', (e, userId) => rbacHandlers.getUserPermissions(e, userId));
+        ipcMain.handle('rbac:getEffectiveUserPermissions', (e, userId) => {
+            const sessionManager = require('./session_manager');
+            const callerId = sessionManager.getCurrentUserId();
+            const own = rbacHandlers.getEffectiveUserPermissions(e, callerId) || [];
+            if (!userId || userId === callerId) return own;
+            const puoIspezionare = own.includes('*') || own.includes('amministratore:rbac:view');
+            if (!puoIspezionare) return own;
+            return rbacHandlers.getEffectiveUserPermissions(e, userId);
+        });
+        ipcMain.handle('rbac:setGroupPermission', (e, groupId, permId, val) => rbacHandlers.setGroupPermission(e, groupId, permId, val));
+        ipcMain.handle('rbac:setUserPermission', (e, userId, permId, val) => rbacHandlers.setUserPermission(e, userId, permId, val));
+        ipcMain.handle('rbac:getGroupUsers', (e, groupId) => rbacHandlers.getGroupUsers(e, groupId));
+        ipcMain.handle('rbac:updateGroupUsers', (e, groupId, userIds) => rbacHandlers.updateGroupUsers(e, groupId, userIds));
+        ipcMain.handle('twofa:getStatus', (e, userId) => twofaHandlers.getStatus(e, userId));
+        ipcMain.handle('twofa:totpSetupBegin', (e, userId) => twofaHandlers.totpSetupBegin(e, userId));
+        ipcMain.handle('twofa:totpSetupConfirm', (e, data) => twofaHandlers.totpSetupConfirm(e, data));
+        ipcMain.handle('twofa:totpDisable', (e, data) => twofaHandlers.totpDisable(e, data));
+        ipcMain.handle('twofa:webauthnRegisterBegin', (e, userId) => twofaHandlers.webauthnRegisterBegin(e, userId));
+        ipcMain.handle('twofa:webauthnRegisterFinish', (e, data) => twofaHandlers.webauthnRegisterFinish(e, data));
+        ipcMain.handle('twofa:webauthnRemove', (e, data) => twofaHandlers.webauthnRemove(e, data));
+        ipcMain.handle('twofa:adminReset', (e, data) => twofaHandlers.adminReset(e, data));
+        ipcMain.handle('twofa:setPolicy', (e, data) => twofaHandlers.setTwofaPolicy(e, data));
+        ipcMain.handle('twofa:adminListStatus', (e, actorUserId) => twofaHandlers.adminListStatus(e, actorUserId));
+        ipcMain.handle('notifications:getPreferences', (e, userId) => notificationsHandlers.getPreferences(e, userId));
+        ipcMain.handle('notifications:setPreference', (e, data) => notificationsHandlers.setPreference(e, data));
+        ipcMain.handle('notifications:list', (e, data) => notificationsHandlers.list(e, data));
+        ipcMain.handle('notifications:markRead', (e, data) => notificationsHandlers.markRead(e, data));
+        ipcMain.handle('notifications:create', (e, data) => notificationsHandlers.create(data));
+        ipcMain.handle('anagrafica:persone:getAll', (e, args) => anagraficaPersoneHandlers.getAll(e, args));
+        ipcMain.handle('anagrafica:persone:search', (e, args) => anagraficaPersoneHandlers.search(e, args));
+        ipcMain.handle('anagrafica:persone:getById', (e, args) => anagraficaPersoneHandlers.getById(e, args));
+        ipcMain.handle('anagrafica:persone:getByUserId', (e, args) => anagraficaPersoneHandlers.getByUserId(e, args));
+        ipcMain.handle('anagrafica:persone:create', (e, args) => anagraficaPersoneHandlers.create(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:persone:update', (e, args) => anagraficaPersoneHandlers.update(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:persone:remove', (e, args) => anagraficaPersoneHandlers.remove(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:persone:restore', (e, args) => anagraficaPersoneHandlers.restore(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:persone:hardDelete', (e, args) => anagraficaPersoneHandlers.hardDelete(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:persone:getScheda', (e, args) => anagraficaPersoneHandlers.getScheda(e, args));
+        ipcMain.handle('anagrafica:documenti:getByPersona', (e, args) => anagraficaDocumentiHandlers.getByPersona(e, args));
+        ipcMain.handle('anagrafica:documenti:create', (e, args) => anagraficaDocumentiHandlers.create(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:documenti:update', (e, args) => anagraficaDocumentiHandlers.update(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:documenti:remove', (e, args) => anagraficaDocumentiHandlers.remove(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:residenza:getByPersona', (e, args) => anagraficaResidenzaHandlers.getByPersona(e, args));
+        ipcMain.handle('anagrafica:residenza:create', (e, args) => anagraficaResidenzaHandlers.create(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:residenza:update', (e, args) => anagraficaResidenzaHandlers.update(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:residenza:remove', (e, args) => anagraficaResidenzaHandlers.remove(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:contatti:getByPersona', (e, args) => anagraficaContattiHandlers.getByPersona(e, args));
+        ipcMain.handle('anagrafica:contatti:create', (e, args) => anagraficaContattiHandlers.create(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:contatti:update', (e, args) => anagraficaContattiHandlers.update(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:contatti:remove', (e, args) => anagraficaContattiHandlers.remove(e, withActorBackend(args)));
+        ipcMain.removeHandler('anagrafica:familiari:getByPersona');
+        ipcMain.removeHandler('anagrafica:familiari:create');
+        ipcMain.removeHandler('anagrafica:familiari:update');
+        ipcMain.removeHandler('anagrafica:familiari:remove');
+        ipcMain.handle('anagrafica:familiari:getByPersona', (e, args) => anagraficaFamiliariHandlers.getByPersona(e, args));
+        ipcMain.handle('anagrafica:familiari:create', (e, args) => anagraficaFamiliariHandlers.create(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:familiari:update', (e, args) => anagraficaFamiliariHandlers.update(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:familiari:remove', (e, args) => anagraficaFamiliariHandlers.remove(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:lavoro:getByPersona', (e, args) => anagraficaLavoroHandlers.getByPersona(e, args));
+        ipcMain.handle('anagrafica:lavoro:create', (e, args) => anagraficaLavoroHandlers.create(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:lavoro:update', (e, args) => anagraficaLavoroHandlers.update(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:lavoro:remove', (e, args) => anagraficaLavoroHandlers.remove(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:titoliStudio:getByPersona', (e, args) => anagraficaTitoliStudioHandlers.getByPersona(e, args));
+        ipcMain.handle('anagrafica:titoliStudio:create', (e, args) => anagraficaTitoliStudioHandlers.create(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:titoliStudio:update', (e, args) => anagraficaTitoliStudioHandlers.update(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:titoliStudio:remove', (e, args) => anagraficaTitoliStudioHandlers.remove(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:datiBancari:getByPersona', (e, args) => anagraficaDatiBancariHandlers.getByPersona(e, args));
+        ipcMain.handle('anagrafica:datiBancari:create', (e, args) => anagraficaDatiBancariHandlers.create(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:datiBancari:update', (e, args) => anagraficaDatiBancariHandlers.update(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:datiBancari:remove', (e, args) => anagraficaDatiBancariHandlers.remove(e, withActorBackend(args)));
+        ipcMain.handle('anagrafica:audit:getHistory', async (_, args) => anagraficaAuditHandlers.getHistory(args));
+
+        ipcMain.handle('datiAzienda:getSedi', async () => datiAziendaHandlers.getSedi());
+        ipcMain.handle('datiAzienda:getSedeById', async (_, id) => datiAziendaHandlers.getSedeById(id));
+        ipcMain.handle('datiAzienda:saveSede', async (_, sede) => datiAziendaHandlers.saveSede(sede));
+        ipcMain.handle('datiAzienda:deleteSede', async (_, id) => datiAziendaHandlers.deleteSede(id));
+        ipcMain.handle('anagrafica:riferimenti:getProvince', (e) => anagraficaRiferimentiHandlers.getProvince());
+        ipcMain.handle('anagrafica:riferimenti:getNazioni', (e) => anagraficaRiferimentiHandlers.getNazioni());
+        ipcMain.handle('anagrafica:riferimenti:getAllComuni', async () => {
+            try {
+                if (!global.comuniData) {
+                    const comuniPath = path.join(__dirname, '..', 'data', 'comuni.json');
+                    global.comuniData = JSON.parse(fs.readFileSync(comuniPath, 'utf8'));
+                }
+                return global.comuniData;
+            } catch(e) {
+                console.error('Errore getAllComuni', e);
+                return [];
+            }
+        });
+        ipcMain.handle('anagrafica:riferimenti:getSuggestions', (e, args) => anagraficaRiferimentiHandlers.getSuggestions(e, args));
+        ipcMain.handle('getDistributedLogs', (e) => {
+            try {
+                const db = require('../db').getDB('auth');
+                const logs = db.query("SELECT * FROM distributed_logs WHERE is_deleted = 0 AND (level = 'error' OR level = 'warn') ORDER BY created_at DESC LIMIT 500");
+                return { success: true, logs: logs || [] };
+            } catch(err) {
+                return { success: false, error: err.message };
+            }
+        });
+        ipcMain.handle('deleteDistributedLog', (e, id) => {
+            try {
+                const db = require('../db').getDB('auth');
+                db.run('DELETE FROM distributed_logs WHERE id = ?', [id]);
+                const { wrapMutationWithEvent, saveDB } = require('../db');
+                wrapMutationWithEvent('DELETE', 'distributed_logs', id, null);
+                saveDB();
+                return { success: true };
+            } catch(err) {
+                return { success: false, error: err.message };
+            }
+        });
+        ipcMain.handle('clearDistributedLogs', (e) => {
+            try {
+                const db = require('../db').getDB('auth');
+                const allLogs = db.query('SELECT id FROM distributed_logs');
+                if (allLogs && allLogs.length > 0) {
+                    const { wrapMutationWithEvent, saveDB } = require('../db');
+                    for (const row of allLogs) {
+                        wrapMutationWithEvent('DELETE', 'distributed_logs', row.id, null);
+                    }
+                    db.run('DELETE FROM distributed_logs');
+                    saveDB();
+                }
+                return { success: true };
+            } catch(err) {
+                return { success: false, error: err.message };
+            }
+        });
+        ipcMain.handle('appBus:registerWindow', (e, appId) => {
+            try {
+                const appMessageBus = require('./appMessageBus');
+                appMessageBus.registerAppWindow(appId, e.sender);
+                return { success: true };
+            } catch(err) {
+                return { success: false, error: err.message };
+            }
+        });
+        ipcMain.handle('appBus:sendMessage', (e, senderAppId, targetAppId, payload) => {
+            try {
+                const appMessageBus = require('./appMessageBus');
+                return appMessageBus.routeMessage(senderAppId, targetAppId, payload);
+            } catch(err) {
+                return { success: false, error: err.message };
+            }
+        });
+
+        ipcMain.handle('license:status', async () => {
+            try {
+                const licenseHandlers = require('../handlers/license');
+                return licenseHandlers.getLicenseStatus();
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('license:activate', async (_, args) => {
+            try {
+                const licenseHandlers = require('../handlers/license');
+                return licenseHandlers.activateLicense(args);
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('gdpr:eraseSubject', async (_, args) => {
+            try {
+                const sessionManager = require('./session_manager');
+                await require('../security/step_up_auth').verifyCurrentUser(args && args.credential, 'gdpr:eraseSubject');
+                const gdprManager = require('../security/gdprManager');
+                return await gdprManager.eraseSubjectData(args && args.personId, sessionManager.getCurrentUserId());
+            } catch (e) {
+                return { success: false, error: e.userMessage || e.message, code: e.isExpected ? e.message : undefined };
+            }
+        });
+
+        ipcMain.handle('gdpr:previewErasure', (_, args) => {
+            try {
+                const gdprManager = require('../security/gdprManager');
+                return gdprManager.previewErasure(args && args.personId);
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('gdpr:getRetention', () => {
+            try {
+                return require('../security/gdprManager').getRetentionPolicy();
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('gdpr:setRetention', async (_, args) => {
+            try {
+                const sessionManager = require('./session_manager');
+                return await require('../security/gdprManager').setRetentionPolicy(args, sessionManager.getCurrentUserId());
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('gdpr:runRetention', async () => {
+            try {
+                return await require('../security/gdprManager').runRetention();
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('gdpr:privacyRegister', () => {
+            try {
+                return require('../security/gdprManager').privacyRegister();
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('gdpr:exportPrivacyRegister', async () => {
+            try {
+                const { dialog, BrowserWindow } = require('electron');
+                const finestra = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+                const scelta = await dialog.showSaveDialog(finestra, {
+                    title: 'Salva il registro dei trattamenti',
+                    defaultPath: 'registro-trattamenti.md',
+                    filters: [{ name: 'Markdown', extensions: ['md'] }]
+                });
+                if (scelta.canceled || !scelta.filePath) return { success: false, canceled: true };
+                fs.writeFileSync(scelta.filePath, require('../security/gdprManager').privacyRegisterMarkdown(), 'utf8');
+                return { success: true, percorso: scelta.filePath };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('gdpr:ledgerStats', () => {
+            try {
+                return require('../security/gdprManager').ledgerStats();
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('gdpr:exportSubject', async (_, args) => {
+            try {
+                const gdprManager = require('../security/gdprManager');
+                return gdprManager.exportSubjectData(args && args.personId);
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('store:rollbackApp', async (_, args) => {
+            try {
+                const AppUpdateManager = require('./AppUpdateManager');
+                return await AppUpdateManager.rollbackApp(args?.appId);
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('health:getStatus', async () => {
+            try {
+                const HealthMonitor = require('./HealthMonitor');
+                return HealthMonitor.getSystemHealth();
+            } catch (e) {
+                return { status: 'ERROR', error: e.message };
+            }
+        });
+
+        ipcMain.handle('health:getAuditLogs', async (_, args) => {
+            try {
+                const auditLogger = require('../observability/auditLogger');
+                return auditLogger.getAuditLogs(args?.filters || {}, args?.limit || 100);
+            } catch (e) {
+                return [];
+            }
+        });
+
+        ipcMain.handle('health:getAppMetrics', async (_, args) => {
+            try {
+                const appMetrics = require('../observability/appMetrics');
+                return appMetrics.getAppMetrics(args?.appId || null);
+            } catch (e) {
+                return {};
+            }
+        });
+
+        ipcMain.handle('events:publish', async (_, args) => {
+            try {
+                const domainEventStore = require('./domainEventStore');
+                return domainEventStore.publishEvent(args?.eventName, args?.aggregateId, args?.actorId, args?.payload);
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('events:query', async (_, args) => {
+            try {
+                const domainEventStore = require('./domainEventStore');
+                return domainEventStore.getEvents(args?.eventName, args?.aggregateId, args?.limit || 100);
+            } catch (e) {
+                return [];
+            }
+        });
+
+        ipcMain.handle('flightRecorder:dump', async () => {
+            try {
+                const flightRecorder = require('../observability/flightRecorder');
+                return flightRecorder.exportDiagnosticDump();
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('flightRecorder:get', async (_, args) => {
+            try {
+                const flightRecorder = require('../observability/flightRecorder');
+                return flightRecorder.getEvents(args?.limit || 100);
+            } catch (e) {
+                return [];
+            }
+        });
+
+        ipcMain.handle('sso:authenticate', async (_, args) => {
+            try {
+                const ssoProvider = require('../security/ssoProvider');
+                return await ssoProvider.authenticateSsoToken(args);
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('entitlement:check', async (_, args) => {
+            try {
+                const entitlementEngine = require('../security/entitlementEngine');
+                return entitlementEngine.checkEntitlement(args?.appId, args?.tenantId);
+            } catch (e) {
+                return { valid: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('rbac:inspectTrace', async (_, args) => {
+            try {
+                const rbac = require('../handlers/rbac');
+                return rbac.inspectUserPermissionTrace(null, args?.userId, args?.permissionId);
+            } catch (e) {
+                return { granted: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('rbac:auditReport', async () => {
+            try {
+                const rbac = require('../handlers/rbac');
+                return rbac.generateAuditReport();
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('abac:evaluate', async (_, args) => {
+            try {
+                const abacGuard = require('../security/abacGuard');
+                return abacGuard.evaluateContext(args?.userId, args?.appId, args?.permissionId, args?.context);
+            } catch (e) {
+                return { allowed: false, reason: e.message };
+            }
+        });
+
+        ipcMain.handle('sod:check', async (_, args) => {
+            try {
+                const sodEngine = require('../security/sodEngine');
+                return sodEngine.checkConflicts(args?.permissions);
+            } catch (e) {
+                return { hasConflict: false, error: e.message };
+            }
+        });
+    } catch (e) {}
+}
+module.exports = { registerAllIPCHandlers };

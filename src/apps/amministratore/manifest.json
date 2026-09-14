@@ -1,0 +1,42 @@
+{
+    "id": "amministratore",
+    "name": "Amministratore",
+    "description": "Gestione Utenti, Ruoli e Sicurezza",
+    "icon": "icona.png",
+    "main": "app.js",
+    "color": "#f44336",
+    "version": "1.0.0",
+    "author": "KORADEST",
+    "category": "utility",
+    "tags": [
+        "admin",
+        "rbac",
+        "sicurezza"
+    ],
+    "core": true,
+    "subApps": [
+        {
+            "id": "smtp",
+            "name": "Server SMTP",
+            "icon": "mail"
+        }
+    ],
+    "rbacPermissions": [
+        {
+            "id": "card_view",
+            "label": "Dashboard & Menu: Visualizzazione card e icona applicazione"
+        },
+        {
+            "id": "view",
+            "label": "Visualizza Applicazione"
+        },
+        {
+            "id": "create",
+            "label": "Crea Nuovi Elementi"
+        },
+        {
+            "id": "edit",
+            "label": "Modifica Dati"
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    "id": "dati_anagrafici",
+    "name": "I Miei Dati",
+    "description": "I tuoi dati anagrafici personali",
+    "icon": "icon.png",
+    "main": "app.js",
+    "rbacPermissions": [
+        {
+            "id": "view",
+            "label": "Visualizza"
+        },
+        {
+            "id": "create",
+            "label": "Crea"
+        },
+        {
+            "id": "edit",
+            "label": "Modifica"
+        }
+    ]
+}

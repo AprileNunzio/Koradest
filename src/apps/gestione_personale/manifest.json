@@ -1,0 +1,45 @@
+{
+    "id": "gestione_personale",
+    "name": "Gestione del Personale",
+    "description": "Registro centrale del personale: dati anagrafici, documenti, residenza/domicilio e lavoro di tutte le persone gestite",
+    "icon": "icon.png",
+    "main": "app.js",
+    "color": "#00897B",
+    "version": "1.0.0",
+    "author": "KORADEST",
+    "category": "hr",
+    "tags": [
+        "persone",
+        "hr",
+        "gestione"
+    ],
+    "core": true,
+    "licensing": {
+        "type": "free"
+    },
+    "dependencies": {
+        "anagrafica": ">=1.0.0"
+    },
+    "rbacPermissions": [
+        {
+            "id": "card_view",
+            "label": "Dashboard & Menu: Visualizzazione card e icona applicazione"
+        },
+        {
+            "id": "view",
+            "label": "Visualizza Applicazione"
+        },
+        {
+            "id": "create",
+            "label": "Crea Nuovi Dati"
+        },
+        {
+            "id": "edit",
+            "label": "Modifica Dati"
+        },
+        {
+            "id": "delete",
+            "label": "Elimina Dati"
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    "id": "credenziali",
+    "name": "Credenziali",
+    "description": "Visualizza e gestisci le credenziali di rete",
+    "icon": "icon.png",
+    "main": "app.js",
+    "rbacPermissions": [
+        {
+            "id": "view",
+            "label": "Visualizza Applicazione"
+        },
+        {
+            "id": "create",
+            "label": "Crea Nuove Credenziali"
+        },
+        {
+            "id": "edit",
+            "label": "Modifica Dati"
+        }
+    ]
+}

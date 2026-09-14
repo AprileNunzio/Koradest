@@ -1,0 +1,25 @@
+{
+    "id": "residenza_domicilio",
+    "name": "Residenza e Domicilio",
+    "description": "Indirizzi di residenza e domicilio, con storico",
+    "icon": "icon.png",
+    "main": "app.js",
+    "rbacPermissions": [
+        {
+            "id": "view",
+            "label": "Visualizza"
+        },
+        {
+            "id": "create",
+            "label": "Crea"
+        },
+        {
+            "id": "edit",
+            "label": "Modifica"
+        },
+        {
+            "id": "delete",
+            "label": "Elimina"
+        }
+    ]
+}
