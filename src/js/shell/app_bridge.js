@@ -67,7 +67,8 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.style.cssText = 'display: block; width: 100%; height: 100%; border: 0; background: transparent; visibility: hidden;';
     const versioneApp = manifest.version || '0';
-    frame.src = `koradest-app://${encodeURIComponent(cartella + '--' + versioneApp)}/${ingresso.split('/').map(encodeURIComponent).join('/')}?v=${encodeURIComponent(versioneApp)}`;
+    const tokenSessione = Date.now();
+    frame.src = `koradest-app://${encodeURIComponent(cartella + '--' + versioneApp)}/${ingresso.split('/').map(encodeURIComponent).join('/')}?v=${encodeURIComponent(versioneApp)}&_t=${tokenSessione}`;
     involucro.appendChild(frame);
 
     let scadenzaAvvio = null;

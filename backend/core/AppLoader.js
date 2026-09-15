@@ -229,7 +229,15 @@ async function caricaAppV2(manifest, appDir) {
         if (!percorso.startsWith(path.resolve(appDir) + path.sep)) {
             throw new Error('entry.backend punta fuori dalla cartella dell\'app');
         }
-        delete require.cache[percorso];
+        try {
+            const radiceDir = path.resolve(appDir).toLowerCase() + path.sep;
+            Object.keys(require.cache).forEach(chiave => {
+                if (path.resolve(chiave).toLowerCase().startsWith(radiceDir)) {
+                    delete require.cache[chiave];
+                }
+            });
+            delete require.cache[percorso];
+        } catch (_) {}
         const modulo = require(percorso);
         if (!modulo || typeof modulo.attiva !== 'function') {
             throw new Error('entry.backend deve esportare la funzione attiva(koradest)');
