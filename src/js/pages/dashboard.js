@@ -18,48 +18,61 @@ const UPDATE_BADGE = {
 const SETTE_GIORNI_MS = 7 * 24 * 60 * 60 * 1000;
 
 function buildUserApps(allApps, installedAppsData, userPerms) {
-    const isSuperAdmin = userPerms.includes('*');
-    const installedIds = (installedAppsData || []).map(a => a.id || a.app_id || a.folder);
-    const now = Date.now();
+    try {
+        const isSuperAdmin = userPerms.includes('*');
+        const installedIds = (installedAppsData || []).map(a => a.id || a.app_id || a.folder);
+        const now = Date.now();
 
-    const filtered = (allApps || []).filter(app => {
-        if (app.is_deleted) return false;
-        const targetId = app.id || app.folder;
-        if (!app.core && !app.bundled && !installedIds.includes(targetId)) return false;
-        if (isSuperAdmin) return true;
-        return userPerms.includes(`${targetId}:view`) || userPerms.some(p => p.startsWith(`${targetId}:`));
-    });
-
-    for (const app of filtered) {
-        const targetId = app.id || app.folder;
-        const matchInstalled = (installedAppsData || []).find(i => (i.id || i.app_id || i.folder) === targetId);
-        const installedTime = matchInstalled && matchInstalled.installedAt ? new Date(matchInstalled.installedAt).getTime() : NaN;
-        app.__isNew = !isNaN(installedTime) && (now - installedTime) < SETTE_GIORNI_MS;
-        app.__categoria = categoriaDi(app);
-    }
-
-    const sistema = categoriaDi({ category: 'sistema' });
-    if (isSuperAdmin || userPerms.includes('store:view') || userPerms.some(p => p.startsWith('store:'))) {
-        filtered.push({
-            id: '__store__', name: 'App Store', author: 'KORADEST', __categoria: sistema, __destinazione: 'store', __ordine: 0,
-            description: 'Installa le applicazioni con le loro dipendenze e gestisci quelle presenti sul nodo',
-            icon: 'icone/store.png'
+        const filtered = (allApps || []).filter(app => {
+            if (app.is_deleted) return false;
+            const targetId = app.id || app.folder;
+            if (!app.core && !app.bundled && !installedIds.includes(targetId)) return false;
+            if (isSuperAdmin) return true;
+            return userPerms.includes(`${targetId}:view`) || userPerms.some(p => p.startsWith(`${targetId}:`));
         });
-    }
-    if (isSuperAdmin) {
-        filtered.push({
-            id: '__nodi__', name: 'Nodi e Rete', author: 'KORADEST', __categoria: sistema, __destinazione: 'nodes_manager', __ordine: 1,
-            description: 'Stato dei nodi collegati, sincronizzazione del registro e salute della rete',
-            icon: 'hub', color: 'var(--md-primary)'
-        });
-    }
-    filtered.push({
-        id: '__info__', name: 'Info', author: 'KORADEST', __categoria: sistema, __destinazione: 'info', __ordine: 99,
-        description: 'Chi sviluppa KORADEST, dove restano i tuoi dati e come sostenere il progetto',
-        icon: 'icone/info.png'
-    });
 
-    return filtered;
+        for (const app of filtered) {
+            const targetId = app.id || app.folder;
+            const matchInstalled = (installedAppsData || []).find(i => (i.id || i.app_id || i.folder) === targetId);
+            const rawInst = matchInstalled && (matchInstalled.installed_at || matchInstalled.installedAt);
+            const rawUpd = matchInstalled && (matchInstalled.updated_at || matchInstalled.updatedAt);
+            const installedTime = rawInst ? new Date(rawInst).getTime() : NaN;
+            const updatedTime = rawUpd ? new Date(rawUpd).getTime() : NaN;
+
+            const isUpdatedRecent = !isNaN(updatedTime) && (now - updatedTime) < SETTE_GIORNI_MS && (!isNaN(installedTime) ? (updatedTime - installedTime > 60000) : true);
+            const isNewRecent = !isUpdatedRecent && !isNaN(installedTime) && (now - installedTime) < SETTE_GIORNI_MS;
+
+            app.__isUpdated = isUpdatedRecent;
+            app.__isNew = isNewRecent;
+            app.__version = app.version || (matchInstalled && matchInstalled.version) || '';
+            app.__categoria = categoriaDi(app);
+        }
+
+        const sistema = categoriaDi({ category: 'sistema' });
+        if (isSuperAdmin || userPerms.includes('store:view') || userPerms.some(p => p.startsWith('store:'))) {
+            filtered.push({
+                id: '__store__', name: 'App Store', author: 'KORADEST', __categoria: sistema, __destinazione: 'store', __ordine: 0,
+                description: 'Installa le applicazioni con le loro dipendenze e gestisci quelle presenti sul nodo',
+                icon: 'icone/store.png'
+            });
+        }
+        if (isSuperAdmin) {
+            filtered.push({
+                id: '__nodi__', name: 'Nodi e Rete', author: 'KORADEST', __categoria: sistema, __destinazione: 'nodes_manager', __ordine: 1,
+                description: 'Stato dei nodi collegati, sincronizzazione del registro e salute della rete',
+                icon: 'hub', color: 'var(--md-primary)'
+            });
+        }
+        filtered.push({
+            id: '__info__', name: 'Info', author: 'KORADEST', __categoria: sistema, __destinazione: 'info', __ordine: 99,
+            description: 'Chi sviluppa KORADEST, dove restano i tuoi dati e come sostenere il progetto',
+            icon: 'icone/info.png'
+        });
+
+        return filtered;
+    } catch (e) {
+        return [];
+    }
 }
 
 function ordinaNellaCorsia(a, b) {
@@ -87,16 +100,28 @@ function creaCard(app) {
     card.className = 'app-card fade-in-up';
     card.dataset.appId = app.folder || app.id;
     card.title = app.description || app.name || '';
+    const badgeStato = app.__isUpdated
+        ? '<span class="badge-updated">AGGIORNATA</span>'
+        : (app.__isNew ? '<span class="badge-new">NUOVA</span>' : '');
+    const badgeVersione = app.__version
+        ? `<span class="badge-version">${esc(app.__version.startsWith('v') ? app.__version : 'v' + app.__version)}</span>`
+        : '';
+
     card.innerHTML = `
-        ${app.__isNew ? '<span class="badge-new">NUOVA</span>' : ''}
+        ${badgeVersione}
+        ${badgeStato}
         ${iconaDi(app)}
         <div class="app-title">${esc(app.name)}</div>
         ${app.description ? `<div class="app-desc">${esc(app.description)}</div>` : ''}
         ${app.author ? `<div class="app-author">${esc(app.author)}</div>` : ''}
     `;
     card.addEventListener('click', () => {
-        if (app.__destinazione) Router.navigate(app.__destinazione);
-        else Router.navigate('app_container', { appId: app.folder || app.id });
+        try {
+            if (app.__destinazione) Router.navigate(app.__destinazione);
+            else Router.navigate('app_container', { appId: app.folder || app.id });
+        } catch (e) {
+            console.error(e);
+        }
     });
     return card;
 }

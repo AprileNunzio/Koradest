@@ -45,40 +45,42 @@ const readContext = async () => {
 };
 
 const renderContextHeader = (context) => {
-    if (!context.hasActiveNetwork && !context.isLoggedIn) return '';
-    const net = context.hasActiveNetwork
-        ? `<div class="menu-context-net"><span class="material-symbols-rounded">hub</span>${esc(context.networkName)}</div>`
-        : '<div class="menu-context-net"><span class="material-symbols-rounded">hub_off</span>Nessuna rete attiva</div>';
-    const user = context.isLoggedIn
-        ? `<div class="menu-context-user">${esc(context.userName || 'Sessione attiva')}${context.isSuperadmin ? ' - amministratore' : ''}</div>`
-        : '<div class="menu-context-user">Nessun utente connesso</div>';
-    return `<div class="menu-context">${net}${user}</div>`;
+    try {
+        if (!context.isLoggedIn && !context.hasActiveNetwork) return '';
+        const user = context.isLoggedIn
+            ? `<div class="menu-context-user"><span class="material-symbols-rounded" style="font-size: 1rem; vertical-align: middle;">account_circle</span> ${esc(context.userName || 'Utente')}</div>`
+            : '';
+        return user ? `<div class="menu-context">${user}</div>` : '';
+    } catch (_) {
+        return '';
+    }
 };
 
 const renderEntries = (context) => {
-    const parts = [];
-    let pendingSeparator = false;
-    for (const entry of MENU_ENTRIES) {
-        if (entry.type === 'separator') {
-            pendingSeparator = parts.length > 0;
-            continue;
+    try {
+        const parts = [];
+        let pendingSeparator = false;
+        for (const entry of MENU_ENTRIES) {
+            if (entry.type === 'separator') {
+                pendingSeparator = parts.length > 0;
+                continue;
+            }
+            if (!entry.visible(context)) continue;
+            if (pendingSeparator) {
+                parts.push('<div class="menu-separator" role="separator"></div>');
+                pendingSeparator = false;
+            }
+            parts.push(`
+                <button type="button" class="menu-item-btn" id="${esc(entry.id)}" role="menuitem" tabindex="-1">
+                    <span class="material-symbols-rounded" aria-hidden="true">${esc(entry.icon)}</span>
+                    <span class="menu-item-label">${esc(entry.label)}</span>
+                </button>
+            `);
         }
-        if (!entry.visible(context)) continue;
-        if (pendingSeparator) {
-            parts.push('<div class="menu-separator" role="separator"></div>');
-            pendingSeparator = false;
-        }
-        parts.push(`
-            <button type="button" class="menu-item-btn" id="${esc(entry.id)}" role="menuitem" tabindex="-1">
-                <span class="material-symbols-rounded" aria-hidden="true">${esc(entry.icon)}</span>
-                <span class="menu-item-text">
-                    <span>${esc(entry.label)}</span>
-                    <span class="menu-item-hint">${esc(entry.hint)}</span>
-                </span>
-            </button>
-        `);
+        return parts.join('');
+    } catch (_) {
+        return '';
     }
-    return parts.join('');
 };
 
 const items = () => Array.from(panel().querySelectorAll('.menu-item-btn'));
