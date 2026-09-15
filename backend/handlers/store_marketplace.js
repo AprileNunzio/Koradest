@@ -5,13 +5,14 @@ const fs = require('fs');
 const { getDB, saveDB } = require('../db');
 const appsRegistry = require('../core/appsRegistry');
 const dbManager = require('../db/db_manager');
+const storeRepositories = require('./store_repositories');
 const {
     PRIMARY_MARKETPLACE_URL,
     FALLBACK_MARKETPLACE_URL,
     getTimestamp,
     getStoreDB,
     fetchWithTimeout
-} = require('./store_repositories');
+} = storeRepositories;
 
 let marketplaceCache = null;
 
@@ -242,7 +243,6 @@ async function getCoreApps() {
 
 async function checkUpdates() {
     try {
-        marketplaceCache = null;
         const availableRes = await getAvailable();
         if (!availableRes || !availableRes.success) return { success: true, data: [] };
 

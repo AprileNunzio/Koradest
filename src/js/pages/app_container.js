@@ -1,4 +1,4 @@
-import { Router } from '../utils.js';
+import { Router, toast } from '../utils.js';
 
 const esc = (valore) => String(valore ?? '')
     .replace(/&/g, '&amp;')
@@ -76,22 +76,17 @@ async function verificaAccesso(el, mountPoint, appId) {
 
 async function attendiAggiornamenti(el, mountPoint, appId) {
     try {
-        const updateRes = await window.electronAPI.store.checkUpdates();
-        const pendingUpdate = updateRes && updateRes.success && Array.isArray(updateRes.data)
-            ? updateRes.data.find(u => u.appId === appId)
-            : null;
-        if (pendingUpdate) {
-            mountPoint.innerHTML = statoCentrato({
-                icona: 'system_update',
-                titolo: 'Aggiornamento in corso',
-                testo: `Installazione automatica della versione <strong>v${esc(pendingUpdate.availableVersion)}</strong> per ${esc(appId)}...`,
-                animato: true
-            });
-            await window.electronAPI.store.install(pendingUpdate.appId);
-        }
-    } catch (checkErr) {
-        console.warn('[AppContainer] Controllo aggiornamenti non riuscito:', checkErr);
-    }
+        window.electronAPI.store.checkUpdates().then(updateRes => {
+            try {
+                const pendingUpdate = updateRes && updateRes.success && Array.isArray(updateRes.data)
+                    ? updateRes.data.find(u => u.appId === appId)
+                    : null;
+                if (pendingUpdate) {
+                    toast(`Aggiornamento disponibile per ${appId}: v${pendingUpdate.availableVersion}`, 'info');
+                }
+            } catch (_) {}
+        }).catch(() => {});
+    } catch (_) {}
 
     try {
         const lockRes = await window.electronAPI.store.isAppLocked(appId);
