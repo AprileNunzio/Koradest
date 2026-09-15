@@ -66,7 +66,8 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
     frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-downloads');
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.style.cssText = 'display: block; width: 100%; height: 100%; border: 0; background: transparent; visibility: hidden;';
-    frame.src = `koradest-app://${encodeURIComponent(cartella)}/${ingresso.split('/').map(encodeURIComponent).join('/')}?v=${encodeURIComponent(manifest.version || '0')}`;
+    const versioneApp = manifest.version || '0';
+    frame.src = `koradest-app://${encodeURIComponent(cartella + '--' + versioneApp)}/${ingresso.split('/').map(encodeURIComponent).join('/')}?v=${encodeURIComponent(versioneApp)}`;
     involucro.appendChild(frame);
 
     let scadenzaAvvio = null;
@@ -168,6 +169,9 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
             clearTimeout(scadenzaAvvio);
             window.removeEventListener('message', ricevi);
             osservatore.disconnect();
+            try {
+                frame.src = 'about:blank';
+            } catch (_) {}
             frame.remove();
         }
     };

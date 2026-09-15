@@ -3,6 +3,17 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.1.2] - 2026-09-15
+
+### Aggiunto
+- **P2.1 App rifiutate nello Store**: canale IPC `getAppsRifiutate` con policy protetta per visualizzare nello Store le applicazioni presenti su disco ma non caricate (a causa di manifest non conforme o vincoli non soddisfatti), con motivazione ed eliminazione pulita.
+- **P2.2 Controllo `minCoreVersion` all'installazione**: verifica semver rigorosa con `confrontaVersioni` sia in installazione manuale che automatica, impedendo l'installazione di pacchetti non supportati dalla versione in esecuzione.
+- **Deregistrazione gestori nel CapabilityBroker**: aggiunto `unregisterApiHandlers(appId)` che ripulisce completamente le rotte e le closure delle azioni registrate all'atto dell'aggiornamento o disinstallazione dell'app.
+
+### Corretto
+- **Invalidazione cache e moduli Chromium per le app**: risolto il problema di mantenimento in cache dei file e dell'albero dei moduli V8 dopo l'aggiornamento di un'applicazione. Il protocollo `koradest-app` isola ora l'origine dell'iframe con host versionato (`koradest-app://${cartella}--${versione}`) e applica intestazioni HTTP anti-cache complete (`no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, Pragma, Expires`).
+- **Pulizia codice e storage di sessione**: l'aggiornamento delle app esegue ora `clearCodeCaches` e svuota lo shadercache e cachestorage di Electron.
+
 ## [1.1.1] - 2026-09-14
 
 ### Corretto

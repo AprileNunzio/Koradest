@@ -139,6 +139,19 @@ class CapabilityBroker {
         }
     }
 
+    unregisterApiHandlers(appId) {
+        try {
+            if (!appId) return false;
+            const keys = [appId, appId.toLowerCase(), appId.replace(/[-_]/g, '')];
+            for (const k of keys) {
+                this.registeredHandlers.delete(k);
+            }
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
     async routeIpcCall(sourceAppId, targetAppId, action, payload, opzioni = {}) {
         const start = Date.now();
         const origin = opzioni.origin === 'main' ? 'main' : 'ipc';

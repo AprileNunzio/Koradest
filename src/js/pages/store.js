@@ -87,11 +87,13 @@ export default {
                         </div>
                     </div>
 
+                    <div id="section-rejected-slot"></div>
                     <div id="section-updates-slot"></div>
                     <div id="section-installed-slot"></div>
                 </div>
             `;
 
+            const sectionRejected = el.querySelector('#section-rejected-slot');
             const sectionUpdates = el.querySelector('#section-updates-slot');
             const sectionInstalled = el.querySelector('#section-installed-slot');
             const chipUpdatesCount = el.querySelector('#chip-updates-count');
@@ -100,6 +102,7 @@ export default {
             const searchInput = el.querySelector('#store-search-input');
             const categoryFilter = el.querySelector('#store-category-filter');
             const sortFilter = el.querySelector('#store-sort-filter');
+            let rejectedAppsList = [];
 
             const loadData = async (forceCheck = false) => {
                 try {
@@ -109,13 +112,15 @@ export default {
                     }
 
                     if (window.electronAPI) {
-                        const [availableRes, coreRes, registryApps, updatesRes] = await Promise.all([
+                        const [availableRes, coreRes, registryApps, updatesRes, rejectedRes] = await Promise.all([
                             window.electronAPI.store && window.electronAPI.store.getAvailable ? window.electronAPI.store.getAvailable() : { success: false, data: [] },
                             window.electronAPI.store && window.electronAPI.store.getCoreApps ? window.electronAPI.store.getCoreApps() : { success: false, data: [] },
                             window.electronAPI.getAppsRegistry ? window.electronAPI.getAppsRegistry() : [],
-                            window.electronAPI.store && window.electronAPI.store.checkUpdates ? window.electronAPI.store.checkUpdates() : { success: false, data: [] }
+                            window.electronAPI.store && window.electronAPI.store.checkUpdates ? window.electronAPI.store.checkUpdates() : { success: false, data: [] },
+                            window.electronAPI.getAppsRifiutate ? window.electronAPI.getAppsRifiutate() : []
                         ]);
 
+                        rejectedAppsList = Array.isArray(rejectedRes) ? rejectedRes : [];
                         const marketplaceApps = availableRes && availableRes.success && Array.isArray(availableRes.data) ? availableRes.data : [];
                         const coreApps = coreRes && coreRes.success && Array.isArray(coreRes.data) ? coreRes.data : [];
                         const localRegistry = Array.isArray(registryApps) ? registryApps : [];
@@ -336,6 +341,38 @@ export default {
                     onVersions: apriArchivioVersioni,
                     trovaApp: id => allApps.find(voce => voce.id === id) || null
                 });
+
+                if ((currentTab === 'all' || currentTab === 'installed') && rejectedAppsList.length > 0) {
+                    sectionRejected.innerHTML = `
+                        <div class="k-alert k-alert--danger" style="margin-bottom: var(--k-space-4); display: flex; flex-direction: column; gap: var(--k-space-2);">
+                            <div style="display: flex; align-items: center; gap: var(--k-space-2); font-weight: 600;">
+                                <span class="material-symbols-rounded">warning</span>
+                                <span>${rejectedAppsList.length === 1 ? '1 applicazione installata non conforme' : rejectedAppsList.length + ' applicazioni installate non conformi'}</span>
+                            </div>
+                            <div style="font-size: 0.88rem; opacity: 0.9;">
+                                Alcune applicazioni presenti su disco sono state disattivate perché il loro manifest non rispetta i requisiti di sistema o richiede una versione diversa di KORADEST.
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                                ${rejectedAppsList.map(r => `
+                                    <div style="background: rgba(0,0,0,0.06); padding: 0.6rem 0.8rem; border-radius: var(--shape-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                        <div>
+                                            <strong>${r.name || r.id}</strong> <span style="font-size: 0.8rem; opacity: 0.8;">(${r.folder})</span>
+                                            <div style="font-size: 0.8rem; margin-top: 0.2rem; color: var(--md-error);">${(r.errori || []).join('; ')}</div>
+                                        </div>
+                                        <div style="display: flex; gap: 0.4rem;">
+                                            ${admin ? `<button class="k-btn k-btn--sm k-btn--ghost" data-rimuovi-rifiutata="${r.id}"><span class="material-symbols-rounded">delete</span>Rimuovi</button>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    sectionRejected.querySelectorAll('[data-rimuovi-rifiutata]').forEach(b => {
+                        b.addEventListener('click', () => executeUninstall(b.dataset.rimuoviRifiutata));
+                    });
+                } else {
+                    sectionRejected.innerHTML = '';
+                }
 
                 if (currentTab === 'all' || currentTab === 'updates') {
                     renderUpdatesSection(sectionUpdates, allApps.filter(a => a.hasUpdate), {

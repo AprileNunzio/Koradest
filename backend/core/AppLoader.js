@@ -249,16 +249,13 @@ async function caricaAppV2(manifest, appDir) {
 
 async function unloadApp(appId) {
     try {
-        if (!_loaded.has(appId)) return false;
-
         const entry = _loaded.get(appId);
         const aliases = Array.from(new Set([appId, ...aliasesOf(entry && entry.manifest)]));
-        if (entry && entry.directBackend) {
-            for (const a of aliases) {
-                try {
-                    capabilityBroker.revokeAppToken(a);
-                } catch (revokeErr) {}
-            }
+        for (const a of aliases) {
+            try {
+                capabilityBroker.revokeAppToken(a);
+                capabilityBroker.unregisterApiHandlers(a);
+            } catch (revokeErr) {}
         }
         try {
             const appWorkerHost = require('./appWorkerHost');
@@ -273,9 +270,11 @@ async function unloadApp(appId) {
 
         try {
             const appsDir = path.join(app.getPath('userData'), 'installed_apps');
-            const targetAppDir = path.join(appsDir, appId);
+            const targetAppDir = path.join(appsDir, appId).toLowerCase();
+            const lowerAppId = appId.toLowerCase();
             Object.keys(require.cache).forEach(key => {
-                if (key.startsWith(targetAppDir) || key.includes(appId)) {
+                const normKey = String(key).toLowerCase();
+                if (normKey.includes(targetAppDir) || normKey.includes(lowerAppId)) {
                     delete require.cache[key];
                 }
             });

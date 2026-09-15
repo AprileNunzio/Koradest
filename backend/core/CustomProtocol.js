@@ -110,7 +110,9 @@ async function servi(assoluto) {
     const intestazioni = new Headers();
     intestazioni.set('Content-Type', getMimeType(assoluto) || 'application/octet-stream');
     intestazioni.set('Access-Control-Allow-Origin', '*');
-    intestazioni.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    intestazioni.set('Cache-Control', 'no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0');
+    intestazioni.set('Pragma', 'no-cache');
+    intestazioni.set('Expires', '0');
     intestazioni.set('X-Content-Type-Options', 'nosniff');
     if (path.extname(assoluto).toLowerCase() === '.html') {
         intestazioni.set('Content-Security-Policy', CSP_APP);

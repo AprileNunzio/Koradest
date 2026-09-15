@@ -376,6 +376,7 @@ function registerAllIPCHandlers(windowManager) {
             }
         });
         ipcMain.handle('getAppsRegistry', appsRegistry.getAppsRegistry);
+        ipcMain.handle('getAppsRifiutate', () => appsRegistry.getAppsRifiutate());
         ipcMain.handle('getUiExtensions', async (event, target, userId) => {
             try {
                 const manifests = await appsRegistry.getAppsRegistry();

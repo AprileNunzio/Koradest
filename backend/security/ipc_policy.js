@@ -58,6 +58,7 @@ const SESSION = [
     'appBus:registerWindow',
     'appBus:sendMessage',
     'getAppsRegistry',
+    'getAppsRifiutate',
     'getSubAppsRegistry',
     'getUiExtensions',
     'getDetailedNodes',

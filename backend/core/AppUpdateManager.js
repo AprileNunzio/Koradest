@@ -306,8 +306,8 @@ class AppUpdateManager {
             if (!targetApp) throw new Error(`App ${appId} non trovata nel marketplace`);
             if (!targetApp.downloadUrl) throw new Error(`URL download assente per ${appId}`);
 
-            const currentCoreVersion = app.getVersion();
-            if (targetApp.minCoreVersion && currentCoreVersion < targetApp.minCoreVersion) {
+            const { confrontaVersioni } = require('./manifest/manifest_v2');
+            if (targetApp.minCoreVersion && confrontaVersioni(targetApp.minCoreVersion, app.getVersion()) > 0) {
                 throw new Error(`Incompatibile: richiede Koradest Core >= ${targetApp.minCoreVersion}`);
             }
 

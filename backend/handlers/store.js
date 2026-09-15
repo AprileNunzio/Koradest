@@ -133,6 +133,18 @@ async function installaSingola(appId, versioneRichiesta, availableApps) {
             return { success: false, error: 'Le applicazioni predefinite non possono essere installate.' };
         }
 
+        const { app, session } = require('electron');
+        if (targetManifest.minCoreVersion && typeof app.getVersion === 'function') {
+            const { confrontaVersioni } = require('../core/manifest/manifest_v2');
+            const vCore = app.getVersion();
+            if (confrontaVersioni(targetManifest.minCoreVersion, vCore) > 0) {
+                return {
+                    success: false,
+                    error: `L'applicazione richiede KORADEST Core >= ${targetManifest.minCoreVersion} (installato: ${vCore}). Aggiorna prima KORADEST.`
+                };
+            }
+        }
+
         const installedRowsBefore = await getInstalledRows();
         const previousRow = installedRowsBefore.find(r => r.app_id === appId);
         previousVersion = previousRow ? previousRow.version : null;
@@ -157,24 +169,28 @@ async function installaSingola(appId, versioneRichiesta, availableApps) {
             availableVersion: targetManifest.version
         });
 
-        const { app, session } = require('electron');
         const targetFolder = targetManifest.folder || appId;
         const targetBaseDir = path.join(app.getPath('userData'), 'installed_apps');
         const finalAppDir = path.join(targetBaseDir, targetFolder);
 
         await AppLoader.unloadApp(appId);
 
+        const lowerFinalAppDir = finalAppDir.toLowerCase();
+        const lowerAppId = appId.toLowerCase();
         Object.keys(require.cache).forEach(key => {
-            if (key.startsWith(finalAppDir) || key.includes(appId) || (targetManifest.folder && key.includes(targetManifest.folder))) {
+            const normKey = String(key).toLowerCase();
+            if (normKey.includes(lowerFinalAppDir) || normKey.includes(lowerAppId) || (targetManifest.folder && normKey.includes(targetManifest.folder.toLowerCase()))) {
                 delete require.cache[key];
             }
         });
 
         try {
-            const updatePolicy = require('../core/updatePolicy');
-            if (updatePolicy.pulisciCacheDopoAggiornamento() && session && session.defaultSession) {
+            if (session && session.defaultSession) {
                 await session.defaultSession.clearCache();
-                await session.defaultSession.clearStorageData({ storages: ['cachestorage'] });
+                await session.defaultSession.clearStorageData({ storages: ['cachestorage', 'shadercache', 'serviceworkers'] });
+                if (typeof session.defaultSession.clearCodeCaches === 'function') {
+                    await session.defaultSession.clearCodeCaches({});
+                }
             }
         } catch (_) {}
 
