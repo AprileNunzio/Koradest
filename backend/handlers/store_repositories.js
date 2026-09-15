@@ -5,9 +5,7 @@ const accessGuard = require('../core/access_guard');
 const sessionManager = require('../core/session_manager');
 const crypto = require('crypto');
 
-// Cartella pubblica dell'account FTP del Marketplace: catalogo e pacchetti stanno qui.
 const PRIMARY_MARKETPLACE_URL = 'https://nunziotech.it/software/adestio/marketplace.json';
-// Il Marketplace NunzioTech non e pubblicato su GitHub: nessuna sorgente di riserva.
 const FALLBACK_MARKETPLACE_URL = null;
 
 function getTimestamp() {
@@ -28,7 +26,7 @@ function getStoreDB() {
 
 async function fetchWithTimeout(url, options, timeoutMs) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs || 10000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs || 3500);
     try {
         return await fetch(url, { ...options, signal: controller.signal });
     } finally {
@@ -44,7 +42,7 @@ async function validateMarketplaceSource(url) {
         const bust = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
         const res = await fetchWithTimeout(`${url}?t=${bust}`, {
             headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
-        }, 10000);
+        }, 4000);
         if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
         const data = await res.json();
         if (!Array.isArray(data)) return { ok: false, error: 'Il file non contiene un array JSON' };
@@ -76,7 +74,6 @@ function resolveRepositoryInput(rawUrl) {
             };
         }
 
-
         const bareRepoMatch = url.match(/^https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?\/?$/i);
         if (bareRepoMatch) {
             const [, owner, repoName] = bareRepoMatch;
@@ -101,17 +98,22 @@ function resolveRepositoryInput(rawUrl) {
 async function listRepositories() {
     try {
         const db = getStoreDB();
-        const rows = db ? db.query('SELECT * FROM custom_repositories ORDER BY added_at ASC') : [];
-        const official = {
-            id: 'official',
-            label: 'NunzioTech Ufficiale',
-            type: 'official',
-            url: PRIMARY_MARKETPLACE_URL,
-            enabled: true,
-            locked: true,
-            last_status: 'ok'
-        };
-        const custom = rows.map(r => ({
+        let rows = db ? db.query('SELECT * FROM custom_repositories ORDER BY added_at ASC') : [];
+        if (db && (!rows || rows.length === 0)) {
+            const initializedFlag = db.query("SELECT key FROM app_configs WHERE key = 'repos_initialized'");
+            if (!initializedFlag || initializedFlag.length === 0) {
+                const ts = getTimestamp();
+                db.run(
+                    'INSERT OR IGNORE INTO custom_repositories (id, label, type, url, added_at, added_by, enabled, last_checked, last_status, last_error) VALUES (?, ?, ?, ?, ?, NULL, 1, ?, ?, NULL)',
+                    ['nunziotech', 'NunzioTech Marketplace', 'third_party', PRIMARY_MARKETPLACE_URL, ts, ts, 'ok']
+                );
+                db.run("INSERT OR REPLACE INTO app_configs (key, value) VALUES ('repos_initialized', '1')");
+                await saveDB('store');
+                rows = db.query('SELECT * FROM custom_repositories ORDER BY added_at ASC');
+            }
+        }
+
+        const repos = (rows || []).map(r => ({
             id: r.id,
             label: r.label,
             type: r.type,
@@ -124,7 +126,7 @@ async function listRepositories() {
             last_error: r.last_error
         }));
 
-        return { success: true, data: [official, ...custom] };
+        return { success: true, data: repos };
     } catch (e) {
         return { success: false, error: e.message };
     }
@@ -149,12 +151,6 @@ async function addRepository(event, args) {
         const db = getStoreDB();
         if (!db) return { success: false, error: 'Database Store non disponibile' };
 
-        const isOfficial = resolved.candidates.some(c => c === PRIMARY_MARKETPLACE_URL);
-
-        if (isOfficial) {
-            return { success: false, error: 'Il repository ufficiale NunzioTech è già attivo di default.' };
-        }
-
         const existingRepos = db.query('SELECT url, label FROM custom_repositories') || [];
         for (const candidateUrl of resolved.candidates) {
             const normalizedCand = candidateUrl.toLowerCase().replace(/\/+$/, '');
@@ -167,8 +163,6 @@ async function addRepository(event, args) {
                 return { success: false, error: 'Questo repository è già stato aggiunto allo Store.' };
             }
         }
-
-
 
         let finalUrl = null;
         let finalValidation = null;
@@ -205,7 +199,7 @@ async function addRepository(event, args) {
 async function removeRepository(event, id) {
     try {
         if (!accessGuard.isSuperadmin()) return { success: false, error: 'Permesso negato' };
-        if (!id || id === 'official') return { success: false, error: 'Il repository ufficiale NunzioTech non può essere rimosso' };
+        if (!id) return { success: false, error: 'ID repository non specificato' };
 
         const db = getStoreDB();
         if (db) {
@@ -222,7 +216,7 @@ async function setRepositoryEnabled(event, args) {
     try {
         if (!accessGuard.isSuperadmin()) return { success: false, error: 'Permesso negato' };
         const { id, enabled } = args || {};
-        if (!id || id === 'official') return { success: false, error: 'Il repository ufficiale NunzioTech non può essere modificato' };
+        if (!id) return { success: false, error: 'ID repository non specificato' };
 
         const db = getStoreDB();
         if (db) {

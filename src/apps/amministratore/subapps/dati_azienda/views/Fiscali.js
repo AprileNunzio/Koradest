@@ -6,55 +6,59 @@ export default {
             const isScuola = configCache.is_scuola === true || configCache.is_scuola === 'true';
 
             container.innerHTML = `
-                <div class="card fade-in-up" style="padding:1.5rem; background:var(--md-surface); border-radius:16px; border:1px solid var(--md-surface-variant);">
-                    <div style="margin-bottom:1.5rem;">
-                        <h3 style="margin:0; font-size:1.4rem; color:var(--md-on-surface);">Dati Fiscali / Tesoreria</h3>
-                        <p style="margin:0.2rem 0 0; color:var(--md-on-surface-variant); font-size:0.9rem;">Impostazioni bancarie, tesoreria e fondi pensione dell'ente.</p>
+                <div class="k-card fade-in-up">
+                    <div style="margin-bottom: var(--k-space-4);">
+                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--md-on-surface);">Dati Fiscali / Tesoreria</h3>
+                        <p class="k-hint" style="margin-top: var(--k-space-1);">Impostazioni bancarie, tesoreria e fondi pensione dell'ente.</p>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, max(16rem, calc((100% - 3.6rem) / 4))), 1fr)); gap:1.2rem;">
-                        <div style="grid-column:1 / -1;">
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">account_balance</span>Banca / Istituto Tesoreria
+                    <div class="k-form-grid">
+                        <div class="k-field k-field--full">
+                            <label class="k-label" for="da-istituto_cc_banca">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">account_balance</span>
+                                Banca / Istituto Tesoreria
                             </label>
-                            <input type="text" id="da-istituto_cc_banca" value="${configCache.istituto_cc_banca || ''}" placeholder="Es. Banca d'Italia" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_cc_banca" class="k-input" value="${configCache.istituto_cc_banca || ''}" placeholder="Es. Banca d'Italia">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">badge</span>Intestatario Conto
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_cc_intestatario">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">badge</span>
+                                Intestatario Conto
                             </label>
-                            <input type="text" id="da-istituto_cc_intestatario" value="${configCache.istituto_cc_intestatario || ''}" placeholder="Es. Nome Ente" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_cc_intestatario" class="k-input" value="${configCache.istituto_cc_intestatario || ''}" placeholder="Es. Nome Ente">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">tag</span>IBAN Conto Corrente
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_cc_iban">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">tag</span>
+                                IBAN Conto Corrente
                             </label>
-                            <input type="text" id="da-istituto_cc_iban" value="${configCache.istituto_cc_iban || ''}" placeholder="IT..." style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_cc_iban" class="k-input" value="${configCache.istituto_cc_iban || ''}" placeholder="IT...">
                         </div>
 
-                        <div style="grid-column:1 / -1; display:${isScuola ? 'block' : 'none'};">
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">savings</span>Fondo Espero (Scuole)
+                        <div class="k-field k-field--full" style="display: ${isScuola ? 'block' : 'none'};">
+                            <label class="k-label" for="da-istituto_fondo_espero">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">savings</span>
+                                Fondo Espero (Scuole)
                             </label>
-                            <input type="text" id="da-istituto_fondo_espero" value="${configCache.istituto_fondo_espero || ''}" placeholder="Es. Aderente / Non aderente" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_fondo_espero" class="k-input" value="${configCache.istituto_fondo_espero || ''}" placeholder="Es. Aderente / Non aderente">
                         </div>
                     </div>
 
-                    <div style="margin-top:2rem; display:flex; justify-content:flex-end;">
-                        <button id="da-btn-save-fiscali" class="btn primary" style="display:flex; align-items:center; gap:0.5rem; padding:0.8rem 1.5rem;">
-                            <span class="material-symbols-rounded">save</span> Salva Dati Fiscali
+                    <div class="k-row" style="margin-top: var(--k-space-6); justify-content: flex-end;">
+                        <button id="da-btn-save-fiscali" class="k-btn k-btn--primary">
+                            <span class="material-symbols-rounded">save</span>
+                            Salva Dati Fiscali
                         </button>
                     </div>
-                </div>
-            `;
+                </div>`;
 
             container.querySelector('#da-btn-save-fiscali').addEventListener('click', async (ev) => {
                 const btn = ev.currentTarget;
                 const old = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Salvataggio...';
+                btn.innerHTML = '<span class="material-symbols-rounded" style="animation: spin 1s linear infinite;">sync</span> Salvataggio...';
                 
                 try {
                     const patch = {
@@ -75,7 +79,7 @@ export default {
 
         } catch (e) {
             console.error(e);
-            container.innerHTML = '<div style="color:var(--md-error);">Errore rendering Fiscali: ' + e.message + '</div>';
+            container.innerHTML = '<div class="k-alert k-alert--danger"><span class="material-symbols-rounded">error</span><div>Errore caricamento dati fiscali</div></div>';
         }
     }
 };

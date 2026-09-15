@@ -102,7 +102,7 @@ const bindShortcuts = () => {
         await leaveActiveNetwork();
         Router.navigate('networks');
     });
-    byId('sb-nodes-container')?.addEventListener('click', () => Router.navigate('nodes_manager'));
+    byId('sb-nodes-container')?.addEventListener('click', () => Router.navigate('app_container', { appId: 'amministratore', subAppId: 'nodi' }));
     byId('sb-system-container')?.addEventListener('click', () => Router.navigate('network_analyzer'));
     byId('sb-version-container')?.addEventListener('click', () => {
         if (window.electronAPI) window.electronAPI.checkForUpdates();

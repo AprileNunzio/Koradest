@@ -5,7 +5,6 @@ export default {
         try {
             const isScuola = configCache.is_scuola === true || configCache.is_scuola === 'true';
             
-            
             let customResp = [];
             if (configCache.responsabili_custom) {
                 try {
@@ -16,125 +15,104 @@ export default {
             }
 
             container.innerHTML = `
-                <div class="card fade-in-up" style="padding:1.5rem; background:var(--md-surface); border-radius:16px; border:1px solid var(--md-surface-variant);">
-                    <div style="margin-bottom:1.5rem;">
-                        <h3 style="margin:0; font-size:1.4rem; color:var(--md-on-surface);">Organigramma e Responsabili</h3>
-                        <p style="margin:0.2rem 0 0; color:var(--md-on-surface-variant); font-size:0.9rem;">Nomine dei responsabili per la sicurezza, privacy e altre figure legali richieste.</p>
+                <div class="k-card fade-in-up">
+                    <div style="margin-bottom: var(--k-space-4);">
+                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--md-on-surface);">Organigramma e Responsabili</h3>
+                        <p class="k-hint" style="margin-top: var(--k-space-1);">Nomine dei responsabili per la sicurezza, privacy e altre figure legali richieste.</p>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, max(16rem, calc((100% - 3.6rem) / 4))), 1fr)); gap:1.2rem;">
-                        <!-- Privacy & GDPR -->
-                        <div style="grid-column:1 / -1; margin-top:1rem;">
-                            <h4 style="margin:0 0 0.5rem; color:var(--md-primary); border-bottom:1px solid var(--md-outline-variant); padding-bottom:0.3rem;">Privacy & GDPR</h4>
+                    <div class="k-form-grid">
+                        <div class="k-field k-field--full" style="margin-top: var(--k-space-2);">
+                            <h4 style="margin: 0; color: var(--md-primary); font-size: 1rem; font-weight: 700;">Privacy & GDPR</h4>
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Titolare del Trattamento Dati
-                            </label>
-                            <input type="text" id="da-resp_titolare_privacy" value="${configCache.resp_titolare_privacy || ''}" placeholder="Es. Nome o Ragione Sociale" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                        <div class="k-field">
+                            <label class="k-label" for="da-resp_titolare_privacy">Titolare del Trattamento Dati</label>
+                            <input type="text" id="da-resp_titolare_privacy" class="k-input" value="${configCache.resp_titolare_privacy || ''}" placeholder="Es. Nome o Ragione Sociale">
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Data Protection Officer (DPO / RPD)
-                            </label>
-                            <input type="text" id="da-resp_dpo" value="${configCache.resp_dpo || ''}" placeholder="Nome, Cognome o Azienda" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                        <div class="k-field">
+                            <label class="k-label" for="da-resp_dpo">Data Protection Officer (DPO / RPD)</label>
+                            <input type="text" id="da-resp_dpo" class="k-input" value="${configCache.resp_dpo || ''}" placeholder="Nome, Cognome o Azienda">
                         </div>
 
-                        <!-- Sicurezza sul Lavoro -->
-                        <div style="grid-column:1 / -1; margin-top:1rem;">
-                            <h4 style="margin:0 0 0.5rem; color:var(--md-primary); border-bottom:1px solid var(--md-outline-variant); padding-bottom:0.3rem;">Sicurezza sul Lavoro (D.Lgs. 81/08)</h4>
+                        <div class="k-field k-field--full" style="margin-top: var(--k-space-2);">
+                            <h4 style="margin: 0; color: var(--md-primary); font-size: 1rem; font-weight: 700;">Sicurezza sul Lavoro (D.Lgs. 81/08)</h4>
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Responsabile Servizio Prevenzione (RSPP)
-                            </label>
-                            <input type="text" id="da-resp_rspp" value="${configCache.resp_rspp || ''}" placeholder="Nominativo RSPP" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                        <div class="k-field">
+                            <label class="k-label" for="da-resp_rspp">Responsabile Servizio Prevenzione (RSPP)</label>
+                            <input type="text" id="da-resp_rspp" class="k-input" value="${configCache.resp_rspp || ''}" placeholder="Nominativo RSPP">
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Rappresentante dei Lavoratori (RLS)
-                            </label>
-                            <input type="text" id="da-resp_rls" value="${configCache.resp_rls || ''}" placeholder="Nominativo RLS" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                        <div class="k-field">
+                            <label class="k-label" for="da-resp_rls">Rappresentante dei Lavoratori (RLS)</label>
+                            <input type="text" id="da-resp_rls" class="k-input" value="${configCache.resp_rls || ''}" placeholder="Nominativo RLS">
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Medico Competente
-                            </label>
-                            <input type="text" id="da-resp_medico" value="${configCache.resp_medico || ''}" placeholder="Dott. Nome Cognome" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                        <div class="k-field">
+                            <label class="k-label" for="da-resp_medico">Medico Competente</label>
+                            <input type="text" id="da-resp_medico" class="k-input" value="${configCache.resp_medico || ''}" placeholder="Dott. Nome Cognome">
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Responsabile Antincendio / Emergenze
-                            </label>
-                            <input type="text" id="da-resp_emergenze" value="${configCache.resp_emergenze || ''}" placeholder="Nominativo o Ditta Esterna" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                        <div class="k-field">
+                            <label class="k-label" for="da-resp_emergenze">Responsabile Antincendio / Emergenze</label>
+                            <input type="text" id="da-resp_emergenze" class="k-input" value="${configCache.resp_emergenze || ''}" placeholder="Nominativo o Ditta Esterna">
                         </div>
 
-                        <!-- Altre Figure -->
-                        <div style="grid-column:1 / -1; margin-top:1rem;">
-                            <h4 style="margin:0 0 0.5rem; color:var(--md-primary); border-bottom:1px solid var(--md-outline-variant); padding-bottom:0.3rem;">Altre Figure Nominate</h4>
+                        <div class="k-field k-field--full" style="margin-top: var(--k-space-2);">
+                            <h4 style="margin: 0; color: var(--md-primary); font-size: 1rem; font-weight: 700;">Altre Figure Nominate</h4>
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Preposto al Divieto di Fumo
-                            </label>
-                            <input type="text" id="da-resp_fumo" value="${configCache.resp_fumo || ''}" placeholder="Nominativo" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                        <div class="k-field">
+                            <label class="k-label" for="da-resp_fumo">Preposto al Divieto di Fumo</label>
+                            <input type="text" id="da-resp_fumo" class="k-input" value="${configCache.resp_fumo || ''}" placeholder="Nominativo">
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Amministratore di Sistema
-                            </label>
-                            <input type="text" id="da-resp_sysadmin" value="${configCache.resp_sysadmin || ''}" placeholder="Responsabile IT" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                        <div class="k-field">
+                            <label class="k-label" for="da-resp_sysadmin">Amministratore di Sistema</label>
+                            <input type="text" id="da-resp_sysadmin" class="k-input" value="${configCache.resp_sysadmin || ''}" placeholder="Responsabile IT">
                         </div>
                         
-                        <div style="display:${isScuola ? 'block' : 'none'};">
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Responsabile Transizione Digitale (RTD)
-                            </label>
-                            <input type="text" id="da-resp_rtd" value="${configCache.resp_rtd || ''}" placeholder="Nominativo RTD" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                        <div class="k-field" style="display: ${isScuola ? 'block' : 'none'};">
+                            <label class="k-label" for="da-resp_rtd">Responsabile Transizione Digitale (RTD)</label>
+                            <input type="text" id="da-resp_rtd" class="k-input" value="${configCache.resp_rtd || ''}" placeholder="Nominativo RTD">
                         </div>
 
-                        <!-- Organigramma Personalizzato -->
-                        <div style="grid-column:1 / -1; margin-top:1rem;">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid var(--md-outline-variant); padding-bottom:0.3rem; margin-bottom:0.5rem;">
-                                <h4 style="margin:0; color:var(--md-primary);">Organigramma Flessibile (Infinite Figure)</h4>
-                                <button id="da-btn-add-custom-resp" class="btn" style="padding:0.3rem 0.6rem; font-size:0.8rem; display:flex; align-items:center; gap:0.3rem;">
-                                    <span class="material-symbols-rounded" style="font-size:1.1rem;">add</span> Aggiungi Figura
+                        <div class="k-field k-field--full" style="margin-top: var(--k-space-2);">
+                            <div class="k-row k-row--between" style="align-items: center; margin-bottom: var(--k-space-2);">
+                                <div>
+                                    <h4 style="margin: 0; color: var(--md-primary); font-size: 1rem; font-weight: 700;">Organigramma Flessibile</h4>
+                                    <p class="k-hint" style="margin-top: var(--k-space-1);">Inserisci liberamente DSGA, Dirigenti, Preposti o qualsiasi altra qualifica.</p>
+                                </div>
+                                <button id="da-btn-add-custom-resp" class="k-btn k-btn--ghost">
+                                    <span class="material-symbols-rounded">add</span>
+                                    Aggiungi Figura
                                 </button>
                             </div>
-                            <p style="margin:0 0 1rem; color:var(--md-on-surface-variant); font-size:0.85rem;">Qui puoi inserire liberamente DSGA, Dirigenti, Preposti, Amministratori di Sistema e qualsiasi altra qualifica.</p>
                             
-                            <div id="da-custom-resp-container" style="display:flex; flex-direction:column; gap:0.8rem;">
-                                <!-- Le righe dinamiche verranno iniettate qui -->
-                            </div>
+                            <div id="da-custom-resp-container" class="k-stack" style="--k-gap: var(--k-space-2);"></div>
                         </div>
                     </div>
 
-                    <div style="margin-top:2rem; display:flex; justify-content:flex-end;">
-                        <button id="da-btn-save-responsabili" class="btn primary" style="display:flex; align-items:center; gap:0.5rem; padding:0.8rem 1.5rem;">
-                            <span class="material-symbols-rounded">save</span> Salva Organigramma
+                    <div class="k-row" style="margin-top: var(--k-space-6); justify-content: flex-end;">
+                        <button id="da-btn-save-responsabili" class="k-btn k-btn--primary">
+                            <span class="material-symbols-rounded">save</span>
+                            Salva Organigramma
                         </button>
                     </div>
-                </div>
-            `;
+                </div>`;
 
             const customContainer = container.querySelector('#da-custom-resp-container');
 
             const renderCustomResp = () => {
                 customContainer.innerHTML = '';
                 if (customResp.length === 0) {
-                    customContainer.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--md-on-surface-variant); font-size:0.9rem; font-style:italic;">Nessuna figura personalizzata aggiunta.</div>';
+                    customContainer.innerHTML = '<div class="k-hint" style="text-align: center; padding: var(--k-space-3);">Nessuna figura personalizzata aggiunta.</div>';
                     return;
                 }
                 customResp.forEach((item, index) => {
                     const row = document.createElement('div');
-                    row.style.cssText = 'display:flex; gap:0.5rem; align-items:center; background:var(--md-surface-variant); padding:0.5rem; border-radius:8px;';
+                    row.className = 'k-row';
+                    row.style.cssText = 'align-items: center; --k-gap: var(--k-space-2);';
                     row.innerHTML = `
-                        <input type="text" class="custom-role" value="${item.ruolo}" placeholder="Ruolo (es. Dirigente, DSGA...)" style="flex:1; padding:0.6rem; border-radius:4px; border:1px solid var(--md-outline); background:var(--md-surface); outline:none;">
-                        <input type="text" class="custom-name" value="${item.nome}" placeholder="Nominativo" style="flex:1; padding:0.6rem; border-radius:4px; border:1px solid var(--md-outline); background:var(--md-surface); outline:none;">
-                        <button class="btn-remove-custom icon-btn" data-index="${index}" style="color:var(--md-error); padding:0.5rem; background:transparent; border:none; cursor:pointer;" title="Rimuovi">
+                        <input type="text" class="k-input custom-role" value="${item.ruolo || ''}" placeholder="Ruolo (es. Dirigente, DSGA...)" style="flex: 1;">
+                        <input type="text" class="k-input custom-name" value="${item.nome || ''}" placeholder="Nominativo" style="flex: 1;">
+                        <button class="k-btn k-btn--ghost btn-remove-custom" data-index="${index}" style="color: var(--md-error);" title="Rimuovi">
                             <span class="material-symbols-rounded">delete</span>
-                        </button>
-                    `;
+                        </button>`;
                     customContainer.appendChild(row);
                 });
 
@@ -158,11 +136,10 @@ export default {
                 const btn = ev.currentTarget;
                 const old = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Salvataggio...';
+                btn.innerHTML = '<span class="material-symbols-rounded" style="animation: spin 1s linear infinite;">sync</span> Salvataggio...';
                 
                 try {
-                    
-                    const customRows = customContainer.querySelectorAll('div[style*="display:flex"]');
+                    const customRows = customContainer.querySelectorAll('.k-row');
                     const currentCustomResp = [];
                     customRows.forEach(row => {
                         const ruolo = row.querySelector('.custom-role')?.value.trim();
@@ -196,7 +173,7 @@ export default {
 
         } catch (e) {
             console.error(e);
-            container.innerHTML = `<div style="color:var(--md-error);">Errore rendering Responsabili: ${e.message}</div>`;
+            container.innerHTML = `<div class="k-alert k-alert--danger"><span class="material-symbols-rounded">error</span><div>Errore caricamento responsabili</div></div>`;
         }
     }
 };

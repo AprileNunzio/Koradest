@@ -56,13 +56,7 @@ function buildUserApps(allApps, installedAppsData, userPerms) {
                 icon: 'icone/store.png'
             });
         }
-        if (isSuperAdmin) {
-            filtered.push({
-                id: '__nodi__', name: 'Nodi e Rete', author: 'KORADEST', __categoria: sistema, __destinazione: 'nodes_manager', __ordine: 1,
-                description: 'Stato dei nodi collegati, sincronizzazione del registro e salute della rete',
-                icon: 'hub', color: 'var(--md-primary)'
-            });
-        }
+
         filtered.push({
             id: '__info__', name: 'Info', author: 'KORADEST', __categoria: sistema, __destinazione: 'info', __ordine: 99,
             description: 'Chi sviluppa KORADEST, dove restano i tuoi dati e come sostenere il progetto',

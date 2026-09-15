@@ -6,162 +6,169 @@ export default {
             const isScuola = configCache.is_scuola === true || configCache.is_scuola === 'true';
 
             container.innerHTML = `
-                <div class="card fade-in-up" style="padding:1.5rem; background:var(--md-surface); border-radius:16px; border:1px solid var(--md-surface-variant);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <div class="k-card fade-in-up">
+                    <div class="k-row k-row--between" style="margin-bottom: var(--k-space-4); align-items: center;">
                         <div>
-                            <h3 style="margin:0; font-size:1.4rem; color:var(--md-on-surface);">Dati Generali Ente</h3>
-                            <p style="margin:0; color:var(--md-on-surface-variant); font-size:0.9rem;">Informazioni legali, anagrafiche e fatturazione.</p>
+                            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--md-on-surface);">Dati Generali Ente</h3>
+                            <p class="k-hint" style="margin-top: var(--k-space-1);">Informazioni legali, anagrafiche e fatturazione.</p>
                         </div>
-                        
-                        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; user-select:none; background:var(--md-surface-variant); padding:0.5rem 1rem; border-radius:24px;">
-                            <span style="font-weight:600; color:var(--md-on-surface-variant);">L'ente è una Scuola?</span>
-                            <div style="position:relative; width:44px; height:24px;">
-                                <input type="checkbox" id="da-is-scuola" ${isScuola ? 'checked' : ''} style="opacity:0; width:0; height:0;">
-                                <div class="switch-track" style="position:absolute; top:0; left:0; right:0; bottom:0; background: ${isScuola ? 'var(--md-primary)' : 'var(--md-surface)'}; border-radius:24px; transition:0.3s; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1);"></div>
-                                <div class="switch-thumb" style="position:absolute; top:2px; left:${isScuola ? '22px' : '2px'}; width:20px; height:20px; background:#fff; border-radius:50%; transition:0.3s; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+                        <div class="k-row" style="--k-gap: var(--k-space-2); align-items: center;">
+                            <span style="font-weight: 600; color: var(--md-on-surface-variant); font-size: 0.9rem;">L'ente è una Scuola?</span>
+                            <label class="k-switch">
+                                <input type="checkbox" id="da-is-scuola" ${isScuola ? 'checked' : ''} aria-label="Ente scolastico">
+                                <span class="k-switch-track"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="k-form-grid">
+                        <div class="k-field k-field--full">
+                            <label class="k-label" for="da-istituto_nome">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">corporate_fare</span>
+                                Denominazione Ente / Ragione Sociale *
+                            </label>
+                            <input type="text" id="da-istituto_nome" class="k-input" value="${configCache.istituto_nome || ''}" placeholder="Es. I.C. Giovanni Verga / Azienda S.p.A.">
+                        </div>
+
+                        <div id="scuola-fields-container" class="k-field k-field--full" style="display: ${isScuola ? 'block' : 'none'};">
+                            <div class="k-card k-card--muted" style="border: 1px dashed var(--md-primary); padding: var(--k-space-3);">
+                                <label class="k-label" for="da-istituto_codice_meccanografico">
+                                    <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">school</span>
+                                    Codice Meccanografico
+                                </label>
+                                <input type="text" id="da-istituto_codice_meccanografico" class="k-input" value="${configCache.istituto_codice_meccanografico || ''}" placeholder="Es. RMIC8AA00X">
                             </div>
-                        </label>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, max(16rem, calc((100% - 3.6rem) / 4))), 1fr)); gap:1.2rem;">
-                        <div style="grid-column:1 / -1;">
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">corporate_fare</span>Denominazione Ente / Ragione Sociale *
-                            </label>
-                            <input type="text" id="da-istituto_nome" value="${configCache.istituto_nome || ''}" placeholder="Es. I.C. Giovanni Verga / Azienda S.p.A." style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
                         </div>
 
-                        <div id="scuola-fields-container" style="display:${isScuola ? 'block' : 'none'}; grid-column:1 / -1; background:var(--md-primary-container); padding:1rem; border-radius:8px; border:1px dashed var(--md-primary);">
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-primary-container); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">school</span>Codice Meccanografico
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_piva">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">receipt_long</span>
+                                Partita IVA
                             </label>
-                            <input type="text" id="da-istituto_codice_meccanografico" value="${configCache.istituto_codice_meccanografico || ''}" placeholder="Es. RMIC8AA00X" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_piva" class="k-input" value="${configCache.istituto_piva || ''}" placeholder="Es. 01234567890">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">receipt_long</span>Partita IVA
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_cf">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">badge</span>
+                                Codice Fiscale
                             </label>
-                            <input type="text" id="da-istituto_piva" value="${configCache.istituto_piva || ''}" placeholder="Es. 01234567890" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_cf" class="k-input" value="${configCache.istituto_cf || ''}" placeholder="Es. 80012345678">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">badge</span>Codice Fiscale
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_sdi">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">send</span>
+                                Codice Destinatario (SDI)
                             </label>
-                            <input type="text" id="da-istituto_cf" value="${configCache.istituto_cf || ''}" placeholder="Es. 80012345678" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
-                        </div>
-                        
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">send</span>Codice Destinatario (SDI)
-                            </label>
-                            <input type="text" id="da-istituto_sdi" value="${configCache.istituto_sdi || ''}" placeholder="Es. M5UXCR1 (o PEC)" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_sdi" class="k-input" value="${configCache.istituto_sdi || ''}" placeholder="Es. M5UXCR1 (o PEC)">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">account_circle</span>Forma Giuridica / REA
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_forma">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">account_circle</span>
+                                Forma Giuridica / REA
                             </label>
-                            <input type="text" id="da-istituto_forma" value="${configCache.istituto_forma || ''}" placeholder="Es. S.p.A. / Ente Pubblico / REA MI-1234" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_forma" class="k-input" value="${configCache.istituto_forma || ''}" placeholder="Es. S.p.A. / Ente Pubblico / REA MI-1234">
                         </div>
 
-                        <div style="grid-column:1 / -1;">
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">gavel</span>Legale Rappresentante
+                        <div class="k-field k-field--full">
+                            <label class="k-label" for="da-istituto_rappresentante">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">gavel</span>
+                                Legale Rappresentante
                             </label>
-                            <input type="text" id="da-istituto_rappresentante" value="${configCache.istituto_rappresentante || ''}" placeholder="Nome e Cognome del Dirigente o Amministratore" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_rappresentante" class="k-input" value="${configCache.istituto_rappresentante || ''}" placeholder="Nome e Cognome del Dirigente o Amministratore">
                         </div>
 
-                        <div style="grid-column:1 / -1;">
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">location_on</span>Indirizzo Sede Legale Completo
+                        <div class="k-field k-field--full">
+                            <label class="k-label" for="da-istituto_indirizzo">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">location_on</span>
+                                Indirizzo Sede Legale Completo
                             </label>
-                            <input type="text" id="da-istituto_indirizzo" value="${configCache.istituto_indirizzo || ''}" placeholder="Via, civico, CAP, città (Prov.)" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_indirizzo" class="k-input" value="${configCache.istituto_indirizzo || ''}" placeholder="Via, civico, CAP, città (Prov.)">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">call</span>Telefono Principale
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_telefono">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">call</span>
+                                Telefono Principale
                             </label>
-                            <input type="text" id="da-istituto_telefono" value="${configCache.istituto_telefono || ''}" placeholder="Es. +39 06 1234567" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_telefono" class="k-input" value="${configCache.istituto_telefono || ''}" placeholder="Es. +39 06 1234567">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">public</span>Sito Web
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_web">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">public</span>
+                                Sito Web
                             </label>
-                            <input type="text" id="da-istituto_web" value="${configCache.istituto_web || ''}" placeholder="Es. www.azienda.it" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_web" class="k-input" value="${configCache.istituto_web || ''}" placeholder="Es. www.azienda.it">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">mail</span>Email Istituzionale
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_email">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">mail</span>
+                                Email Istituzionale
                             </label>
-                            <input type="text" id="da-istituto_email" value="${configCache.istituto_email || ''}" placeholder="Es. info@azienda.it" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_email" class="k-input" value="${configCache.istituto_email || ''}" placeholder="Es. info@azienda.it">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--md-primary);">mark_email_read</span>Email PEC
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_pec">
+                                <span class="material-symbols-rounded" style="font-size: 1.1rem; color: var(--md-primary);">mark_email_read</span>
+                                Email PEC
                             </label>
-                            <input type="text" id="da-istituto_pec" value="${configCache.istituto_pec || ''}" placeholder="Es. pec@pec.azienda.it" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+                            <input type="text" id="da-istituto_pec" class="k-input" value="${configCache.istituto_pec || ''}" placeholder="Es. pec@pec.azienda.it">
                         </div>
-                        <!-- Social Media e Comunicazione -->
-                        <div style="grid-column:1 / -1; margin-top:1rem;">
-                            <h4 style="margin:0 0 0.5rem; color:var(--md-primary); border-bottom:1px solid var(--md-outline-variant); padding-bottom:0.3rem;">Social Media & Comunicazione</h4>
+
+                        <div class="k-field k-field--full" style="margin-top: var(--k-space-2);">
+                            <h4 style="margin: 0; color: var(--md-primary); font-size: 1rem; font-weight: 700;">Social Media & Comunicazione</h4>
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                LinkedIn
-                            </label>
-                            <input type="text" id="da-istituto_linkedin" value="${configCache.istituto_linkedin || ''}" placeholder="URL pagina LinkedIn" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_linkedin">LinkedIn</label>
+                            <input type="text" id="da-istituto_linkedin" class="k-input" value="${configCache.istituto_linkedin || ''}" placeholder="URL pagina LinkedIn">
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Facebook
-                            </label>
-                            <input type="text" id="da-istituto_facebook" value="${configCache.istituto_facebook || ''}" placeholder="URL pagina Facebook" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_facebook">Facebook</label>
+                            <input type="text" id="da-istituto_facebook" class="k-input" value="${configCache.istituto_facebook || ''}" placeholder="URL pagina Facebook">
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                Instagram
-                            </label>
-                            <input type="text" id="da-istituto_instagram" value="${configCache.istituto_instagram || ''}" placeholder="Username o URL Instagram" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_instagram">Instagram</label>
+                            <input type="text" id="da-istituto_instagram" class="k-input" value="${configCache.istituto_instagram || ''}" placeholder="Username o URL Instagram">
                         </div>
-                        <div>
-                            <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem; color:var(--md-on-surface-variant); font-weight:600; font-size:0.9rem;">
-                                X (Twitter)
-                            </label>
-                            <input type="text" id="da-istituto_twitter" value="${configCache.istituto_twitter || ''}" placeholder="Username o URL Twitter" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none;">
+
+                        <div class="k-field">
+                            <label class="k-label" for="da-istituto_twitter">X (Twitter)</label>
+                            <input type="text" id="da-istituto_twitter" class="k-input" value="${configCache.istituto_twitter || ''}" placeholder="Username o URL Twitter">
                         </div>
                     </div>
 
-                    <div style="margin-top:2rem; display:flex; justify-content:flex-end;">
-                        <button id="da-btn-save-generali" class="btn primary" style="display:flex; align-items:center; gap:0.5rem; padding:0.8rem 1.5rem;">
-                            <span class="material-symbols-rounded">save</span> Salva Dati Generali
+                    <div class="k-row" style="margin-top: var(--k-space-6); justify-content: flex-end;">
+                        <button id="da-btn-save-generali" class="k-btn k-btn--primary">
+                            <span class="material-symbols-rounded">save</span>
+                            Salva Dati Generali
                         </button>
                     </div>
-                </div>
-            `;
+                </div>`;
 
             const chkScuola = container.querySelector('#da-is-scuola');
-            const track = container.querySelector('.switch-track');
-            const thumb = container.querySelector('.switch-thumb');
             const scFields = container.querySelector('#scuola-fields-container');
 
             chkScuola.addEventListener('change', (e) => {
-                const checked = e.target.checked;
-                track.style.background = checked ? 'var(--md-primary)' : 'var(--md-surface)';
-                thumb.style.left = checked ? '22px' : '2px';
-                scFields.style.display = checked ? 'block' : 'none';
+                try {
+                    scFields.style.display = e.target.checked ? 'block' : 'none';
+                } catch (err) {
+                    console.error(err);
+                }
             });
 
             container.querySelector('#da-btn-save-generali').addEventListener('click', async (ev) => {
                 const btn = ev.currentTarget;
                 const old = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Salvataggio...';
+                btn.innerHTML = '<span class="material-symbols-rounded" style="animation: spin 1s linear infinite;">sync</span> Salvataggio...';
                 
                 try {
                     const patch = {
@@ -195,7 +202,7 @@ export default {
 
         } catch (e) {
             console.error(e);
-            container.innerHTML = '<div style="color:var(--md-error);">Errore rendering Generali: ' + e.message + '</div>';
+            container.innerHTML = '<div class="k-alert k-alert--danger"><span class="material-symbols-rounded">error</span><div>Errore caricamento dati generali</div></div>';
         }
     }
 };

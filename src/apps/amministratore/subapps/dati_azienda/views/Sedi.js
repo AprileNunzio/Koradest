@@ -1,4 +1,4 @@
-import { toast } from '../../../../../js/utils.js';
+import { toast, conferma } from '../../../../../js/utils.js';
 
 export default {
     render: async (container) => {
@@ -14,117 +14,136 @@ export default {
             ];
 
             container.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:1.5rem;">
+                <div class="k-row k-row--between" style="align-items: center; margin-bottom: var(--k-space-4);">
                     <div>
-                        <h3 style="margin:0; font-size:1.4rem; color:var(--md-on-surface);">Sedi Aziendali</h3>
-                        <p style="margin:0.2rem 0 0; color:var(--md-on-surface-variant); font-size:0.9rem;">Elenco delle sedi fisiche, orari e contatti.</p>
+                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--md-on-surface);">Sedi Aziendali</h3>
+                        <p class="k-hint" style="margin-top: var(--k-space-1);">Elenco delle sedi fisiche, orari e contatti.</p>
                     </div>
-                    <button id="da-btn-add-sede" class="btn primary" style="display:flex; align-items:center; gap:0.5rem; padding:0.8rem 1.5rem;">
-                        <span class="material-symbols-rounded">add</span> Aggiungi Sede
+                    <button id="da-btn-add-sede" class="k-btn k-btn--primary">
+                        <span class="material-symbols-rounded">add</span>
+                        Aggiungi Sede
                     </button>
                 </div>
 
-                <div class="card" style="background:var(--md-surface); border-radius:16px; border:1px solid var(--md-outline-variant); overflow:hidden;">
-                    <div style="overflow-x:auto;">
-                        <table style="width:100%; border-collapse:collapse; text-align:left;">
-                            <thead style="background:var(--md-surface-variant); color:var(--md-on-surface-variant); font-size:0.85rem; text-transform:uppercase;">
+                <div class="k-card k-card--flush">
+                    <div style="overflow-x: auto;">
+                        <table class="k-table">
+                            <thead>
                                 <tr>
-                                    <th style="padding:1rem; font-weight:600;">Nome Sede</th>
-                                    <th style="padding:1rem; font-weight:600;">Indirizzo</th>
-                                    <th style="padding:1rem; font-weight:600;">Contatti</th>
-                                    <th style="padding:1rem; font-weight:600; text-align:right;">Azioni</th>
+                                    <th>Nome Sede</th>
+                                    <th>Indirizzo</th>
+                                    <th>Contatti</th>
+                                    <th style="text-align: right;">Azioni</th>
                                 </tr>
                             </thead>
                             <tbody id="da-sedi-tbody">
-                                <tr><td colspan="4" style="text-align:center; padding:2rem;"><span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Caricamento...</td></tr>
+                                <tr><td colspan="4" style="text-align: center; padding: var(--k-space-6);"><div class="k-spinner"></div></td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Modale Gestione Sede -->
-                <div id="da-sede-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-                    <div class="modal-content" style="background:var(--md-surface); width:90%; max-width:800px; max-height:90vh; border-radius:24px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 38px rgba(0,0,0,0.14);">
-                        <div style="padding:1.5rem; border-bottom:1px solid var(--md-outline-variant); display:flex; justify-content:space-between; align-items:center;">
-                            <h3 id="da-sede-modal-title" style="margin:0; font-size:1.4rem;">Gestione Sede</h3>
-                            <span class="material-symbols-rounded" id="da-sede-modal-close" style="cursor:pointer; color:var(--md-on-surface-variant);">close</span>
+                <div id="da-sede-modal" class="k-dialog-backdrop" style="display: none;">
+                    <div class="k-dialog k-dialog--lg" role="dialog" aria-modal="true" aria-label="Gestione Sede">
+                        <div class="k-dialog-header">
+                            <span class="k-page-icon material-symbols-rounded">domain</span>
+                            <h2 id="da-sede-modal-title" class="k-dialog-title" style="align-self: center;">Gestione Sede</h2>
+                            <button id="da-sede-modal-close" class="k-btn k-btn--ghost" style="margin-left: auto;" aria-label="Chiudi">
+                                <span class="material-symbols-rounded">close</span>
+                            </button>
                         </div>
-                        <div style="padding:1.5rem; overflow-y:auto; flex:1;">
+                        <div class="k-dialog-body" style="max-height: 70vh; overflow-y: auto;">
                             <input type="hidden" id="da-sede-id">
                             
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:2rem;">
-                                <div style="grid-column:1/-1; display:flex; justify-content:space-between; align-items:flex-end;">
-                                    <div style="flex:1; padding-right:1rem;">
-                                        <label style="display:block; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">Nome Sede *</label>
-                                        <input type="text" id="da-sede-nome" class="input" placeholder="Es. Sede Centrale" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface);">
-                                    </div>
-                                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; background:var(--md-primary-container); padding:0.75rem 1rem; border-radius:8px; border:1px dashed var(--md-primary);">
-                                        <input type="checkbox" id="da-sede-is-centrale" style="width:18px; height:18px; accent-color:var(--md-primary);"> 
-                                        <span style="font-weight:600; color:var(--md-on-primary-container);">Sede Principale</span>
-                                    </label>
-                                </div>
-                                <div style="grid-column:1/-1;">
-                                    <label style="display:block; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">Indirizzo</label>
-                                    <input type="text" id="da-sede-indirizzo" class="input" placeholder="Via, civico" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface);">
-                                </div>
-                                <div>
-                                    <label style="display:block; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">Città</label>
-                                    <input type="text" id="da-sede-citta" class="input" placeholder="Città" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface);">
-                                </div>
-                                <div style="display:flex; gap:0.5rem;">
-                                    <div style="flex:1;">
-                                        <label style="display:block; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">CAP</label>
-                                        <input type="text" id="da-sede-cap" class="input" placeholder="00000" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface);">
-                                    </div>
-                                    <div style="flex:1;">
-                                        <label style="display:block; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">Prov.</label>
-                                        <input type="text" id="da-sede-provincia" class="input" placeholder="RM" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface);">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style="display:block; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">Telefono</label>
-                                    <input type="text" id="da-sede-telefono" class="input" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface);">
-                                </div>
-                                <div>
-                                    <label style="display:block; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">Email</label>
-                                    <input type="email" id="da-sede-email" class="input" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface);">
-                                </div>
-                            </div>
-
-                            <h4 style="margin:0 0 1rem; color:var(--md-primary); border-bottom:1px solid var(--md-outline-variant); padding-bottom:0.5rem;">Orari di Apertura</h4>
-                            <div id="da-sede-orari" style="display:flex; flex-direction:column; gap:0.5rem;">
-                                ${DAYS.map(day => `
-                                    <div class="orario-row" data-day="${day.id}" style="display:flex; align-items:center; gap:1rem; padding:0.5rem; background:var(--md-surface-variant); border-radius:8px;">
-                                        <div style="width:100px; font-weight:600;">
-                                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                                                <input type="checkbox" class="chk-aperto" checked> ${day.label}
+                            <div class="k-form-grid">
+                                <div class="k-field k-field--full">
+                                    <div class="k-row k-row--between" style="align-items: center;">
+                                        <div style="flex: 1; margin-right: var(--k-space-4);">
+                                            <label class="k-label" for="da-sede-nome">Nome Sede *</label>
+                                            <input type="text" id="da-sede-nome" class="k-input" placeholder="Es. Sede Centrale">
+                                        </div>
+                                        <div class="k-row" style="--k-gap: var(--k-space-2); align-items: center; margin-top: var(--k-space-4);">
+                                            <span style="font-weight: 600; font-size: 0.9rem; color: var(--md-on-surface);">Sede Principale</span>
+                                            <label class="k-switch">
+                                                <input type="checkbox" id="da-sede-is-centrale" aria-label="Sede Principale">
+                                                <span class="k-switch-track"></span>
                                             </label>
                                         </div>
-                                        <div class="orari-inputs" style="display:flex; gap:1rem; flex:1;">
-                                            <div style="display:flex; align-items:center; gap:0.5rem;">
-                                                <span>Mattina:</span>
-                                                <input type="time" class="m-start" value="08:00" style="padding:0.3rem; border-radius:4px; border:1px solid var(--md-outline);"> -
-                                                <input type="time" class="m-end" value="13:00" style="padding:0.3rem; border-radius:4px; border:1px solid var(--md-outline);">
-                                            </div>
-                                            <div style="display:flex; align-items:center; gap:0.5rem;">
-                                                <span>Pom:</span>
-                                                <input type="time" class="p-start" style="padding:0.3rem; border-radius:4px; border:1px solid var(--md-outline);"> -
-                                                <input type="time" class="p-end" style="padding:0.3rem; border-radius:4px; border:1px solid var(--md-outline);">
-                                            </div>
+                                    </div>
+                                </div>
+                                <div class="k-field k-field--full">
+                                    <label class="k-label" for="da-sede-indirizzo">Indirizzo</label>
+                                    <input type="text" id="da-sede-indirizzo" class="k-input" placeholder="Via, civico">
+                                </div>
+                                <div class="k-field">
+                                    <label class="k-label" for="da-sede-citta">Città</label>
+                                    <input type="text" id="da-sede-citta" class="k-input" placeholder="Città">
+                                </div>
+                                <div class="k-field">
+                                    <div class="k-row" style="--k-gap: var(--k-space-2);">
+                                        <div style="flex: 2;">
+                                            <label class="k-label" for="da-sede-cap">CAP</label>
+                                            <input type="text" id="da-sede-cap" class="k-input" placeholder="00000">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label class="k-label" for="da-sede-provincia">Prov.</label>
+                                            <input type="text" id="da-sede-provincia" class="k-input" placeholder="RM">
                                         </div>
                                     </div>
-                                `).join('')}
+                                </div>
+                                <div class="k-field">
+                                    <label class="k-label" for="da-sede-telefono">Telefono</label>
+                                    <input type="text" id="da-sede-telefono" class="k-input" placeholder="Es. +39 06 1234567">
+                                </div>
+                                <div class="k-field">
+                                    <label class="k-label" for="da-sede-email">Email</label>
+                                    <input type="email" id="da-sede-email" class="k-input" placeholder="sede@azienda.it">
+                                </div>
+
+                                <div class="k-field k-field--full" style="margin-top: var(--k-space-2);">
+                                    <h4 style="margin: 0; color: var(--md-primary); font-size: 1rem; font-weight: 700;">Orari di Apertura</h4>
+                                </div>
+                                <div class="k-field k-field--full">
+                                    <div id="da-sede-orari" class="k-stack" style="--k-gap: var(--k-space-2);">
+                                        ${DAYS.map(day => `
+                                            <div class="orario-row k-card k-card--muted" data-day="${day.id}" style="padding: var(--k-space-2) var(--k-space-3);">
+                                                <div class="k-row" style="align-items: center; --k-gap: var(--k-space-3); flex-wrap: wrap;">
+                                                    <div style="width: 120px;">
+                                                        <label class="k-row" style="--k-gap: var(--k-space-2); align-items: center; cursor: pointer; margin: 0;">
+                                                            <input type="checkbox" class="chk-aperto" checked>
+                                                            <span style="font-weight: 600;">${day.label}</span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="orari-inputs k-row" style="flex: 1; --k-gap: var(--k-space-3); align-items: center; flex-wrap: wrap;">
+                                                        <div class="k-row" style="align-items: center; --k-gap: var(--k-space-1);">
+                                                            <span class="k-hint">Mattina:</span>
+                                                            <input type="time" class="k-input m-start" value="08:00" style="padding: var(--k-space-1); width: auto;">
+                                                            <span>-</span>
+                                                            <input type="time" class="k-input m-end" value="13:00" style="padding: var(--k-space-1); width: auto;">
+                                                        </div>
+                                                        <div class="k-row" style="align-items: center; --k-gap: var(--k-space-1);">
+                                                            <span class="k-hint">Pomeriggio:</span>
+                                                            <input type="time" class="k-input p-start" style="padding: var(--k-space-1); width: auto;">
+                                                            <span>-</span>
+                                                            <input type="time" class="k-input p-end" style="padding: var(--k-space-1); width: auto;">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div style="padding:1.5rem; border-top:1px solid var(--md-outline-variant); display:flex; justify-content:flex-end; gap:1rem; background:var(--md-surface-variant);">
-                            <button id="da-sede-modal-cancel" class="btn" style="padding:0.8rem 1.5rem; background:transparent; color:var(--md-on-surface);">Annulla</button>
-                            <button id="da-sede-modal-save" class="btn primary" style="padding:0.8rem 1.5rem; display:flex; align-items:center; gap:0.5rem;">
-                                <span class="material-symbols-rounded">check</span> Salva Sede
+                        <div class="k-dialog-footer">
+                            <button id="da-sede-modal-cancel" class="k-btn k-btn--ghost">Annulla</button>
+                            <button id="da-sede-modal-save" class="k-btn k-btn--primary">
+                                <span class="material-symbols-rounded">check</span>
+                                Salva Sede
                             </button>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
 
             const tbody = container.querySelector('#da-sedi-tbody');
             const modal = container.querySelector('#da-sede-modal');
@@ -133,30 +152,32 @@ export default {
                 try {
                     const sedi = await window.electronAPI.datiAzienda.getSedi();
                     tbody.innerHTML = '';
-                    if (sedi.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--md-on-surface-variant);">Nessuna sede configurata.</td></tr>';
+                    if (!sedi || sedi.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: var(--k-space-6);" class="k-hint">Nessuna sede configurata.</td></tr>';
                         return;
                     }
                     sedi.forEach(sede => {
                         const tr = document.createElement('tr');
-                        tr.style.borderBottom = '1px solid var(--md-outline-variant)';
                         tr.innerHTML = `
-                            <td style="padding:1rem;">
-                                <div style="font-weight:600; color:var(--md-on-surface);">${sede.nome}</div>
-                                ${sede.is_centrale ? '<span style="font-size:0.7rem; background:var(--md-primary); color:#fff; padding:0.1rem 0.4rem; border-radius:4px;">Centrale</span>' : ''}
+                            <td>
+                                <div style="font-weight: 600; color: var(--md-on-surface);">${sede.nome}</div>
+                                ${sede.is_centrale ? '<span class="k-badge k-badge--primary">Centrale</span>' : ''}
                             </td>
-                            <td style="padding:1rem; font-size:0.9rem; color:var(--md-on-surface-variant);">
-                                ${sede.indirizzo ? sede.indirizzo : ''} ${sede.citta ? '- ' + sede.citta : ''}
+                            <td class="k-hint">
+                                ${sede.indirizzo || ''} ${sede.citta ? '- ' + sede.citta : ''}
                             </td>
-                            <td style="padding:1rem; font-size:0.9rem; color:var(--md-on-surface-variant);">
+                            <td class="k-hint">
                                 ${sede.telefono ? 'Tel: ' + sede.telefono + '<br>' : ''}
                                 ${sede.email ? 'Email: ' + sede.email : ''}
                             </td>
-                            <td style="padding:1rem; text-align:right;">
-                                <button class="btn-icon btn-edit" data-id="${sede.id}" title="Modifica"><span class="material-symbols-rounded">edit</span></button>
-                                <button class="btn-icon btn-delete" data-id="${sede.id}" title="Elimina" style="color:var(--md-error);"><span class="material-symbols-rounded">delete</span></button>
-                            </td>
-                        `;
+                            <td style="text-align: right;">
+                                <button class="k-btn k-btn--ghost btn-edit" data-id="${sede.id}" title="Modifica">
+                                    <span class="material-symbols-rounded">edit</span>
+                                </button>
+                                <button class="k-btn k-btn--ghost btn-delete" data-id="${sede.id}" title="Elimina" style="color: var(--md-error);">
+                                    <span class="material-symbols-rounded">delete</span>
+                                </button>
+                            </td>`;
                         tbody.appendChild(tr);
                     });
 
@@ -164,7 +185,7 @@ export default {
                     tbody.querySelectorAll('.btn-delete').forEach(b => b.addEventListener('click', () => deleteSede(b.dataset.id)));
 
                 } catch (e) {
-                    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--md-error); padding:1rem;">Errore caricamento: ${e.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="4" style="color: var(--md-error); padding: var(--k-space-4);">Errore caricamento: ${e.message}</td></tr>`;
                 }
             };
 
@@ -178,7 +199,6 @@ export default {
                 container.querySelector('#da-sede-provincia').value = '';
                 container.querySelector('#da-sede-telefono').value = '';
                 container.querySelector('#da-sede-email').value = '';
-                
                 
                 container.querySelectorAll('.orario-row').forEach(row => {
                     row.querySelector('.chk-aperto').checked = true;
@@ -196,12 +216,12 @@ export default {
                             container.querySelector('#da-sede-id').value = s.id;
                             container.querySelector('#da-sede-nome').value = s.nome;
                             container.querySelector('#da-sede-is-centrale').checked = !!s.is_centrale;
-                            container.querySelector('#da-sede-indirizzo').value = s.indirizzo;
-                            container.querySelector('#da-sede-citta').value = s.citta;
-                            container.querySelector('#da-sede-cap').value = s.cap;
-                            container.querySelector('#da-sede-provincia').value = s.provincia;
-                            container.querySelector('#da-sede-telefono').value = s.telefono;
-                            container.querySelector('#da-sede-email').value = s.email;
+                            container.querySelector('#da-sede-indirizzo').value = s.indirizzo || '';
+                            container.querySelector('#da-sede-citta').value = s.citta || '';
+                            container.querySelector('#da-sede-cap').value = s.cap || '';
+                            container.querySelector('#da-sede-provincia').value = s.provincia || '';
+                            container.querySelector('#da-sede-telefono').value = s.telefono || '';
+                            container.querySelector('#da-sede-email').value = s.email || '';
 
                             if (s.orari && typeof s.orari === 'object') {
                                 DAYS.forEach(day => {
@@ -247,16 +267,20 @@ export default {
 
             container.querySelectorAll('.chk-aperto').forEach(chk => {
                 chk.addEventListener('change', (e) => {
-                    const row = e.target.closest('.orario-row');
-                    const inputs = row.querySelector('.orari-inputs');
-                    if (e.target.checked) {
-                        inputs.style.opacity = '1';
-                    } else {
-                        inputs.style.opacity = '0.4';
-                        row.querySelector('.m-start').value = '';
-                        row.querySelector('.m-end').value = '';
-                        row.querySelector('.p-start').value = '';
-                        row.querySelector('.p-end').value = '';
+                    try {
+                        const row = e.target.closest('.orario-row');
+                        const inputs = row.querySelector('.orari-inputs');
+                        if (e.target.checked) {
+                            inputs.style.opacity = '1';
+                        } else {
+                            inputs.style.opacity = '0.4';
+                            row.querySelector('.m-start').value = '';
+                            row.querySelector('.m-end').value = '';
+                            row.querySelector('.p-start').value = '';
+                            row.querySelector('.p-end').value = '';
+                        }
+                    } catch (err) {
+                        console.error(err);
                     }
                 });
             });
@@ -300,7 +324,7 @@ export default {
                 const btn = ev.currentTarget;
                 const old = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Salvataggio...';
+                btn.innerHTML = '<span class="material-symbols-rounded" style="animation: spin 1s linear infinite;">sync</span> Salvataggio...';
 
                 try {
                     await window.electronAPI.datiAzienda.saveSede(data);
@@ -316,7 +340,6 @@ export default {
             });
 
             const deleteSede = async (id) => {
-                const { conferma } = await import('../../../../../js/utils.js');
                 if (await conferma({ titolo: 'Eliminare questa sede?', testo: 'La sede verrà rimossa dai dati aziendali di tutti i nodi.', etichetta: 'Elimina', pericolosa: true })) {
                     try {
                         await window.electronAPI.datiAzienda.deleteSede(id);
@@ -332,7 +355,7 @@ export default {
 
         } catch (e) {
             console.error(e);
-            container.innerHTML = '<div style="color:var(--md-error);">Errore rendering Sedi: ' + e.message + '</div>';
+            container.innerHTML = '<div class="k-alert k-alert--danger"><span class="material-symbols-rounded">error</span><div>Errore caricamento sedi</div></div>';
         }
     }
 };

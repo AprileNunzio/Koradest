@@ -111,88 +111,115 @@ export default {
                         btnFetch.disabled = true;
                     }
 
-                    if (window.electronAPI) {
-                        const [availableRes, coreRes, registryApps, updatesRes, rejectedRes] = await Promise.all([
-                            window.electronAPI.store && window.electronAPI.store.getAvailable ? window.electronAPI.store.getAvailable() : { success: false, data: [] },
-                            window.electronAPI.store && window.electronAPI.store.getCoreApps ? window.electronAPI.store.getCoreApps() : { success: false, data: [] },
-                            window.electronAPI.getAppsRegistry ? window.electronAPI.getAppsRegistry() : [],
-                            window.electronAPI.store && window.electronAPI.store.checkUpdates ? window.electronAPI.store.checkUpdates() : { success: false, data: [] },
-                            window.electronAPI.getAppsRifiutate ? window.electronAPI.getAppsRifiutate() : []
-                        ]);
+                    if (!window.electronAPI) return;
 
-                        rejectedAppsList = Array.isArray(rejectedRes) ? rejectedRes : [];
-                        const marketplaceApps = availableRes && availableRes.success && Array.isArray(availableRes.data) ? availableRes.data : [];
-                        const coreApps = coreRes && coreRes.success && Array.isArray(coreRes.data) ? coreRes.data : [];
-                        const localRegistry = Array.isArray(registryApps) ? registryApps : [];
-                        availableUpdates = updatesRes && updatesRes.success && Array.isArray(updatesRes.data) ? updatesRes.data : [];
+                    const [coreRes, registryApps, rejectedRes] = await Promise.all([
+                        window.electronAPI.store && window.electronAPI.store.getCoreApps ? window.electronAPI.store.getCoreApps() : { success: false, data: [] },
+                        window.electronAPI.getAppsRegistry ? window.electronAPI.getAppsRegistry() : [],
+                        window.electronAPI.getAppsRifiutate ? window.electronAPI.getAppsRifiutate() : []
+                    ]);
 
-                        const updatesMap = new Map(availableUpdates.map(u => [u.appId, u]));
-                        const combinedMap = new Map();
+                    rejectedAppsList = Array.isArray(rejectedRes) ? rejectedRes : [];
+                    const coreApps = coreRes && coreRes.success && Array.isArray(coreRes.data) ? coreRes.data : [];
+                    const localRegistry = Array.isArray(registryApps) ? registryApps : [];
 
-                        coreApps.forEach(app => {
-                            combinedMap.set(app.id, {
-                                ...app,
-                                installed: true,
-                                core: true,
-                                isInstalled: true,
-                                published_at: app.published_at || '2026-08-20T10:00:00Z',
-                                installed_at: app.installed_at || '2026-08-20T10:00:00Z',
-                                updated_at: app.updated_at || null
+                    const aggiornaMappaEViews = (marketplaceApps = [], updatesList = []) => {
+                        try {
+                            availableUpdates = updatesList;
+                            const updatesMap = new Map(availableUpdates.map(u => [u.appId, u]));
+                            const combinedMap = new Map();
+
+                            coreApps.forEach(app => {
+                                combinedMap.set(app.id, {
+                                    ...app,
+                                    installed: true,
+                                    core: true,
+                                    isInstalled: true,
+                                    published_at: app.published_at || '2026-08-20T10:00:00Z',
+                                    installed_at: app.installed_at || '2026-08-20T10:00:00Z',
+                                    updated_at: app.updated_at || null
+                                });
                             });
-                        });
 
-                        localRegistry.forEach(app => {
-                            const existing = combinedMap.get(app.id) || {};
-                            combinedMap.set(app.id, {
-                                ...existing,
-                                ...app,
-                                installed: true,
-                                isInstalled: true,
-                                published_at: app.published_at || existing.published_at || null,
-                                installed_at: app.installed_at || existing.installed_at || null,
-                                updated_at: app.updated_at || existing.updated_at || null
+                            localRegistry.forEach(app => {
+                                const existing = combinedMap.get(app.id) || {};
+                                combinedMap.set(app.id, {
+                                    ...existing,
+                                    ...app,
+                                    installed: true,
+                                    isInstalled: true,
+                                    published_at: app.published_at || existing.published_at || null,
+                                    installed_at: app.installed_at || existing.installed_at || null,
+                                    updated_at: app.updated_at || existing.updated_at || null
+                                });
                             });
-                        });
 
-                        marketplaceApps.forEach(app => {
-                            const existing = combinedMap.get(app.id) || {};
-                            const isAlreadyInstalled = Boolean(existing.installed || existing.isInstalled || app.installed);
-                            combinedMap.set(app.id, {
-                                ...existing,
-                                ...app,
-                                installed: isAlreadyInstalled,
-                                isInstalled: isAlreadyInstalled,
-                                version: isAlreadyInstalled ? (existing.version || app.installedVersion || app.version) : app.version,
-                                published_at: app.published_at || existing.published_at || null,
-                                installed_at: app.installed_at || existing.installed_at || null,
-                                updated_at: app.updated_at || existing.updated_at || null
+                            marketplaceApps.forEach(app => {
+                                const existing = combinedMap.get(app.id) || {};
+                                const isAlreadyInstalled = Boolean(existing.installed || existing.isInstalled || app.installed);
+                                combinedMap.set(app.id, {
+                                    ...existing,
+                                    ...app,
+                                    installed: isAlreadyInstalled,
+                                    isInstalled: isAlreadyInstalled,
+                                    version: isAlreadyInstalled ? (existing.version || app.installedVersion || app.version) : app.version,
+                                    published_at: app.published_at || existing.published_at || null,
+                                    installed_at: app.installed_at || existing.installed_at || null,
+                                    updated_at: app.updated_at || existing.updated_at || null
+                                });
                             });
-                        });
 
-                        allApps = Array.from(combinedMap.values()).map(a => {
-                            const u = updatesMap.get(a.id) || updatesMap.get(a.folder);
-                            return {
-                                ...a,
-                                hasUpdate: Boolean(u),
-                                availableVersion: u ? u.availableVersion : a.version
-                            };
-                        });
-                    }
+                            allApps = Array.from(combinedMap.values()).map(a => {
+                                const u = updatesMap.get(a.id) || updatesMap.get(a.folder);
+                                return {
+                                    ...a,
+                                    hasUpdate: Boolean(u),
+                                    availableVersion: u ? u.availableVersion : a.version
+                                };
+                            });
 
-                    if (chipUpdatesCount) {
-                        const totalUpdates = allApps.filter(a => a.hasUpdate).length;
-                        if (totalUpdates > 0) {
-                            chipUpdatesCount.textContent = String(totalUpdates);
-                            chipUpdatesCount.style.display = 'inline-block';
-                        } else {
-                            chipUpdatesCount.style.display = 'none';
+                            if (chipUpdatesCount) {
+                                const totalUpdates = allApps.filter(a => a.hasUpdate).length;
+                                if (totalUpdates > 0) {
+                                    chipUpdatesCount.textContent = String(totalUpdates);
+                                    chipUpdatesCount.style.display = 'inline-block';
+                                } else {
+                                    chipUpdatesCount.style.display = 'none';
+                                }
+                            }
+
+                            renderViews();
+                        } catch (err) {
+                            console.error(err);
                         }
-                    }
+                    };
 
-                    renderViews();
+                    aggiornaMappaEViews([], []);
+
+                    const avviaCaricamentoRemoto = async () => {
+                        try {
+                            if (iconFetch) {
+                                iconFetch.style.animation = 'spin 1s linear infinite';
+                                btnFetch.disabled = true;
+                            }
+                            const [availableRes, updatesRes] = await Promise.all([
+                                window.electronAPI.store && window.electronAPI.store.getAvailable ? window.electronAPI.store.getAvailable() : { success: false, data: [] },
+                                window.electronAPI.store && window.electronAPI.store.checkUpdates ? window.electronAPI.store.checkUpdates() : { success: false, data: [] }
+                            ]);
+                            const marketplaceApps = availableRes && availableRes.success && Array.isArray(availableRes.data) ? availableRes.data : [];
+                            const updatesList = updatesRes && updatesRes.success && Array.isArray(updatesRes.data) ? updatesRes.data : [];
+                            aggiornaMappaEViews(marketplaceApps, updatesList);
+                        } catch (err) {
+                            console.error(err);
+                        } finally {
+                            if (iconFetch) iconFetch.style.animation = 'none';
+                            if (btnFetch) btnFetch.disabled = false;
+                        }
+                    };
+
+                    avviaCaricamentoRemoto();
                 } catch (err) {
                     console.error(err);
-                } finally {
                     if (iconFetch) iconFetch.style.animation = 'none';
                     if (btnFetch) btnFetch.disabled = false;
                 }
@@ -418,7 +445,7 @@ export default {
             });
 
             btnFetch?.addEventListener('click', () => loadData(true));
-            el.querySelector('#btn-open-repos')?.addEventListener('click', openRepoModal);
+            el.querySelector('#btn-open-repos')?.addEventListener('click', () => openRepoModal(() => loadData(true)));
             el.querySelector('#btn-open-matrix')?.addEventListener('click', openClusterMatrixModal);
 
             if (window.electronAPI?.store?.onAppUpdated) {

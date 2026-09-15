@@ -45,7 +45,7 @@ const MENU_ACTIONS = {
         await leaveActiveNetwork();
         Router.navigate('networks');
     },
-    'menu-btn-nodes': () => Router.navigate('nodes_manager'),
+    'menu-btn-nodes': () => Router.navigate('app_container', { appId: 'amministratore', subAppId: 'nodi' }),
     'menu-btn-store': () => Router.navigate('store'),
     'menu-btn-security': () => Router.navigate('account_security'),
     'menu-btn-logout': async () => {

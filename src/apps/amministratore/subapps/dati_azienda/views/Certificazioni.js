@@ -3,90 +3,108 @@ import { toast } from '../../../../../js/utils.js';
 export default {
     render: async (container, configCache, saveConfig) => {
         try {
-            const isScuola = configCache.is_scuola === true || configCache.is_scuola === 'true';
-
             container.innerHTML = `
-                <div class="card fade-in-up" style="padding:1.5rem; background:var(--md-surface); border-radius:16px; border:1px solid var(--md-surface-variant);">
-                    <div style="margin-bottom:1.5rem;">
-                        <h3 style="margin:0; font-size:1.4rem; color:var(--md-on-surface);">Certificazioni e Compliance</h3>
-                        <p style="margin:0.2rem 0 0; color:var(--md-on-surface-variant); font-size:0.9rem;">Gestisci i requisiti di qualificazione per appalti, bandi e conformità aziendale.</p>
+                <div class="k-card fade-in-up">
+                    <div style="margin-bottom: var(--k-space-4);">
+                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--md-on-surface);">Certificazioni e Compliance</h3>
+                        <p class="k-hint" style="margin-top: var(--k-space-1);">Gestisci i requisiti di qualificazione per appalti, bandi e conformità aziendale.</p>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, max(16rem, calc((100% - 3.6rem) / 4))), 1fr)); gap:1.2rem;">
-                        
-                        <div style="grid-column:1 / -1; margin-top:1rem;">
-                            <h4 style="margin:0 0 0.5rem; color:var(--md-primary); border-bottom:1px solid var(--md-outline-variant); padding-bottom:0.3rem;">Sistemi di Gestione (Norme ISO)</h4>
+                    <div class="k-form-grid">
+                        <div class="k-field k-field--full" style="margin-top: var(--k-space-2);">
+                            <h4 style="margin: 0; color: var(--md-primary); font-size: 1rem; font-weight: 700;">Sistemi di Gestione (Norme ISO)</h4>
                         </div>
                         
-                        <div>
-                            <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">
-                                <span>Certificazione ISO 9001 (Qualità)</span>
-                                <input type="checkbox" id="da-cert-iso9001-chk" ${configCache.cert_iso9001 === 'true' ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--md-primary);">
-                            </label>
-                            <input type="text" id="da-cert-iso9001-ente" value="${configCache.cert_iso9001_ente || ''}" placeholder="Ente certificatore / N. Certificato" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none; display:${configCache.cert_iso9001 === 'true' ? 'block' : 'none'};" class="da-cert-detail">
+                        <div class="k-field">
+                            <div class="k-row k-row--between" style="align-items: center; margin-bottom: var(--k-space-2);">
+                                <label class="k-label" for="da-cert-iso9001-chk" style="margin: 0;">ISO 9001 (Qualità)</label>
+                                <label class="k-switch">
+                                    <input type="checkbox" id="da-cert-iso9001-chk" ${configCache.cert_iso9001 === 'true' ? 'checked' : ''} aria-label="ISO 9001">
+                                    <span class="k-switch-track"></span>
+                                </label>
+                            </div>
+                            <input type="text" id="da-cert-iso9001-ente" class="k-input da-cert-detail" value="${configCache.cert_iso9001_ente || ''}" placeholder="Ente certificatore / N. Certificato" style="display: ${configCache.cert_iso9001 === 'true' ? 'block' : 'none'};">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">
-                                <span>Certificazione ISO 27001 (Sicurezza IT)</span>
-                                <input type="checkbox" id="da-cert-iso27001-chk" ${configCache.cert_iso27001 === 'true' ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--md-primary);">
-                            </label>
-                            <input type="text" id="da-cert-iso27001-ente" value="${configCache.cert_iso27001_ente || ''}" placeholder="Ente certificatore / N. Certificato" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none; display:${configCache.cert_iso27001 === 'true' ? 'block' : 'none'};" class="da-cert-detail">
+                        <div class="k-field">
+                            <div class="k-row k-row--between" style="align-items: center; margin-bottom: var(--k-space-2);">
+                                <label class="k-label" for="da-cert-iso27001-chk" style="margin: 0;">ISO 27001 (Sicurezza IT)</label>
+                                <label class="k-switch">
+                                    <input type="checkbox" id="da-cert-iso27001-chk" ${configCache.cert_iso27001 === 'true' ? 'checked' : ''} aria-label="ISO 27001">
+                                    <span class="k-switch-track"></span>
+                                </label>
+                            </div>
+                            <input type="text" id="da-cert-iso27001-ente" class="k-input da-cert-detail" value="${configCache.cert_iso27001_ente || ''}" placeholder="Ente certificatore / N. Certificato" style="display: ${configCache.cert_iso27001 === 'true' ? 'block' : 'none'};">
                         </div>
                         
-                        <div>
-                            <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">
-                                <span>Certificazione ISO 14001 (Ambiente)</span>
-                                <input type="checkbox" id="da-cert-iso14001-chk" ${configCache.cert_iso14001 === 'true' ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--md-primary);">
-                            </label>
-                            <input type="text" id="da-cert-iso14001-ente" value="${configCache.cert_iso14001_ente || ''}" placeholder="Ente certificatore / N. Certificato" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none; display:${configCache.cert_iso14001 === 'true' ? 'block' : 'none'};" class="da-cert-detail">
+                        <div class="k-field">
+                            <div class="k-row k-row--between" style="align-items: center; margin-bottom: var(--k-space-2);">
+                                <label class="k-label" for="da-cert-iso14001-chk" style="margin: 0;">ISO 14001 (Ambiente)</label>
+                                <label class="k-switch">
+                                    <input type="checkbox" id="da-cert-iso14001-chk" ${configCache.cert_iso14001 === 'true' ? 'checked' : ''} aria-label="ISO 14001">
+                                    <span class="k-switch-track"></span>
+                                </label>
+                            </div>
+                            <input type="text" id="da-cert-iso14001-ente" class="k-input da-cert-detail" value="${configCache.cert_iso14001_ente || ''}" placeholder="Ente certificatore / N. Certificato" style="display: ${configCache.cert_iso14001 === 'true' ? 'block' : 'none'};">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">
-                                <span>Certificazione ISO 45001 (Salute sul Lavoro)</span>
-                                <input type="checkbox" id="da-cert-iso45001-chk" ${configCache.cert_iso45001 === 'true' ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--md-primary);">
-                            </label>
-                            <input type="text" id="da-cert-iso45001-ente" value="${configCache.cert_iso45001_ente || ''}" placeholder="Ente certificatore / N. Certificato" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none; display:${configCache.cert_iso45001 === 'true' ? 'block' : 'none'};" class="da-cert-detail">
+                        <div class="k-field">
+                            <div class="k-row k-row--between" style="align-items: center; margin-bottom: var(--k-space-2);">
+                                <label class="k-label" for="da-cert-iso45001-chk" style="margin: 0;">ISO 45001 (Salute sul Lavoro)</label>
+                                <label class="k-switch">
+                                    <input type="checkbox" id="da-cert-iso45001-chk" ${configCache.cert_iso45001 === 'true' ? 'checked' : ''} aria-label="ISO 45001">
+                                    <span class="k-switch-track"></span>
+                                </label>
+                            </div>
+                            <input type="text" id="da-cert-iso45001-ente" class="k-input da-cert-detail" value="${configCache.cert_iso45001_ente || ''}" placeholder="Ente certificatore / N. Certificato" style="display: ${configCache.cert_iso45001 === 'true' ? 'block' : 'none'};">
                         </div>
 
-                        <div style="grid-column:1 / -1; margin-top:1rem;">
-                            <h4 style="margin:0 0 0.5rem; color:var(--md-primary); border-bottom:1px solid var(--md-outline-variant); padding-bottom:0.3rem;">Modelli Organizzativi e SOA</h4>
+                        <div class="k-field k-field--full" style="margin-top: var(--k-space-2);">
+                            <h4 style="margin: 0; color: var(--md-primary); font-size: 1rem; font-weight: 700;">Modelli Organizzativi e SOA</h4>
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">
-                                <span>Modello Organizzativo 231/01</span>
-                                <input type="checkbox" id="da-cert-231-chk" ${configCache.cert_231 === 'true' ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--md-primary);">
-                            </label>
-                            <input type="text" id="da-cert-231-ente" value="${configCache.cert_231_ente || ''}" placeholder="Data adozione OdV" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none; display:${configCache.cert_231 === 'true' ? 'block' : 'none'};" class="da-cert-detail">
+                        <div class="k-field">
+                            <div class="k-row k-row--between" style="align-items: center; margin-bottom: var(--k-space-2);">
+                                <label class="k-label" for="da-cert-231-chk" style="margin: 0;">Modello Organizzativo 231/01</label>
+                                <label class="k-switch">
+                                    <input type="checkbox" id="da-cert-231-chk" ${configCache.cert_231 === 'true' ? 'checked' : ''} aria-label="Modello 231">
+                                    <span class="k-switch-track"></span>
+                                </label>
+                            </div>
+                            <input type="text" id="da-cert-231-ente" class="k-input da-cert-detail" value="${configCache.cert_231_ente || ''}" placeholder="Data adozione OdV" style="display: ${configCache.cert_231 === 'true' ? 'block' : 'none'};">
                         </div>
 
-                        <div>
-                            <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem; font-weight:600; font-size:0.9rem; color:var(--md-on-surface-variant);">
-                                <span>Attestazione SOA (Opere Pubbliche)</span>
-                                <input type="checkbox" id="da-cert-soa-chk" ${configCache.cert_soa === 'true' ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--md-primary);">
-                            </label>
-                            <input type="text" id="da-cert-soa-ente" value="${configCache.cert_soa_ente || ''}" placeholder="Categorie SOA (Es. OG1, OS3...)" style="width:100%; padding:0.75rem; border-radius:8px; border:1px solid var(--md-outline); background:var(--md-surface); color:var(--md-on-surface); outline:none; display:${configCache.cert_soa === 'true' ? 'block' : 'none'};" class="da-cert-detail">
+                        <div class="k-field">
+                            <div class="k-row k-row--between" style="align-items: center; margin-bottom: var(--k-space-2);">
+                                <label class="k-label" for="da-cert-soa-chk" style="margin: 0;">Attestazione SOA (Opere Pubbliche)</label>
+                                <label class="k-switch">
+                                    <input type="checkbox" id="da-cert-soa-chk" ${configCache.cert_soa === 'true' ? 'checked' : ''} aria-label="Attestazione SOA">
+                                    <span class="k-switch-track"></span>
+                                </label>
+                            </div>
+                            <input type="text" id="da-cert-soa-ente" class="k-input da-cert-detail" value="${configCache.cert_soa_ente || ''}" placeholder="Categorie SOA (Es. OG1, OS3...)" style="display: ${configCache.cert_soa === 'true' ? 'block' : 'none'};">
                         </div>
                     </div>
 
-                    <div style="margin-top:2rem; display:flex; justify-content:flex-end;">
-                        <button id="da-btn-save-cert" class="btn primary" style="display:flex; align-items:center; gap:0.5rem; padding:0.8rem 1.5rem;">
-                            <span class="material-symbols-rounded">save</span> Salva Certificazioni
+                    <div class="k-row" style="margin-top: var(--k-space-6); justify-content: flex-end;">
+                        <button id="da-btn-save-cert" class="k-btn k-btn--primary">
+                            <span class="material-symbols-rounded">save</span>
+                            Salva Certificazioni
                         </button>
                     </div>
-                </div>
-            `;
+                </div>`;
 
-            
             const setupToggle = (chkId, txtId) => {
                 const chk = container.querySelector('#' + chkId);
                 const txt = container.querySelector('#' + txtId);
                 if (!chk || !txt) return;
                 chk.addEventListener('change', (e) => {
-                    txt.style.display = e.target.checked ? 'block' : 'none';
-                    if (!e.target.checked) txt.value = '';
+                    try {
+                        txt.style.display = e.target.checked ? 'block' : 'none';
+                        if (!e.target.checked) txt.value = '';
+                    } catch (err) {
+                        console.error(err);
+                    }
                 });
             };
 
@@ -101,25 +119,20 @@ export default {
                 const btn = ev.currentTarget;
                 const old = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Salvataggio...';
+                btn.innerHTML = '<span class="material-symbols-rounded" style="animation: spin 1s linear infinite;">sync</span> Salvataggio...';
                 
                 try {
                     const patch = {
                         cert_iso9001: container.querySelector('#da-cert-iso9001-chk').checked ? 'true' : 'false',
                         cert_iso9001_ente: container.querySelector('#da-cert-iso9001-ente').value.trim(),
-                        
                         cert_iso27001: container.querySelector('#da-cert-iso27001-chk').checked ? 'true' : 'false',
                         cert_iso27001_ente: container.querySelector('#da-cert-iso27001-ente').value.trim(),
-                        
                         cert_iso14001: container.querySelector('#da-cert-iso14001-chk').checked ? 'true' : 'false',
                         cert_iso14001_ente: container.querySelector('#da-cert-iso14001-ente').value.trim(),
-                        
                         cert_iso45001: container.querySelector('#da-cert-iso45001-chk').checked ? 'true' : 'false',
                         cert_iso45001_ente: container.querySelector('#da-cert-iso45001-ente').value.trim(),
-                        
                         cert_231: container.querySelector('#da-cert-231-chk').checked ? 'true' : 'false',
                         cert_231_ente: container.querySelector('#da-cert-231-ente').value.trim(),
-                        
                         cert_soa: container.querySelector('#da-cert-soa-chk').checked ? 'true' : 'false',
                         cert_soa_ente: container.querySelector('#da-cert-soa-ente').value.trim()
                     };
@@ -135,7 +148,7 @@ export default {
 
         } catch (e) {
             console.error(e);
-            container.innerHTML = '<div style="color:var(--md-error);">Errore rendering Certificazioni: ' + e.message + '</div>';
+            container.innerHTML = '<div class="k-alert k-alert--danger"><span class="material-symbols-rounded">error</span><div>Errore caricamento certificazioni</div></div>';
         }
     }
 };

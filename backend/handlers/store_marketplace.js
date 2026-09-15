@@ -85,58 +85,55 @@ async function fetchRemoteMarketplace(forceRefresh = false) {
 
         const bust = Date.now() + '_' + Math.random().toString(36).slice(2);
         const noCache = { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' };
-        let officialData = null;
+        const reposRes = await storeRepositories.listRepositories();
+        const activeRepos = (reposRes && reposRes.success && Array.isArray(reposRes.data))
+            ? reposRes.data.filter(r => r.enabled)
+            : [];
 
-        try {
-            const res = await fetch(PRIMARY_MARKETPLACE_URL + '?t=' + bust, { headers: noCache });
-            if (res.ok) officialData = await res.json();
-        } catch (_) {}
+        if (activeRepos.length === 0) {
+            marketplaceCache = [];
+            return [];
+        }
 
-        if (!officialData && FALLBACK_MARKETPLACE_URL) {
+        const db = getStoreDB();
+        const mergedApps = [];
+        const seenIds = new Set();
+
+        const results = await Promise.allSettled(activeRepos.map(async (repo) => {
+            const res = await fetchWithTimeout(repo.url + '?t=' + bust, { headers: noCache }, 3500);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            if (!Array.isArray(data)) throw new Error('Formato non valido');
+            return { repo, data };
+        }));
+
+        results.forEach((result, idx) => {
+            const repo = activeRepos[idx];
+            if (result.status === 'fulfilled') {
+                if (db) db.run('UPDATE custom_repositories SET last_checked = ?, last_status = ?, last_error = NULL WHERE id = ?', [getTimestamp(), 'ok', repo.id]);
+                const apps = result.value.data;
+                apps.forEach(app => {
+                    if (!app || !app.id) return;
+                    if (seenIds.has(app.id)) return;
+                    seenIds.add(app.id);
+                    mergedApps.push({
+                        ...app,
+                        __source: repo.type || 'third_party',
+                        __sourceLabel: repo.label,
+                        __sourceId: repo.id
+                    });
+                });
+            } else {
+                const errMsg = String((result.reason && result.reason.message) || result.reason || 'Connessione fallita');
+                if (db) db.run('UPDATE custom_repositories SET last_checked = ?, last_status = ?, last_error = ? WHERE id = ?', [getTimestamp(), 'error', errMsg, repo.id]);
+            }
+        });
+
+        if (db) {
             try {
-                const resFallback = await fetch(FALLBACK_MARKETPLACE_URL + '?t=' + bust, { headers: noCache });
-                if (resFallback.ok) officialData = await resFallback.json();
+                await saveDB('store');
             } catch (_) {}
         }
-
-        if (!officialData || !Array.isArray(officialData)) {
-            return marketplaceCache || [];
-        }
-
-        officialData.forEach(app => { app.__source = 'official'; });
-        const officialIds = new Set(officialData.map(a => a.id));
-        const mergedApps = [...officialData];
-
-        try {
-            const db = getStoreDB();
-            const customRepos = db ? db.query('SELECT * FROM custom_repositories WHERE enabled = 1') : [];
-            if (customRepos.length > 0) {
-                const results = await Promise.allSettled(customRepos.map(async (repo) => {
-                    const res = await fetchWithTimeout(repo.url + '?t=' + bust, { headers: noCache }, 10000);
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    const data = await res.json();
-                    if (!Array.isArray(data)) throw new Error('Formato non valido: atteso un array JSON');
-                    return data;
-                }));
-
-                results.forEach((result, idx) => {
-                    const repo = customRepos[idx];
-                    if (result.status === 'fulfilled') {
-                        if (db) db.run('UPDATE custom_repositories SET last_checked = ?, last_status = ?, last_error = NULL WHERE id = ?', [getTimestamp(), 'ok', repo.id]);
-                        result.value.forEach(app => {
-                            if (!app || !app.id) return;
-                            if (officialIds.has(app.id)) return;
-                            if (mergedApps.some(a => a.id === app.id)) return;
-                            mergedApps.push({ ...app, __source: 'custom', __sourceLabel: repo.label, __sourceId: repo.id });
-                        });
-                    } else {
-                        const errMsg = String((result.reason && result.reason.message) || result.reason || 'Errore sconosciuto');
-                        if (db) db.run('UPDATE custom_repositories SET last_checked = ?, last_status = ?, last_error = ? WHERE id = ?', [getTimestamp(), 'error', errMsg, repo.id]);
-                    }
-                });
-                if (db) await saveDB('store');
-            }
-        } catch (_) {}
 
         marketplaceCache = mergedApps;
         return mergedApps;

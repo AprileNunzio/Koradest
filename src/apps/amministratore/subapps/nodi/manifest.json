@@ -1,0 +1,8 @@
+{
+    "id": "nodi",
+    "name": "Nodi e Rete",
+    "description": "Topologia P2P, salute del ledger DAG e nodi collegati",
+    "icon": "hub",
+    "required_roles": ["SuperAdmin"],
+    "version": "1.0.0"
+}
