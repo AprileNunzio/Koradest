@@ -84,6 +84,7 @@ if (!gotTheLock) {
                                 ...details.responseHeaders,
                                 'Content-Security-Policy': [
                                 "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: koradest-app: koradest:; " +
+                                "frame-src 'self' koradest-app: data:; " +
                                 "font-src 'self' koradest-app: koradest: data:; " +
                                 "img-src 'self' koradest-app: koradest: data: blob:; " +
                                 "connect-src 'self' koradest-app: koradest: http://127.0.0.1:* http://localhost:* ws: wss:; " +

@@ -63,12 +63,11 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
 
     const frame = document.createElement('iframe');
     frame.title = manifest.name || appId;
-    frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-downloads allow-same-origin');
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.style.cssText = 'display: block; width: 100%; height: 100%; border: 0; background: transparent; visibility: hidden;';
     const versioneApp = manifest.version || '0';
     const tokenSessione = Date.now();
-    frame.src = `koradest-app://${encodeURIComponent(cartella + '--' + versioneApp)}/${ingresso.split('/').map(encodeURIComponent).join('/')}?v=${encodeURIComponent(versioneApp)}&_t=${tokenSessione}`;
+    frame.src = `koradest-app://${encodeURIComponent(cartella)}/${ingresso.split('/').map(encodeURIComponent).join('/')}?v=${encodeURIComponent(versioneApp)}&_t=${tokenSessione}`;
     involucro.appendChild(frame);
 
     let scadenzaAvvio = null;
@@ -146,9 +145,9 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
     };
 
     const ricevi = async (evento) => {
-        if (evento.source !== frame.contentWindow) return;
         const messaggio = evento.data;
         if (!messaggio || messaggio.canale !== CANALE || typeof messaggio.id !== 'string' || typeof messaggio.metodo !== 'string') return;
+        if (evento.source !== frame.contentWindow && evento.source !== window) return;
         const metodo = Object.prototype.hasOwnProperty.call(metodi, messaggio.metodo) ? metodi[messaggio.metodo] : null;
         try {
             if (!metodo) throw new Error(`Funzione KORADEST sconosciuta: ${messaggio.metodo}`);
