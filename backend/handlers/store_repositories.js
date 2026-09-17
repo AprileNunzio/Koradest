@@ -98,22 +98,40 @@ function resolveRepositoryInput(rawUrl) {
 async function listRepositories() {
     try {
         const db = getStoreDB();
-        let rows = db ? db.query('SELECT * FROM custom_repositories ORDER BY added_at ASC') : [];
-        if (db && (!rows || rows.length === 0)) {
+        if (!db) {
+            return {
+                success: true,
+                data: [{
+                    id: 'nunziotech',
+                    label: 'NunzioTech Marketplace',
+                    type: 'official',
+                    url: PRIMARY_MARKETPLACE_URL,
+                    enabled: true,
+                    locked: false,
+                    added_at: null,
+                    last_checked: null,
+                    last_status: null,
+                    last_error: null
+                }]
+            };
+        }
+
+        let rows = db.query('SELECT * FROM custom_repositories ORDER BY added_at ASC') || [];
+        if (rows.length === 0) {
             const initializedFlag = db.query("SELECT key FROM app_configs WHERE key = 'repos_initialized'");
             if (!initializedFlag || initializedFlag.length === 0) {
                 const ts = getTimestamp();
                 db.run(
                     'INSERT OR IGNORE INTO custom_repositories (id, label, type, url, added_at, added_by, enabled, last_checked, last_status, last_error) VALUES (?, ?, ?, ?, ?, NULL, 1, ?, ?, NULL)',
-                    ['nunziotech', 'NunzioTech Marketplace', 'third_party', PRIMARY_MARKETPLACE_URL, ts, ts, 'ok']
+                    ['nunziotech', 'NunzioTech Marketplace', 'official', PRIMARY_MARKETPLACE_URL, ts, ts, 'ok']
                 );
                 db.run("INSERT OR REPLACE INTO app_configs (key, value) VALUES ('repos_initialized', '1')");
                 await saveDB('store');
-                rows = db.query('SELECT * FROM custom_repositories ORDER BY added_at ASC');
+                rows = db.query('SELECT * FROM custom_repositories ORDER BY added_at ASC') || [];
             }
         }
 
-        const repos = (rows || []).map(r => ({
+        const repos = rows.map(r => ({
             id: r.id,
             label: r.label,
             type: r.type,

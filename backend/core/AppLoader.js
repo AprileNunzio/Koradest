@@ -69,20 +69,25 @@ function aliasesOf(manifest) {
 
 async function loadApp(manifest) {
     try {
+        if (manifest && manifest.manifestVersion === 2 && !manifest.db && manifest.data) {
+            const manifestV2 = require('./manifest/manifest_v2');
+            manifest = manifestV2.normalizza(manifest);
+        }
         const appId = manifest.id;
 
         if (_loaded.has(appId)) {
             return true;
         }
 
-        const safeMode = process.env.KORADEST_SAFE_MODE === 'true' || fs.existsSync(path.join(app.getPath('userData'), 'SAFE_MODE'));
+        const userDataPath = app && typeof app.getPath === 'function' ? app.getPath('userData') : '';
+        const safeMode = process.env.KORADEST_SAFE_MODE === 'true' || (userDataPath && fs.existsSync(path.join(userDataPath, 'SAFE_MODE')));
         if (safeMode && !manifest.core && !manifest.bundled) {
             auditLogger.logEvent('system', 'APP_LOAD_SKIPPED_SAFE_MODE', 'app', appId);
             return false;
         }
 
-        const currentCoreVersion = app.getVersion();
-        if (manifest.minCoreVersion && currentCoreVersion < manifest.minCoreVersion) {
+        const currentCoreVersion = app && typeof app.getVersion === 'function' ? app.getVersion() : null;
+        if (manifest.minCoreVersion && currentCoreVersion && currentCoreVersion < manifest.minCoreVersion) {
             auditLogger.logEvent('system', 'APP_LOAD_INCOMPATIBLE', 'app', appId, { minCoreVersion: manifest.minCoreVersion, currentCoreVersion });
             return false;
         }
@@ -109,18 +114,20 @@ async function loadApp(manifest) {
             }
         }
 
-        if (manifest.db && manifest.db.namespace) {
+        const dbNamespace = (manifest.db && manifest.db.namespace) || (manifest.data && (manifest.data.namespace || manifest.id));
+        const dbMigrations = (manifest.db && manifest.db.migrations) || (manifest.data && manifest.data.migrations);
+        if (dbNamespace) {
             try {
                 let migrations = [];
-                if (manifest.db.migrations) {
-                    const migPathStr = String(manifest.db.migrations);
+                if (dbMigrations) {
+                    const migPathStr = String(dbMigrations);
                     const cleanMigPath = migPathStr.startsWith('./') ? migPathStr.slice(2) : migPathStr;
                     const migrationsAbsPath = path.join(appDir, cleanMigPath);
                     if (fs.existsSync(migrationsAbsPath)) {
                         migrations = require(migrationsAbsPath);
                     }
                 }
-                const appDb = await AppDbManager.getOrCreate(manifest.db.namespace, migrations);
+                const appDb = await AppDbManager.getOrCreate(dbNamespace, migrations);
                 if (appDb) {
                     try {
                         const schemaRegistry = require('../dag/schema/schema_registry');
@@ -131,7 +138,7 @@ async function loadApp(manifest) {
                             const replicabili = tables
                                 .map(t => t.name)
                                 .filter(nome => locali.indexOf(String(nome).toLowerCase()) === -1);
-                            schemaRegistry.registerDynamicDomain(`app_${manifest.db.namespace}`, replicabili);
+                            schemaRegistry.registerDynamicDomain(`app_${dbNamespace}`, replicabili);
                         }
                     } catch (_) {}
                 }
@@ -222,7 +229,12 @@ async function loadApp(manifest) {
 // azioni, archivio, chiamate verso le altre app e servizi del kernel.
 async function caricaAppV2(manifest, appDir) {
     const appId = manifest.id;
-    capabilityBroker.generateAppToken(appId, permessiDi(manifest));
+    const aliases = aliasesOf(manifest);
+    for (const a of aliases) {
+        try {
+            capabilityBroker.generateAppToken(a, permessiDi(manifest));
+        } catch (tokenErr) {}
+    }
 
     if (manifest.backend) {
         const percorso = path.resolve(appDir, manifest.backend);
@@ -247,10 +259,18 @@ async function caricaAppV2(manifest, appDir) {
             replica: creaReplicatore(manifest)
         });
         await modulo.attiva(runtime.api);
-        runtime.registraNelBroker(capabilityBroker);
+        runtime.registraNelBroker(capabilityBroker, aliases);
     }
 
-    _loaded.set(appId, { manifest, isProcess: false, directBackend: true, v2: true });
+    for (const a of aliases) {
+        _loaded.set(a, { manifest, isProcess: false, directBackend: true, v2: true });
+    }
+    try {
+        const appWatchdog = require('./appWatchdog');
+        for (const a of aliases) {
+            appWatchdog.resetCircuit(a);
+        }
+    } catch (_) {}
     auditLogger.logEvent('system', 'APP_LOADED', 'app', appId, { version: manifest.version, manifestVersion: 2 });
     return true;
 }
@@ -277,15 +297,17 @@ async function unloadApp(appId) {
         }
 
         try {
-            const appsDir = path.join(app.getPath('userData'), 'installed_apps');
-            const targetAppDir = path.join(appsDir, appId).toLowerCase();
-            const lowerAppId = appId.toLowerCase();
-            Object.keys(require.cache).forEach(key => {
-                const normKey = String(key).toLowerCase();
-                if (normKey.includes(targetAppDir) || normKey.includes(lowerAppId)) {
-                    delete require.cache[key];
-                }
-            });
+            const appsDir = app && typeof app.getPath === 'function' ? path.join(app.getPath('userData'), 'installed_apps') : '';
+            if (appsDir) {
+                const targetAppDir = path.join(appsDir, appId).toLowerCase();
+                const lowerAppId = appId.toLowerCase();
+                Object.keys(require.cache).forEach(key => {
+                    const normKey = String(key).toLowerCase();
+                    if (normKey.includes(targetAppDir) || normKey.includes(lowerAppId)) {
+                        delete require.cache[key];
+                    }
+                });
+            }
         } catch (cacheErr) {}
 
         auditLogger.logEvent('system', 'APP_UNLOADED', 'app', appId);

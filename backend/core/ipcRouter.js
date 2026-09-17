@@ -62,6 +62,10 @@ function registerAllIPCHandlers(windowManager) {
             const contesto = data.contesto && typeof data.contesto.userId === 'string' && data.contesto.userId
                 ? { userId: data.contesto.userId }
                 : null;
+            await capabilityBroker.ensureAppLoaded(data.sourceApp);
+            if (data.sourceApp !== data.targetApp) {
+                await capabilityBroker.ensureAppLoaded(data.targetApp);
+            }
             const result = await appWatchdog.guardAction(data.targetApp, data.action, async () => {
                 return await capabilityBroker.routeIpcCall(data.sourceApp, data.targetApp, data.action, data.payload, { origin: 'ipc', contesto });
             });
@@ -419,7 +423,7 @@ function registerAllIPCHandlers(windowManager) {
             }
         });
         ipcMain.handle('getSubAppsRegistry', appsRegistry.getSubAppsRegistry);
-        ipcMain.handle('store:getAvailable', () => storeHandlers.getAvailable());
+        ipcMain.handle('store:getAvailable', (e, forceRefresh) => storeHandlers.getAvailable(forceRefresh));
         ipcMain.handle('store:getInstalled', () => storeHandlers.getInstalled());
         ipcMain.handle('store:getCoreApps', () => storeHandlers.getCoreApps());
         ipcMain.handle('store:install', (e, appId) => storeHandlers.install(e, appId));

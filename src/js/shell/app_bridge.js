@@ -88,12 +88,14 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
     const ruoliUtente = async () => {
         const userId = utenteId();
         const rbac = window.electronAPI && window.electronAPI.rbac;
-        if (!userId || !rbac || typeof rbac.getEffectiveUserPermissions !== 'function') return [];
+        const dichiarati = (manifest.rbacPermissions || manifest.roles || []).map(r => r.id);
+        const predefiniti = (manifest.roles || manifest.rbacPermissions || []).filter(r => r.default === true).map(r => r.id);
+        if (!userId || !rbac || typeof rbac.getEffectiveUserPermissions !== 'function') return predefiniti;
         const permessi = await rbac.getEffectiveUserPermissions(userId);
         const elenco = Array.isArray(permessi) ? permessi : [];
-        const dichiarati = (manifest.rbacPermissions || manifest.roles || []).map(r => r.id);
         if (elenco.includes('*') || elenco.includes(`${appId}:*`)) return dichiarati;
-        return dichiarati.filter(ruolo => elenco.includes(`${appId}:${ruolo}`));
+        const specifici = dichiarati.filter(ruolo => elenco.includes(`${appId}:${ruolo}`));
+        return Array.from(new Set([...specifici, ...predefiniti]));
     };
 
     const metodi = {

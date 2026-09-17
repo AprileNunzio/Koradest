@@ -152,35 +152,61 @@ class CapabilityBroker {
         }
     }
 
+    async ensureAppLoaded(appId) {
+        try {
+            if (!appId || this.isInternalIdentity(appId)) return true;
+            if (this.isKnownApp(appId) && this.registeredHandlers.has(appId)) return true;
+            const AppLoader = require('../core/AppLoader');
+            const appsRegistry = require('../core/appsRegistry');
+            const allApps = await appsRegistry.getAppsRegistry();
+            const norm = CapabilityBroker.normalizeId(appId);
+            const manifest = (Array.isArray(allApps) ? allApps : []).find(m => 
+                m.id === appId || 
+                m.folder === appId ||
+                CapabilityBroker.normalizeId(m.id) === norm ||
+                CapabilityBroker.normalizeId(m.folder) === norm ||
+                (m.ipc && CapabilityBroker.normalizeId(m.ipc.namespace) === norm)
+            );
+            if (manifest) {
+                const ok = await AppLoader.loadApp(manifest);
+                if (ok) {
+                    try {
+                        const appWatchdog = require('../core/appWatchdog');
+                        appWatchdog.resetCircuit(appId);
+                        if (manifest.id) appWatchdog.resetCircuit(manifest.id);
+                        if (manifest.folder) appWatchdog.resetCircuit(manifest.folder);
+                    } catch (_) {}
+                }
+                return ok;
+            }
+            return false;
+        } catch (_) {
+            return false;
+        }
+    }
+
     async routeIpcCall(sourceAppId, targetAppId, action, payload, opzioni = {}) {
         const start = Date.now();
         const origin = opzioni.origin === 'main' ? 'main' : 'ipc';
         try {
+            let manifestTrovato = false;
+            let caricamentoRiuscito = false;
+
+            if (!this.isKnownApp(sourceAppId)) {
+                await this.ensureAppLoaded(sourceAppId);
+            }
+            if (!this.registeredHandlers.has(targetAppId)) {
+                const ok = await this.ensureAppLoaded(targetAppId);
+                if (ok) {
+                    manifestTrovato = true;
+                    caricamentoRiuscito = true;
+                }
+            }
+
             const verdetto = this.authorizeCall(sourceAppId, targetAppId, action, origin);
             if (!verdetto.allowed) {
                 auditLogger.logEvent(sourceAppId || 'sconosciuto', 'APP_CALL_DENIED', 'app_action', `${targetAppId}:${action}`, { reason: verdetto.reason }, 'DENIED');
                 throw new Error(verdetto.reason);
-            }
-
-            let manifestTrovato = false;
-            let caricamentoRiuscito = false;
-
-            if (!this.registeredHandlers.has(targetAppId)) {
-                try {
-                    const AppLoader = require('../core/AppLoader');
-                    const appsRegistry = require('../core/appsRegistry');
-                    const allApps = await appsRegistry.getAppsRegistry();
-                    const manifest = allApps.find(m => 
-                        m.id === targetAppId || 
-                        m.folder === targetAppId ||
-                        (m.id && m.id.toLowerCase() === targetAppId.toLowerCase()) ||
-                        (m.folder && m.folder.toLowerCase() === targetAppId.toLowerCase())
-                    );
-                    if (manifest) {
-                        manifestTrovato = true;
-                        caricamentoRiuscito = await AppLoader.loadApp(manifest);
-                    }
-                } catch (_) {}
             }
 
             let targetMap = this.registeredHandlers.get(targetAppId);
@@ -203,11 +229,15 @@ class CapabilityBroker {
 
             let handler = targetMap.get(action);
             if (!handler) {
-                const cleanAction = action.includes(':') ? action.split(':')[1] : action;
-                for (const [k, h] of targetMap.entries()) {
-                    if (k === cleanAction || (k.includes(':') && k.split(':')[1] === cleanAction)) {
-                        handler = h;
-                        break;
+                const cleanAction = action.includes(':') ? action.split(':')[1] : (action.includes('.') ? action.split('.').pop() : action);
+                const altAction = action.includes('.') ? action.replace(/\./g, ':') : (action.includes(':') ? action.replace(/:/g, '.') : action);
+                handler = targetMap.get(altAction);
+                if (!handler) {
+                    for (const [k, h] of targetMap.entries()) {
+                        if (k === cleanAction || (k.includes(':') && k.split(':')[1] === cleanAction) || (k.includes('.') && k.split('.').pop() === cleanAction)) {
+                            handler = h;
+                            break;
+                        }
                     }
                 }
             }

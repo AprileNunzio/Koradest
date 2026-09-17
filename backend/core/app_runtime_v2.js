@@ -79,7 +79,12 @@ function verificaSchema(nome, schema) {
 
 function creaArchivio(namespace, dbManager) {
     const handle = () => {
-        const archivio = dbManager.get(namespace);
+        let archivio = dbManager.get(namespace);
+        if (!archivio) {
+            try {
+                archivio = require('../db/db_manager').getDB(`app_${namespace}`);
+            } catch (_) {}
+        }
         if (!archivio) throw new ErroreApp('Archivio dell\'app non disponibile: apri una rete', 'ARCHIVIO_ASSENTE');
         return archivio;
     };
@@ -114,13 +119,16 @@ const archivioAssente = new Proxy({}, {
 function crea(manifest, dipendenze = {}) {
     const appId = manifest.id;
     const nomeApp = manifest.name || appId;
-    const namespace = manifest.db && manifest.db.namespace;
+    const namespace = (manifest.db && manifest.db.namespace) || (manifest.data && (manifest.data.namespace || manifest.id)) || null;
     const kernel = dipendenze.kernel;
     const dbManager = dipendenze.dbManager || require('./AppDbManager');
     const permessiUtente = dipendenze.permessiUtente
         || (userId => require('../handlers/rbac').getEffectiveUserPermissions(null, userId));
     const broker = () => dipendenze.broker || require('../security/capabilityBroker');
     const ruoliDichiarati = (manifest.rbacPermissions || manifest.roles || []).map(r => r.id);
+    const ruoliPredefiniti = (manifest.rbacPermissions || manifest.roles || [])
+        .filter(r => r.default === true)
+        .map(r => r.id);
     const azioni = new Map();
 
     function azione(nome, opzioni, funzione) {
@@ -143,7 +151,7 @@ function crea(manifest, dipendenze = {}) {
         const userId = contesto && contesto.userId ? contesto.userId : null;
         const permessi = userId ? (permessiUtente(userId) || []) : [];
         const tutti = permessi.includes('*') || permessi.includes(`${appId}:*`);
-        const ruoli = ruoliDichiarati.filter(r => tutti || permessi.includes(`${appId}:${r}`));
+        const ruoli = ruoliDichiarati.filter(r => tutti || ruoliPredefiniti.includes(r) || permessi.includes(`${appId}:${r}`));
         return Object.freeze({
             utente: userId ? { id: userId } : null,
             ruoli,
@@ -192,9 +200,12 @@ function crea(manifest, dipendenze = {}) {
         api,
         azioni: () => Array.from(azioni.keys()),
         esegui,
-        registraNelBroker: (capabilityBroker) => {
-            for (const nome of azioni.keys()) {
-                capabilityBroker.registerApiHandler(appId, nome, (sourceAppId, payload, contesto) => esegui(nome, sourceAppId, payload, contesto));
+        registraNelBroker: (capabilityBroker, aliases = []) => {
+            const targets = Array.from(new Set([appId, ...(Array.isArray(aliases) ? aliases : [])]));
+            for (const target of targets) {
+                for (const nome of azioni.keys()) {
+                    capabilityBroker.registerApiHandler(target, nome, (sourceAppId, payload, contesto) => esegui(nome, sourceAppId, payload, contesto));
+                }
             }
         }
     };

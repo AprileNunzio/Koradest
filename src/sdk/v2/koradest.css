@@ -13,7 +13,7 @@ body {
     font-size: var(--k-font-base, 0.9375rem);
     line-height: 1.5;
     color: var(--md-on-surface);
-    background: var(--md-background, var(--md-surface));
+    background: var(--md-bg-color, var(--md-surface));
     -webkit-font-smoothing: antialiased;
 }
 
@@ -88,7 +88,12 @@ body {
 .k-app-link:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
 .k-app-link[aria-current="page"] { background: var(--md-primary-container); color: var(--md-on-primary-container); }
 
-.k-app-main { overflow-y: auto; min-width: 0; outline: none; }
+.k-app-main {
+    overflow-y: auto;
+    min-width: 0;
+    outline: none;
+    padding: var(--k-page-pad, clamp(0.875rem, 0.5rem + 1.6vw, 2rem));
+}
 
 @media (max-width: 760px) {
     .k-app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }

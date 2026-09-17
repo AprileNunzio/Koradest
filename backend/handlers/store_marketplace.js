@@ -143,7 +143,7 @@ async function fetchRemoteMarketplace(forceRefresh = false) {
     }
 }
 
-async function getAvailable() {
+async function getAvailable(forceRefresh = false) {
     try {
         const localManifests = await appsRegistry.getAppsRegistry();
         const diskApps = await getInstalledDiskApps();
@@ -156,7 +156,7 @@ async function getAvailable() {
         const dbMap = new Map();
         installedRows.forEach(r => dbMap.set(r.app_id, r));
 
-        const remoteManifests = await fetchRemoteMarketplace();
+        const remoteManifests = await fetchRemoteMarketplace(forceRefresh);
         const allAppIds = new Set([
             ...Array.from(diskMap.keys()),
             ...remoteManifests.map(m => m.id)
