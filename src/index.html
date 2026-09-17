@@ -43,13 +43,13 @@
     </div>
     <header id="title-bar">
         <div class="tb-left">
-            <button id="btn-nav-back" class="tb-nav-btn" style="display: none;" title="Indietro" aria-label="Indietro">
+            <button id="btn-nav-back" class="tb-nav-btn" hidden title="Indietro" aria-label="Indietro">
                 <span class="material-symbols-rounded">arrow_back</span>
             </button>
-            <button id="btn-nav-home" class="tb-nav-btn" style="display: none;" title="Torna alla Dashboard" aria-label="Torna alla Dashboard">
+            <button id="btn-nav-home" class="tb-nav-btn" hidden title="Torna alla Dashboard" aria-label="Torna alla Dashboard">
                 <span class="material-symbols-rounded">home</span>
             </button>
-            <button id="btn-nav-logout" class="tb-nav-btn" style="display: none;" title="Disconnetti" aria-label="Disconnetti">
+            <button id="btn-nav-logout" class="tb-nav-btn" hidden title="Disconnetti" aria-label="Disconnetti">
                 <span class="material-symbols-rounded">logout</span>
             </button>
             <div class="tb-brand">
@@ -84,7 +84,7 @@
             <span id="sb-version">Versione --</span>
         </div>
         <div id="sb-system-container" class="status-item" title="Esegui analisi diagnostica">
-            <span class="material-symbols-rounded status-icon" style="color: var(--md-success);">check_circle</span>
+            <span class="material-symbols-rounded status-icon status-icon--success">check_circle</span>
             <span id="sb-system">Sistema OK</span>
         </div>
         <div id="sb-network-container" class="status-item" title="Cambia rete">
@@ -96,11 +96,11 @@
             <span id="sb-nodes">Nodi Connessi: 0</span>
         </div>
         <div id="sb-ip-container" class="status-item" title="Indirizzo IP locale">
-            <span class="material-symbols-rounded status-icon" style="color: var(--md-secondary);">lan</span>
+            <span class="material-symbols-rounded status-icon status-icon--secondary">lan</span>
             <span id="sb-ip">IP: ---</span>
         </div>
-        <div id="sb-errors-container" class="status-item status-item--error" style="display: none;" title="Visualizza log di sistema (SuperAdmin)">
-            <span class="material-symbols-rounded status-icon" style="color: var(--md-error);">warning</span>
+        <div id="sb-errors-container" class="status-item status-item--error" hidden title="Visualizza log di sistema (SuperAdmin)">
+            <span class="material-symbols-rounded status-icon status-icon--error">warning</span>
             <span id="sb-errors">Errori: 0</span>
         </div>
         <div id="sb-sync-container" class="status-item status-item--end" title="Forza sincronizzazione">
@@ -108,7 +108,7 @@
             <span id="sb-sync">Sincronizzato</span>
         </div>
     </footer>
-    <div id="update-consent-modal" style="display: none;">
+    <div id="update-consent-modal" hidden>
         <div class="k-dialog" role="dialog" aria-modal="true" aria-labelledby="update-consent-title">
             <div class="k-dialog-header">
                 <span class="k-page-icon material-symbols-rounded">system_update</span>

@@ -83,10 +83,10 @@ const pollDistributedLogs = async () => {
     try {
         const result = await window.electronAPI.rbac.getDistributedLogs();
         if (!result || !result.success) {
-            container.style.display = 'none';
+            container.hidden = true;
             return;
         }
-        container.style.display = 'flex';
+        container.hidden = false;
         const count = result.logs.length;
         const label = byId('sb-errors');
         if (label) label.textContent = `Errori: ${count}`;

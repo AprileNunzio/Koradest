@@ -27,9 +27,9 @@ const bindNavigation = () => {
     window.addEventListener('router:navigated', (event) => {
         const pageName = event.detail.pageName;
         const isRootPage = ROOT_PAGES.includes(pageName);
-        if (btnBack) btnBack.style.display = (!isRootPage || Router.history.length > 1) ? 'flex' : 'none';
-        if (btnHome) btnHome.style.display = isRootPage ? 'none' : 'flex';
-        if (btnLogout) btnLogout.style.display = AUTH_PAGES.includes(pageName) ? 'none' : 'flex';
+        if (btnBack) btnBack.hidden = isRootPage && Router.history.length <= 1;
+        if (btnHome) btnHome.hidden = isRootPage;
+        if (btnLogout) btnLogout.hidden = AUTH_PAGES.includes(pageName);
     });
 };
 

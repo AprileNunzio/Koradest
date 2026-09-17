@@ -38,14 +38,14 @@ const bindConsentModal = (data) => {
     const btnNow = document.getElementById('update-consent-now');
     if (!modal || !versionText || !btnLater || !btnNow) return;
     versionText.innerText = `L'aggiornamento ${data.version}${data.source ? ` (${data.source})` : ''}`;
-    modal.style.display = 'flex';
+    modal.hidden = false;
     const restore = () => {
         btnNow.innerText = 'Riavvia e Installa';
         btnNow.disabled = false;
         btnLater.disabled = false;
     };
     btnLater.onclick = () => {
-        modal.style.display = 'none';
+        modal.hidden = true;
         toast('Aggiornamento posticipato. Verra installato al prossimo avvio.', 'info');
     };
     btnNow.onclick = async () => {

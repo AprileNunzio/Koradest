@@ -76,6 +76,7 @@
 }
 .tb-left { display: flex; align-items: center; gap: var(--k-space-1); height: 100%; min-width: 0; padding-left: var(--k-space-2); -webkit-app-region: no-drag; }
 .tb-nav-btn {
+    display: flex;
     width: 30px;
     height: 30px;
     border: 0;
@@ -181,6 +182,7 @@
 
 /* ── Dialog di aggiornamento ────────────────────────────── */
 #update-consent-modal {
+    display: flex;
     position: fixed;
     inset: 0;
     z-index: 10500;
@@ -190,3 +192,6 @@
     background: rgba(15, 23, 42, 0.45);
     backdrop-filter: blur(4px);
 }
+.status-icon--success { color: var(--md-success); }
+.status-icon--secondary { color: var(--md-secondary); }
+.status-icon--error { color: var(--md-error); }
