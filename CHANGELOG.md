@@ -3,6 +3,23 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.1.7] - 2026-09-17
+
+### Corretto
+- **Nome dell'applicazione aperta nella barra del titolo**: il contenitore mostrava sempre l'etichetta fissa "Applicazione". Il titolo ha ora un proprietario unico e il contenitore pubblica il nome dichiarato dal manifest, normalizzato e troncato prima di essere scritto.
+- **Doppio scorrimento sopra le app**: uno stile inline su `#main-content` annullava la regola `overflow: hidden` prevista per il contenitore delle app, lasciando due superfici di scorrimento annidate.
+- **Titoli mancanti** per le pagine "Impostazioni di Accesso" e "Informazioni".
+- **Caricamento delle app v2 di terze parti**: il manifest viene normalizzato prima del caricamento e l'archivio accetta sia la forma `db` sia la forma `data`; il broker carica l'app di origine e di destinazione prima di instradare, riconosce le azioni scritte con `:` o con `.` e rilascia i token di capacità per tutti gli alias dichiarati.
+
+### Modificato
+- **Interfaccia organizzata per funzionalità**: le pagine del renderer sono moduli isolati in `src/js/features/<nome>`, con vista, logica e fogli di stile collocati insieme. `src/css` resta il design system condiviso con l'SDK delle app.
+- **Nessun CSS generato da JavaScript**: gli stili di autenticazione, reti, nodi, primo avvio, 2FA, menu e finestra informazioni sono fogli di stile veri, caricati dalla pagina.
+- **Il guscio non dipende più dalle funzionalità**: `esc()` e la finestra modale condivisa vivono in `src/js/shared`.
+- Nessun file del progetto supera le 500 righe: `componenti.css` è diviso in quattro moduli con aggregatore.
+
+### Aggiunto
+- **Controllo degli import** (`npm run verify:import`): verifica che ogni import relativo del renderer e ogni risorsa referenziata da `index.html` esistano davvero.
+
 ## [1.1.2] - 2026-09-15
 
 ### Aggiunto
