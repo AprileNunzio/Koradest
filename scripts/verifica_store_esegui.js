@@ -149,7 +149,7 @@ async function main() {
     verifica('La lista formatta data e ora', /formatDataOra/.test(sezione) && /hour: '2-digit'/.test(sezione));
     verifica('La lista mostra sia installazione sia aggiornamento',
         /Installata il/.test(sezione) && /Aggiornata il/.test(sezione));
-    verifica('Lo storico completo e nel tooltip', /title="\$\{storico\.join/.test(sezione));
+    verifica('Lo storico completo e nel tooltip', /title="\$\{(?:esc\()?storico\.join/.test(sezione));
 
     process.exit(riepiloga() ? 0 : 1);
 }

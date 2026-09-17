@@ -1,5 +1,8 @@
 import { toast } from '../utils.js';
 import { startRegistration, isWebauthnSupported } from '../webauthn_client.js';
+import { esc } from './html.js';
+
+const immagineSicura = (valore) => (/^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(String(valore ?? '')) ? String(valore) : '');
 function fmtDate(ts) {
     if (!ts) return '—';
     try { return new Date(Number(ts)).toLocaleString('it-IT'); } catch (e) { return '—'; }
@@ -56,8 +59,8 @@ async function render(el, userId) {
             <h2><span class="material-symbols-rounded">qr_code_2</span> Configura TOTP</h2>
             <p class="tfp-desc">Scansiona il QR code con la tua app di autenticazione, poi inserisci il codice a 6 cifre per confermare.</p>
             <div style="text-align:center; margin: 1rem 0;">
-                <img src="${begin.qrDataUrl}" alt="QR TOTP" style="width:200px; height:200px; border-radius:12px; border:1px solid var(--md-outline-variant);">
-                <p style="font-family: monospace; font-size: 0.85rem; color: var(--md-on-surface-variant); word-break: break-all; margin-top: 0.5rem;">${begin.secret}</p>
+                <img src="${immagineSicura(begin.qrDataUrl)}" alt="QR TOTP" style="width:200px; height:200px; border-radius:12px; border:1px solid var(--md-outline-variant);">
+                <p style="font-family: monospace; font-size: 0.85rem; color: var(--md-on-surface-variant); word-break: break-all; margin-top: 0.5rem;">${esc(begin.secret)}</p>
             </div>
             <input type="text" id="tfp-totp-code" class="tfp-input" placeholder="Codice a 6 cifre" maxlength="6" inputmode="numeric">
             <div style="display:flex; gap:0.8rem;">
@@ -73,7 +76,7 @@ async function render(el, userId) {
                 card.innerHTML = `
                     <h2><span class="material-symbols-rounded">verified</span> TOTP attivato</h2>
                     <p class="tfp-desc">Conserva questi codici di backup in un luogo sicuro: potrai usarli se perdi l'accesso alla tua app di autenticazione. Ogni codice è utilizzabile una sola volta.</p>
-                    <div class="tfp-backup-codes">${r.backupCodes.map(c => `<div>${c}</div>`).join('')}</div>
+                    <div class="tfp-backup-codes">${(Array.isArray(r.backupCodes) ? r.backupCodes : []).map(c => `<div>${esc(c)}</div>`).join('')}</div>
                     <button id="tfp-totp-done" class="tfp-btn">Ho salvato i codici</button>
                 `;
                 card.querySelector('#tfp-totp-done').addEventListener('click', loadTotp);
@@ -86,7 +89,7 @@ async function render(el, userId) {
         const card = el.querySelector('#tfp-passkey-card');
         card.innerHTML = `<div style="text-align:center; padding:1rem;"><span class="material-symbols-rounded" style="animation: spin 2s linear infinite;">sync</span></div>`;
         const status = await window.electronAPI.twofa.getStatus(userId);
-        const passkeys = (status && status.success) ? status.passkeys : [];
+        const passkeys = (status && status.success && Array.isArray(status.passkeys)) ? status.passkeys : [];
         const supported = isWebauthnSupported();
         card.innerHTML = `
             <h2><span class="material-symbols-rounded">fingerprint</span> Passkey</h2>
@@ -96,10 +99,10 @@ async function render(el, userId) {
                 <div class="tfp-passkey-row">
                     <span class="material-symbols-rounded" style="color: var(--md-primary);">devices</span>
                     <div style="flex:1;">
-                        <div style="font-weight:600;">${p.deviceName}</div>
+                        <div style="font-weight:600;">${esc(p.deviceName)}</div>
                         <div style="font-size:0.8rem; color: var(--md-on-surface-variant);">Aggiunta il ${fmtDate(p.createdAt)}${p.lastUsedAt ? ` · Ultimo utilizzo ${fmtDate(p.lastUsedAt)}` : ''}</div>
                     </div>
-                    <button class="tfp-btn danger" data-remove="${p.id}" style="padding: 0.5rem 0.9rem;"><span class="material-symbols-rounded" style="font-size:1.1rem;">delete</span></button>
+                    <button class="tfp-btn danger" data-remove="${esc(p.id)}" style="padding: 0.5rem 0.9rem;"><span class="material-symbols-rounded" style="font-size:1.1rem;">delete</span></button>
                 </div>
             `).join('')}
             <button id="tfp-passkey-add" class="tfp-btn" style="margin-top:1rem;" ${!supported ? 'disabled' : ''}><span class="material-symbols-rounded">add</span> Aggiungi Passkey</button>

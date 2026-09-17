@@ -1,12 +1,7 @@
 import { Router } from '../../../utils.js';
 import { renderAppIcon } from './app_icon.js';
 import { categoriaDi } from '../../../shell/app_categories.js';
-
-const esc = (valore) => String(valore ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+import { esc } from '../../../shared/html.js';
 
 function dipendenzeDichiarate(app) {
     const dichiarate = app && app.dependencies;
@@ -71,8 +66,8 @@ export function openAppDetailsModal(app, options = {}) {
                         ${renderAppIcon(app)}
                     </div>
                     <div>
-                        <h2 style="margin: 0; font-size: 1.4rem; color: var(--md-on-surface); font-weight: 700;">${app.name || app.id}</h2>
-                        <div style="font-size: 0.88rem; color: var(--md-on-surface-variant); margin-top: 0.2rem;">${app.author || 'NunzioTech'} · Versione ${app.version || '1.0.0'}</div>
+                        <h2 style="margin: 0; font-size: 1.4rem; color: var(--md-on-surface); font-weight: 700;">${esc(app.name || app.id)}</h2>
+                        <div style="font-size: 0.88rem; color: var(--md-on-surface-variant); margin-top: 0.2rem;">${esc(app.author || 'NunzioTech')} · Versione ${esc(app.version || '1.0.0')}</div>
                     </div>
                 </div>
                 <button id="btn-close-details" class="store-more-btn" style="font-size: 1.2rem;">
@@ -143,7 +138,7 @@ export function openAppDetailsModal(app, options = {}) {
 
             <div style="border-top: 1px solid var(--md-outline-variant); padding-top: 1rem; color: var(--md-on-surface); font-size: 0.95rem; line-height: 1.6;">
                 <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 700;">Descrizione</h4>
-                <p style="margin: 0; color: var(--md-on-surface-variant);">${app.long_description || app.description || 'Nessuna descrizione dettagliata fornita.'}</p>
+                <p style="margin: 0; color: var(--md-on-surface-variant);">${esc(app.long_description || app.description || 'Nessuna descrizione dettagliata fornita.')}</p>
             </div>
 
             ${Array.isArray(app.rbacPermissions) && app.rbacPermissions.length > 0 ? `

@@ -1,4 +1,5 @@
 import { renderAppIcon } from './app_icon.js';
+import { esc } from '../../../shared/html.js';
 
 export function renderUpdatesSection(container, updates, options = {}) {
     try {
@@ -38,7 +39,7 @@ export function renderUpdatesSection(container, updates, options = {}) {
             row.innerHTML = `
                 <div class="store-app-icon-wrap">${renderAppIcon(app)}</div>
                 <div class="store-app-meta">
-                    <div class="store-app-name" title="${app.name || app.id}">${app.name || app.id}</div>
+                    <div class="store-app-name" title="${esc(app.name || app.id)}">${esc(app.name || app.id)}</div>
                     <div class="store-app-author">${app.author || 'NunzioTech'}</div>
                 </div>
                 <div class="store-app-type-tag">App</div>

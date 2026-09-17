@@ -1,6 +1,7 @@
 import { Router } from '../../../utils.js';
 import { renderAppIcon } from './app_icon.js';
 import { categoriaDi } from '../../../shell/app_categories.js';
+import { esc } from '../../../shared/html.js';
 
 function millisecondiDi(val) {
     try {
@@ -93,22 +94,22 @@ export function renderInstalledSection(container, apps, options = {}) {
             row.innerHTML = `
                 <div class="store-app-icon-wrap">${renderAppIcon(app)}</div>
                 <div class="store-app-meta">
-                    <div class="store-app-name" title="${app.name || app.id}">${app.name || app.id}</div>
-                    <div class="store-app-author">${app.author || 'NunzioTech'}</div>
+                    <div class="store-app-name" title="${esc(app.name || app.id)}">${esc(app.name || app.id)}</div>
+                    <div class="store-app-author">${esc(app.author || 'NunzioTech')}</div>
                 </div>
                 <div class="store-app-type-tag">${typeLabel}</div>
-                <div class="store-app-status-text" title="${storico.join(' — ')}">${statusLabel}${storico.length > 1 ? `<span class="store-app-storico">${storico[0]}</span>` : ''}</div>
+                <div class="store-app-status-text" title="${esc(storico.join(' — '))}">${statusLabel}${storico.length > 1 ? `<span class="store-app-storico">${storico[0]}</span>` : ''}</div>
                 <div>
                     ${isInstalled ? `
-                    <button class="store-action-btn-primary btn-open-app" data-open-id="${app.id}">
+                    <button class="store-action-btn-primary btn-open-app" data-open-id="${esc(app.id)}">
                         <span class="material-symbols-rounded" style="font-size: 1.1rem;">open_in_new</span> Apri
                     </button>` : `
-                    <button class="store-action-btn-primary btn-install-app" data-install-id="${app.id}">
+                    <button class="store-action-btn-primary btn-install-app" data-install-id="${esc(app.id)}">
                         <span class="material-symbols-rounded" style="font-size: 1.1rem;">cloud_download</span> Ottieni
                     </button>`}
                 </div>
                 <div>
-                    <button class="store-more-btn" data-more-id="${app.id}" title="Dettagli e cronologia date">
+                    <button class="store-more-btn" data-more-id="${esc(app.id)}" title="Dettagli e cronologia date">
                         <span class="material-symbols-rounded">more_horiz</span>
                     </button>
                 </div>

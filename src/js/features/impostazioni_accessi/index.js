@@ -1,4 +1,5 @@
 import { dtFormat } from '../../utils.js';
+import { esc } from '../../shared/html.js';
 
 const EVENT_LABELS = {
     login_success: 'Accesso riuscito',
@@ -14,12 +15,6 @@ const EVENT_ICONS = {
     '2fa_admin_reset': 'restart_alt',
     logout: 'logout'
 };
-
-const esc = (valore) => String(valore ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 
 const statistica = (icona, valore, etichetta, tono) => `
     <div class="k-stat">

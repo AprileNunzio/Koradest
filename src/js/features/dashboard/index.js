@@ -1,11 +1,6 @@
 import { Router } from '../../utils.js';
 import { categoriaDi, raggruppaPerCategoria } from '../../shell/app_categories.js';
-
-const esc = (valore) => String(valore ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+import { esc } from '../../shared/html.js';
 
 const UPDATE_BADGE = {
     pending:     { cls: 'badge-updating', icon: 'schedule',      text: 'In coda' },
@@ -84,7 +79,7 @@ function iconaDi(app) {
     }
     let src = app.icon;
     if (!app.__destinazione && !app.icon.includes('//')) {
-        src = app.core || app.bundled ? `apps/${folderName}/${app.icon}` : `koradest-app://${folderName}/${app.icon}`;
+        src = app.core || app.bundled ? `apps/${encodeURIComponent(folderName)}/${encodeURIComponent(app.icon)}` : `koradest-app://${encodeURIComponent(folderName)}/${encodeURIComponent(app.icon)}`;
     }
     return `<img src="${esc(src)}" class="app-icon" alt="" onerror="this.src='icone/applicazione_generica.png'">`;
 }

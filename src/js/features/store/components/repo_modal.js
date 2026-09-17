@@ -1,4 +1,5 @@
 import { toast } from '../../../utils.js';
+import { esc } from '../../../shared/html.js';
 
 export async function openRepoModal(onUpdated) {
     try {
@@ -43,15 +44,15 @@ export async function openRepoModal(onUpdated) {
                                         ${r.enabled ? 'ATTIVO' : 'DISATTIVATO'}
                                     </span>
                                 </div>
-                                <div style="font-size: 0.78rem; color: var(--md-on-surface-variant); font-family: monospace; word-break: break-all; margin-top: 2px;">${r.url}</div>
-                                ${r.last_error ? `<div style="font-size: 0.75rem; color: var(--md-error); margin-top: 2px;">${r.last_error}</div>` : ''}
+                                <div style="font-size: 0.78rem; color: var(--md-on-surface-variant); font-family: monospace; word-break: break-all; margin-top: 2px;">${esc(r.url)}</div>
+                                ${r.last_error ? `<div style="font-size: 0.75rem; color: var(--md-error); margin-top: 2px;">${esc(r.last_error)}</div>` : ''}
                             </div>
                             <div style="display: flex; align-items: center; gap: 0.6rem;">
                                 <label class="k-switch" title="${r.enabled ? 'Disattiva' : 'Attiva'}">
-                                    <input type="checkbox" data-toggle-repo="${r.id}" ${r.enabled ? 'checked' : ''} aria-label="Attiva o disattiva repository">
+                                    <input type="checkbox" data-toggle-repo="${esc(r.id)}" ${r.enabled ? 'checked' : ''} aria-label="Attiva o disattiva repository">
                                     <span class="k-switch-track"></span>
                                 </label>
-                                <button class="k-btn k-btn--sm k-btn--danger-ghost" data-remove-repo="${r.id}" title="Elimina repository">
+                                <button class="k-btn k-btn--sm k-btn--danger-ghost" data-remove-repo="${esc(r.id)}" title="Elimina repository">
                                     <span class="material-symbols-rounded">delete</span>
                                 </button>
                             </div>

@@ -1,13 +1,8 @@
 import { Router, toast } from '../../utils.js';
 import { impostaTitoloPagina } from '../../shell/page_title.js';
+import { esc } from '../../shared/html.js';
 
 const PAGINA = 'app_container';
-
-const esc = (valore) => String(valore ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 
 const statoCentrato = ({ icona, tono = 'primary', titolo, testo, pulsante = null, animato = false }) => `
     <div class="k-page k-page--narrow" style="justify-content: center; min-height: 100%;">

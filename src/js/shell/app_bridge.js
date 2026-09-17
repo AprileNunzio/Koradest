@@ -1,4 +1,5 @@
 import { toast, conferma, avviso, chiedi, Router } from '../utils.js';
+import { esc } from '../shared/html.js';
 
 // Lato core del ponte verso le app v2. L'app vive in un iframe sandbox senza accesso
 // a electronAPI: ogni richiesta passa da qui, con l'identita dell'app decisa dal core.
@@ -7,11 +8,6 @@ const CANALE = 'koradest';
 const TIPI_TOAST = new Set(['info', 'success', 'warning', 'error']);
 const ATTESA_AVVIO_MS = 15000;
 
-const esc = (valore) => String(valore ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 
 const stringa = (valore, massimo = 500) => (typeof valore === 'string' ? valore.slice(0, massimo) : undefined);
 

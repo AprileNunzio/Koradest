@@ -1,4 +1,5 @@
 import { toast } from '../../../utils.js';
+import { esc } from '../../../shared/html.js';
 
 function formatSize(bytes) {
     if (!bytes || bytes <= 0) return '0 KB';
@@ -32,8 +33,8 @@ export async function openClusterMatrixModal() {
 
             return `
                 <tr style="border-bottom: 1px solid var(--md-outline-variant);">
-                    <td style="padding: 10px 8px; font-weight: 600;">${app.name} (${app.appId})</td>
-                    <td style="padding: 10px 8px;"><span class="badge badge-primary">v${app.version}</span></td>
+                    <td style="padding: 10px 8px; font-weight: 600;">${esc(app.name)} (${esc(app.appId)})</td>
+                    <td style="padding: 10px 8px;"><span class="badge badge-primary">v${esc(app.version)}</span></td>
                     <td style="padding: 10px 8px;">
                         ${app.hasLocalDb ? `<span style="color:var(--md-success);">Attivo (${formatSize(app.dbSize)})</span>` : '<span style="color:var(--md-on-surface-variant);">Nessun DB</span>'}
                     </td>

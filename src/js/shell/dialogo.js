@@ -1,11 +1,6 @@
+import { esc } from '../shared/html.js';
 // Dialog del core: sostituiscono alert, confirm e prompt nativi in tutta l'interfaccia.
 // Ogni funzione restituisce una Promise e chiude con Esc o con un clic fuori dal riquadro.
-
-const esc = (valore) => String(valore ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 
 const paragrafi = (testo) => String(testo ?? '')
     .split(/\n+/)

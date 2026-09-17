@@ -8,6 +8,7 @@ import { openClusterMatrixModal } from './components/cluster_matrix_modal.js';
 import { apriDisinstallazione } from './components/uninstall_modal.js';
 import { apriVersioni } from './components/versioni_modal.js';
 import { trovaDipendenzeMancanti, chiediConfermaDipendenze } from './components/dependencies_modal.js';
+import { esc } from '../../shared/html.js';
 
 async function isSuperadmin() {
     try {
@@ -390,11 +391,11 @@ export default {
                                 ${rejectedAppsList.map(r => `
                                     <div style="background: rgba(0,0,0,0.06); padding: 0.6rem 0.8rem; border-radius: var(--shape-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                                         <div>
-                                            <strong>${r.name || r.id}</strong> <span style="font-size: 0.8rem; opacity: 0.8;">(${r.folder})</span>
+                                            <strong>${esc(r.name || r.id)}</strong> <span style="font-size: 0.8rem; opacity: 0.8;">(${esc(r.folder)})</span>
                                             <div style="font-size: 0.8rem; margin-top: 0.2rem; color: var(--md-error);">${(r.errori || []).join('; ')}</div>
                                         </div>
                                         <div style="display: flex; gap: 0.4rem;">
-                                            ${admin ? `<button class="k-btn k-btn--sm k-btn--ghost" data-rimuovi-rifiutata="${r.id}"><span class="material-symbols-rounded">delete</span>Rimuovi</button>` : ''}
+                                            ${admin ? `<button class="k-btn k-btn--sm k-btn--ghost" data-rimuovi-rifiutata="${esc(r.id)}"><span class="material-symbols-rounded">delete</span>Rimuovi</button>` : ''}
                                         </div>
                                     </div>
                                 `).join('')}

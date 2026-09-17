@@ -1,6 +1,7 @@
 import { Router, toast } from '../../utils.js';
 import { createCloneProgressModal, updateCloneStep, closeCloneProgressModal } from './clone_progress_view.js';
 import { OOBE_TEMPLATE } from './oobe_template.js';
+import { esc as _esc } from '../../shared/html.js';
 
 function validateIPAddress(ip) {
     try {
@@ -69,7 +70,6 @@ function promptNetworkCode(el, node) {
         const confirmBtn = el.querySelector('#btn-modal-confirm');
         const cancelBtn = el.querySelector('#btn-modal-cancel');
         const titleDesc = el.querySelector('#modal-network-name');
-        const _esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
         titleDesc.innerHTML = `Connessione a: <b>${_esc(node.name)}</b><br><span style="font-family: monospace; font-size: 0.85rem; opacity: 0.8;">IPv4: ${_esc(node.host)}</span>`;
         input.value = '';
         modal.style.display = 'flex';
@@ -227,10 +227,10 @@ async function executeNetworkScan(el) {
                     card.innerHTML = `
                         <div class="node-status-indicator"></div>
                         <div style="flex: 1;">
-                            <h3 style="margin: 0 0 0.3rem 0; color: var(--md-primary); font-size: 1.2rem;">${node.name}</h3>
+                            <h3 style="margin: 0 0 0.3rem 0; color: var(--md-primary); font-size: 1.2rem;">${_esc(node.name)}</h3>
                             <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: var(--md-on-surface-variant); font-family: monospace;">
-                                <span><span class="material-symbols-rounded" style="font-size: 1rem; vertical-align: bottom;">lan</span> ${node.ip || node.host || 'Sconosciuto'}</span>
-                                <span><span class="material-symbols-rounded" style="font-size: 1rem; vertical-align: bottom;">cable</span> Port ${node.port}</span>
+                                <span><span class="material-symbols-rounded" style="font-size: 1rem; vertical-align: bottom;">lan</span> ${_esc(node.ip || node.host || 'Sconosciuto')}</span>
+                                <span><span class="material-symbols-rounded" style="font-size: 1rem; vertical-align: bottom;">cable</span> Port ${_esc(node.port)}</span>
                             </div>
                         </div>
                         <button class="btn btn-secondary" style="border-radius: 50%; width: 48px; height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
