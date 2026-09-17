@@ -63,7 +63,7 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
 
     const frame = document.createElement('iframe');
     frame.title = manifest.name || appId;
-    frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-downloads');
+    frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-downloads allow-same-origin');
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.style.cssText = 'display: block; width: 100%; height: 100%; border: 0; background: transparent; visibility: hidden;';
     const versioneApp = manifest.version || '0';
