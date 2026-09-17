@@ -1,16 +1,16 @@
-import dashboard from '../pages/dashboard.js';
-import auth_register from '../pages/auth_register.js';
-import auth_login from '../pages/auth_login.js';
-import auth_force_change from '../pages/auth_force_change.js';
-import oobe from '../pages/oobe.js';
-import app_container from '../pages/app_container.js';
-import network_analyzer from '../pages/network_analyzer.js';
-import nodes_manager from '../pages/nodes/index.js';
-import networks_manager from '../pages/networks/index.js';
-import impostazioni_accessi from '../pages/impostazioni_accessi.js';
-import account_security from '../pages/account_security.js';
-import store from '../pages/store.js';
-import info from '../pages/info.js';
+import dashboard from '../features/dashboard/index.js';
+import auth_register from '../features/auth/auth_register.js';
+import auth_login from '../features/auth/auth_login.js';
+import auth_force_change from '../features/auth/auth_force_change.js';
+import oobe from '../features/oobe/index.js';
+import app_container from '../features/app_container/index.js';
+import network_analyzer from '../features/network_analyzer/index.js';
+import nodes_manager from '../features/nodes/index.js';
+import networks_manager from '../features/networks/index.js';
+import impostazioni_accessi from '../features/impostazioni_accessi/index.js';
+import account_security from '../features/account_security/index.js';
+import store from '../features/store/index.js';
+import info from '../features/info/index.js';
 
 export const PAGES = {
     dashboard,
@@ -38,6 +38,8 @@ export const PAGE_TITLES = {
     auth_register: 'Registrazione',
     nodes_manager: 'Gestione Nodi',
     account_security: 'Sicurezza Account',
+    impostazioni_accessi: 'Impostazioni di Accesso',
+    info: 'Informazioni',
     store: 'App Store'
 };
 

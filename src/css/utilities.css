@@ -368,3 +368,8 @@ textarea.input-field, textarea.input { height: auto; min-height: 6rem; padding: 
 }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.02); }
+}

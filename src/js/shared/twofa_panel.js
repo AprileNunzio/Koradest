@@ -4,27 +4,11 @@ function fmtDate(ts) {
     if (!ts) return '—';
     try { return new Date(Number(ts)).toLocaleString('it-IT'); } catch (e) { return '—'; }
 }
-const STYLES = `
-    <style>
-        .tfp-card { background: var(--md-surface); border: 1px solid var(--md-outline-variant); border-radius: 20px; padding: 1.8rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .tfp-card h2 { display: flex; align-items: center; gap: 0.6rem; font-size: 1.25rem; margin: 0 0 0.3rem 0; color: var(--md-on-surface); }
-        .tfp-card p.tfp-desc { color: var(--md-on-surface-variant); font-size: 0.9rem; margin: 0 0 1.2rem 0; }
-        .tfp-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--md-primary); color: white; border: none; padding: 0.7rem 1.3rem; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.92rem; }
-        .tfp-btn.secondary { background: transparent; color: var(--md-on-surface); border: 1px solid var(--md-outline-variant); }
-        .tfp-btn.danger { background: rgba(239,68,68,0.1); color: var(--md-error); }
-        .tfp-status-ok { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(16,185,129,0.12); color: var(--md-success); padding: 0.35rem 0.8rem; border-radius: 999px; font-weight: 700; font-size: 0.8rem; }
-        .tfp-status-off { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(100,116,139,0.12); color: var(--md-on-surface-variant); padding: 0.35rem 0.8rem; border-radius: 999px; font-weight: 700; font-size: 0.8rem; }
-        .tfp-input { width: 100%; box-sizing: border-box; padding: 0.9rem 1rem; border-radius: 12px; border: 1px solid var(--md-outline-variant); background: var(--md-surface); font-size: 1rem; margin-bottom: 1rem; }
-        .tfp-passkey-row { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--md-outline-variant); }
-        .tfp-passkey-row:last-child { border-bottom: none; }
-        .tfp-backup-codes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; background: var(--md-surface-variant); border-radius: 12px; padding: 1.2rem; margin: 1rem 0; font-family: monospace; font-size: 1rem; }
-    </style>
-`;
+
 async function render(el, userId) {
     el.innerHTML = `
         <div id="tfp-totp-card" class="tfp-card"></div>
         <div id="tfp-passkey-card" class="tfp-card"></div>
-        ${STYLES}
     `;
     async function loadTotp() {
         const card = el.querySelector('#tfp-totp-card');

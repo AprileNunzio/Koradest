@@ -1,7 +1,8 @@
 import { Router, toast } from '../utils.js';
-import { PAGE_TITLES, ROOT_PAGES, AUTH_PAGES } from './pages_registry.js';
+import { ROOT_PAGES, AUTH_PAGES } from './pages_registry.js';
 import { clearLocalSession, currentUserId, leaveActiveNetwork } from './session_state.js';
 import { initAppMenu } from './app_menu.js';
+import { initPageTitle } from './page_title.js';
 import { showAboutDialog } from './about_dialog.js';
 
 const byId = (id) => document.getElementById(id);
@@ -10,7 +11,6 @@ const bindNavigation = () => {
     const btnBack = byId('btn-nav-back');
     const btnHome = byId('btn-nav-home');
     const btnLogout = byId('btn-nav-logout');
-    const navTitle = byId('nav-title');
     if (btnBack) btnBack.addEventListener('click', () => Router.back());
     if (btnHome) {
         btnHome.addEventListener('click', () => {
@@ -30,7 +30,6 @@ const bindNavigation = () => {
         if (btnBack) btnBack.style.display = (!isRootPage || Router.history.length > 1) ? 'flex' : 'none';
         if (btnHome) btnHome.style.display = isRootPage ? 'none' : 'flex';
         if (btnLogout) btnLogout.style.display = AUTH_PAGES.includes(pageName) ? 'none' : 'flex';
-        if (navTitle) navTitle.innerText = PAGE_TITLES[pageName] || '';
     });
 };
 
@@ -71,6 +70,7 @@ const MENU_ACTIONS = {
 };
 
 export const initTitleBar = () => {
+    initPageTitle();
     bindNavigation();
     if (!window.electronAPI) return;
     bindWindowControls();

@@ -1,0 +1,62 @@
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.node-card {
+    background: var(--md-surface);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.node-card:hover {
+    border-color: var(--md-primary);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+}
+.node-status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--md-primary);
+    box-shadow: 0 0 10px var(--md-primary);
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.oobe-container {
+    width: 100%; height: 100%; display: flex; overflow: hidden; background: var(--md-background); color: var(--md-on-background); margin: 0; padding: 0;
+}
+.oobe-sidebar {
+    width: 380px; background: var(--md-surface-variant); padding: 2rem; display: flex; flex-direction: column; border-right: 1px solid var(--md-outline-variant); z-index: 10;
+    flex-shrink: 0; justify-content: space-between;
+}
+.oobe-main {
+    flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; background: radial-gradient(circle at center, var(--md-surface-variant) 0%, var(--md-background) 100%);
+    overflow-y: auto;
+}
+@media (max-width: 900px) {
+    .oobe-container {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    .oobe-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--md-outline-variant);
+        min-height: auto;
+    }
+    .oobe-main {
+        min-height: 500px;
+    }
+    #join-container > div:last-child {
+        flex-direction: column;
+    }
+    #join-container {
+        padding-top: 2rem;
+    }
+}

@@ -145,7 +145,7 @@ async function main() {
         /appsInstallazioneAutomatica\(\)/.test(gestoreSorgente));
 
     console.log('\n--- PUNTO 4: orari in lista ---');
-    const sezione = fs.readFileSync(path.join(__dirname, '..', 'src', 'js', 'pages', 'store', 'components', 'installed_section.js'), 'utf8');
+    const sezione = fs.readFileSync(path.join(__dirname, '..', 'src', 'js', 'features', 'store', 'components', 'installed_section.js'), 'utf8');
     verifica('La lista formatta data e ora', /formatDataOra/.test(sezione) && /hour: '2-digit'/.test(sezione));
     verifica('La lista mostra sia installazione sia aggiornamento',
         /Installata il/.test(sezione) && /Aggiornata il/.test(sezione));

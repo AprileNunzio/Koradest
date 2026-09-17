@@ -36,11 +36,21 @@ body {
 .blob { display: none; }
 #main-content {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
+    position: relative;
     padding: var(--k-page-pad);
     z-index: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-gutter: stable;
+}
+#main-content:has(#app-mount-point),
+#main-content.is-app-container {
+    padding: 0;
+    overflow: hidden;
+    scrollbar-gutter: auto;
 }
 h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);

@@ -1,13 +1,12 @@
-import { esc, openModal } from '../pages/networks/network_dom.js';
+import { esc } from '../shared/html.js';
+import { openModal } from '../shared/modale.js';
 import { networksApi } from './session_state.js';
-import { ABOUT_STYLES } from './about_dialog_styles.js';
 
 const STYLE_ID = 'about-dialog-styles';
 const UNKNOWN = 'non disponibile';
 
 const ensureStyles = () => {
     if (document.getElementById(STYLE_ID)) return;
-    document.head.insertAdjacentHTML('beforeend', ABOUT_STYLES);
 };
 
 const item = ({ icon, label, value, mono = false, wide = false, dot = null }) => `

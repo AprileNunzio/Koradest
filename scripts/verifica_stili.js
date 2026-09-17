@@ -5,7 +5,7 @@ const path = require('path');
 
 const RADICE = path.join(__dirname, '..');
 const SORGENTI = path.join(RADICE, 'src', 'js');
-const FOGLI = path.join(RADICE, 'src', 'css');
+const FOGLI = [path.join(RADICE, 'src', 'css'), path.join(RADICE, 'src', 'js')];
 
 const PREFISSI_NOSTRI = ['store-', 'info-', 'purge-', 'versione-', 'versioni-', 'app-', 'btn-', 'ds-', 'net-', 'k-', 'tb-', 'splash-', 'status-'];
 
@@ -43,7 +43,7 @@ function raccogliStiliInline() {
 
 function classiDefinite() {
     const definite = new Set();
-    const sorgenti = raccogli(FOGLI, '.css').map(foglio => fs.readFileSync(foglio, 'utf8'));
+    const sorgenti = FOGLI.flatMap(radice => raccogli(radice, '.css')).map(foglio => fs.readFileSync(foglio, 'utf8'));
     sorgenti.push(...raccogliStiliInline());
     for (const testo of sorgenti) {
         for (const trovato of testo.matchAll(/\.([a-zA-Z_][\w-]*)/g)) {

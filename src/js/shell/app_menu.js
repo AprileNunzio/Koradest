@@ -1,6 +1,5 @@
-import { esc } from '../pages/networks/network_dom.js';
+import { esc } from '../shared/html.js';
 import { MENU_ENTRIES } from './app_menu_entries.js';
-import { APP_MENU_STYLES } from './app_menu_styles.js';
 import { currentUserId, networksApi } from './session_state.js';
 
 const PANEL_ID = 'app-dropdown-menu';
@@ -168,7 +167,6 @@ export const initAppMenu = (actions) => {
     const button = trigger();
     const node = panel();
     if (!button || !node) return;
-    document.head.insertAdjacentHTML('beforeend', APP_MENU_STYLES);
     node.setAttribute('role', 'menu');
     node.setAttribute('aria-labelledby', 'app-menu-btn');
     node.setAttribute('data-open', 'false');

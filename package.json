@@ -1,7 +1,7 @@
 {
   "name": "koradest",
   "productName": "Koradest",
-  "version": "1.1.4",
+  "version": "1.1.6",
   "description": "KORADEST - Kernel Operativo e Architettura Dinamica per l'Espansione e lo Sviluppo Tecnologico",
   "author": "NunzioTech",
   "main": "main.js",
@@ -18,13 +18,14 @@
     "build:publish": "node scripts/publish.js",
     "verify:store": "node scripts/verifica_store_esegui.js",
     "verify:renderer": "node scripts/verifica_renderer.js",
-    "verify": "npm run verify:store && npm run verify:renderer && npm run verify:stili && npm run verify:permessi && npm run verify:font && npm run verify:catch && npm run test:sicurezza && npm run test:kernel",
+    "verify": "npm run verify:store && npm run verify:renderer && npm run verify:import && npm run verify:stili && npm run verify:permessi && npm run verify:font && npm run verify:catch && npm run test:sicurezza && npm run test:kernel",
     "test:kernel": "node tests/dependency_resolver.test.js && node tests/kernel.test.js && node tests/manifest_v2.test.js && node tests/app_runtime_v2.test.js",
     "verify:stili": "node scripts/verifica_stili.js",
     "verify:permessi": "node scripts/verifica_permessi_ipc.js",
     "test:sicurezza": "node tests/shamir.test.js && node tests/recovery_kit.test.js && node tests/archive_export.test.js && node tests/gdpr_erasure.test.js && node tests/retention.test.js && node tests/crypto_worker.test.js && node tests/rate_limiter.test.js && node tests/rbac_permissions.test.js && node tests/ipc_guard.test.js && node tests/capability_broker.test.js && node tests/ipc_router.test.js",
     "verify:font": "node scripts/verifica_font_locali.js",
-    "verify:catch": "node scripts/verifica_catch_vuoti.js"
+    "verify:catch": "node scripts/verifica_catch_vuoti.js",
+    "verify:import": "node scripts/verifica_import.js"
   },
   "dependencies": {
     "@simplewebauthn/server": "^11.0.0",
