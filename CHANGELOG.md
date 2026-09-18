@@ -6,11 +6,11 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 ## [1.1.8] - 2026-09-18
 
 ### Aggiunto
-- **Identita cromatica delle sezioni**: ogni sezione di un'applicazione porta una tinta costante su voce di menu, filo dell'intestazione e icone dei riquadri, cosi chi lavora riconosce dove si trova prima di leggere. Il colore non e mai l'unico segnale: icona e testo restano sempre presenti (WCAG 2.2, criterio 1.4.1). L'SDK assegna le tinte in ordine di menu, quindi **anche le applicazioni gia pubblicate la ottengono senza essere modificate**; un'app puo dichiarare la propria con  nella voce di menu. Le variabili ,  e  sono a disposizione del CSS delle app.
+- **Identita cromatica delle sezioni**: ogni sezione di un'applicazione porta una tinta costante su voce di menu, filo dell'intestazione e icone dei riquadri, così chi lavora riconosce dove si trova prima di leggere. Il colore non è mai l'unico segnale: icona e testo restano sempre presenti (WCAG 2.2, criterio 1.4.1). L'SDK assegna le tinte in ordine di menu, quindi **anche le applicazioni già pubblicate la ottengono senza essere modificate**; un'app può dichiarare la propria con `tinta` nella voce di menu. Le variabili `--k-sezione`, `--k-sezione-contenitore` e `--k-sezione-testo` sono a disposizione del CSS delle app.
 
 ### Corretto
-- **Pulsanti sottolineati**: i pulsanti realizzati come collegamento si sottolineavano al passaggio del mouse, perche la regola generica sui collegamenti aveva specificita zero e nessuna variante di  dichiarava . Riguardava il core e tutte le app.
-- **Icone incoerenti fra core e applicazioni**: l'SDK ridefiniva la classe delle icone con una dimensione diversa da quella del design system. Ora la definizione e una sola, la dimensione la decide il contenitore e l'asse ottico del font segue la dimensione reale invece di restare fissato a 24.
+- **Pulsanti sottolineati**: i pulsanti realizzati come collegamento si sottolineavano al passaggio del mouse, perché la regola generica sui collegamenti aveva specificità zero e nessuna variante di `k-btn` dichiarava `text-decoration`. Riguardava il core e tutte le app.
+- **Icone incoerenti fra core e applicazioni**: l'SDK ridefiniva la classe delle icone con una dimensione diversa da quella del design system. Ora la definizione è una sola, la dimensione la decide il contenitore e l'asse ottico del font segue la dimensione reale invece di restare fissato a 24.
 
 ### Modificato
 - Pulsanti con sollevamento e ombra colorata al passaggio del mouse, pressione che riporta a livello e anello di messa a fuoco coerente su tutte le varianti.
