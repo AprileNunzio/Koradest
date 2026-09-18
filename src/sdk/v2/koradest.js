@@ -14,6 +14,10 @@ import './componenti.js';
     document.head.appendChild(link);
 })();
 
+// Tinte delle sezioni: assegnate in ordine di menu se l'app non ne dichiara una,
+// così anche le applicazioni già pubblicate ottengono la codifica cromatica.
+const TINTE = ['indaco', 'violetto', 'acqua', 'verde', 'ambra', 'rosa', 'ardesia'];
+
 let contesto = { app: null, utente: null, ruoli: [], parametri: {} };
 let classiBodyApplicate = [];
 
@@ -85,7 +89,8 @@ async function avvia({ titolo, icona = 'apps', menu = [], rotte = [], contenitor
 
     const nome = titolo || contesto.app.nome;
     document.title = nome;
-    const voci = menu.filter(voce => !voce.ruolo || haRuolo(voce.ruolo));
+    const voci = menu.filter(voce => !voce.ruolo || haRuolo(voce.ruolo))
+        .map((voce, indice) => ({ ...voce, tinta: TINTE.includes(voce.tinta) ? voce.tinta : TINTE[indice % TINTE.length] }));
     const tutte = [...menu, ...rotte].map(rotta => ({ ...rotta, ...compila(rotta.percorso) }));
     const conMenu = voci.length > 1;
 
@@ -96,7 +101,7 @@ async function avvia({ titolo, icona = 'apps', menu = [], rotte = [], contenitor
                     <div class="k-app-brand"><span class="material-symbols-rounded">${icona}</span><span class="k-truncate">${nome}</span></div>
                     <div class="k-app-menu">
                         ${voci.map(voce => html`
-                            <a class="k-app-link" href="#${voce.percorso}" data-percorso="${voce.percorso}">
+                            <a class="k-app-link" href="#${voce.percorso}" data-percorso="${voce.percorso}" data-tinta="${voce.tinta}">
                                 <span class="material-symbols-rounded">${voce.icona || 'chevron_right'}</span>
                                 <span class="k-truncate">${voce.titolo}</span>
                             </a>`)}
@@ -113,12 +118,19 @@ async function avvia({ titolo, icona = 'apps', menu = [], rotte = [], contenitor
         const { percorso, query } = leggiHash();
         const rotta = tutte.find(r => r.regex.test(percorso));
 
+        let tintaAttiva = '';
         contenitore.querySelectorAll('.k-app-link').forEach((link) => {
             const voce = link.dataset.percorso;
             const attivo = voce === '/' ? percorso === '/' : (percorso === voce || percorso.startsWith(`${voce}/`));
-            if (attivo) link.setAttribute('aria-current', 'page');
-            else link.removeAttribute('aria-current');
+            if (attivo) {
+                link.setAttribute('aria-current', 'page');
+                tintaAttiva = link.dataset.tinta || '';
+            } else {
+                link.removeAttribute('aria-current');
+            }
         });
+        if (tintaAttiva) principale.dataset.tinta = tintaAttiva;
+        else delete principale.dataset.tinta;
 
         if (vistaCorrente && typeof vistaCorrente.smonta === 'function') {
             try {

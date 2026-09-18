@@ -1,0 +1,70 @@
+/* Identita cromatica delle sezioni.
+   L operatore riconosce dove si trova prima di leggere: ogni sezione porta una tinta
+   costante su menu, intestazione e icone. Il colore non e mai l unico segnale:
+   accanto alla tinta restano sempre icona e testo (WCAG 2.2, criterio 1.4.1). */
+
+:root {
+    --k-tinta-indaco: #4f46e5;
+    --k-tinta-indaco-contenitore: #e0e7ff;
+    --k-tinta-indaco-testo: #312e81;
+
+    --k-tinta-violetto: #9333ea;
+    --k-tinta-violetto-contenitore: #f3e8ff;
+    --k-tinta-violetto-testo: #581c87;
+
+    --k-tinta-acqua: #0891b2;
+    --k-tinta-acqua-contenitore: #cffafe;
+    --k-tinta-acqua-testo: #155e75;
+
+    --k-tinta-verde: #059669;
+    --k-tinta-verde-contenitore: #d1fae5;
+    --k-tinta-verde-testo: #065f46;
+
+    --k-tinta-ambra: #d97706;
+    --k-tinta-ambra-contenitore: #fef3c7;
+    --k-tinta-ambra-testo: #78350f;
+
+    --k-tinta-rosa: #db2777;
+    --k-tinta-rosa-contenitore: #fce7f3;
+    --k-tinta-rosa-testo: #9d174d;
+
+    --k-tinta-ardesia: #475569;
+    --k-tinta-ardesia-contenitore: #e2e8f0;
+    --k-tinta-ardesia-testo: #1e293b;
+
+    --k-sezione: var(--md-primary);
+    --k-sezione-contenitore: var(--md-primary-container);
+    --k-sezione-testo: var(--md-on-primary-container);
+}
+
+[data-tinta="indaco"] { --k-sezione: var(--k-tinta-indaco); --k-sezione-contenitore: var(--k-tinta-indaco-contenitore); --k-sezione-testo: var(--k-tinta-indaco-testo); }
+[data-tinta="violetto"] { --k-sezione: var(--k-tinta-violetto); --k-sezione-contenitore: var(--k-tinta-violetto-contenitore); --k-sezione-testo: var(--k-tinta-violetto-testo); }
+[data-tinta="acqua"] { --k-sezione: var(--k-tinta-acqua); --k-sezione-contenitore: var(--k-tinta-acqua-contenitore); --k-sezione-testo: var(--k-tinta-acqua-testo); }
+[data-tinta="verde"] { --k-sezione: var(--k-tinta-verde); --k-sezione-contenitore: var(--k-tinta-verde-contenitore); --k-sezione-testo: var(--k-tinta-verde-testo); }
+[data-tinta="ambra"] { --k-sezione: var(--k-tinta-ambra); --k-sezione-contenitore: var(--k-tinta-ambra-contenitore); --k-sezione-testo: var(--k-tinta-ambra-testo); }
+[data-tinta="rosa"] { --k-sezione: var(--k-tinta-rosa); --k-sezione-contenitore: var(--k-tinta-rosa-contenitore); --k-sezione-testo: var(--k-tinta-rosa-testo); }
+[data-tinta="ardesia"] { --k-sezione: var(--k-tinta-ardesia); --k-sezione-contenitore: var(--k-tinta-ardesia-contenitore); --k-sezione-testo: var(--k-tinta-ardesia-testo); }
+
+/* Menu: la voce attiva porta la tinta della propria sezione, le altre restano neutre.
+   La barra laterale diventa cosi una mappa di colori stabile nel tempo. */
+.k-app-link[data-tinta] .material-symbols-rounded { color: var(--k-sezione); }
+.k-app-link[aria-current="page"] {
+    background: var(--k-sezione-contenitore);
+    color: var(--k-sezione-testo);
+    box-shadow: inset 3px 0 0 var(--k-sezione);
+}
+.k-app-link[aria-current="page"] .material-symbols-rounded { color: var(--k-sezione); }
+
+/* Intestazione di pagina: filo di colore e icona nella tinta della sezione. */
+.k-page-header[data-tinta],
+[data-tinta] > .k-page-header { border-top: 3px solid var(--k-sezione); padding-top: var(--k-space-4); }
+.k-page-icon { background: var(--k-sezione-contenitore); color: var(--k-sezione); }
+
+/* Elementi che seguono la sezione senza che l app debba dichiarare nulla. */
+.k-stat-icon { background: var(--k-sezione-contenitore); color: var(--k-sezione); }
+.k-card-title .material-symbols-rounded { color: var(--k-sezione); }
+.k-badge--sezione { background: var(--k-sezione-contenitore); color: var(--k-sezione-testo); }
+
+@media (prefers-contrast: more) {
+    .k-app-link[aria-current="page"] { box-shadow: inset 4px 0 0 var(--k-sezione); outline: 1px solid var(--k-sezione); }
+}
