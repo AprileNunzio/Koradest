@@ -1,6 +1,8 @@
 import { Router } from '../../utils.js';
 import { categoriaDi, raggruppaPerCategoria } from '../../shell/app_categories.js';
 import { esc } from '../../shared/html.js';
+import { icona3d, icona3dImmagine, applicaRipieghiImmagine } from '../../shared/tinte.js';
+import { attributoDiModulo } from '../../shared/moduli.js';
 
 const UPDATE_BADGE = {
     pending:     { cls: 'badge-updating', icon: 'schedule',      text: 'In coda' },
@@ -71,24 +73,32 @@ function ordinaNellaCorsia(a, b) {
     return (a.name || '').localeCompare(b.name || '', 'it');
 }
 
+const RIPIEGO_ICONA = 'icone/applicazione_generica.png';
+
 function iconaDi(app) {
     const folderName = app.folder || app.id;
     const isImage = app.icon && (app.icon.includes('/') || app.icon.includes('.'));
     if (!isImage) {
-        return `<span class="material-symbols-rounded app-icon" style="color: ${esc(app.color || 'var(--md-primary)')};">${esc(app.icon || 'apps')}</span>`;
+        return icona3d(app.icon || 'apps', { dimensione: 'xl', varianti: ['reattiva'] });
     }
     let src = app.icon;
     if (!app.__destinazione && !app.icon.includes('//')) {
-        src = app.core || app.bundled ? `apps/${encodeURIComponent(folderName)}/${encodeURIComponent(app.icon)}` : `koradest-app://${encodeURIComponent(folderName)}/${encodeURIComponent(app.icon)}`;
+        src = app.core || app.bundled
+            ? `apps/${encodeURIComponent(folderName)}/${encodeURIComponent(app.icon)}`
+            : `koradest-app://${encodeURIComponent(folderName)}/${encodeURIComponent(app.icon)}`;
     }
-    return `<img src="${esc(src)}" class="app-icon" alt="" onerror="this.src='icone/applicazione_generica.png'">`;
+    return icona3dImmagine(src, { dimensione: 'xl', varianti: ['vetro', 'reattiva'], ripiego: RIPIEGO_ICONA });
 }
 
 function creaCard(app) {
-    const card = document.createElement('div');
+    const card = document.createElement('button');
+    card.type = 'button';
     card.className = 'app-card fade-in-up';
     card.dataset.appId = app.folder || app.id;
     card.title = app.description || app.name || '';
+    const attributo = attributoDiModulo(app.folder || app.id);
+    const tinta = attributo.match(/data-(tinta|zona)="([a-z]+)"/);
+    if (tinta) card.setAttribute(`data-${tinta[1]}`, tinta[2]);
     const badgeStato = app.__isUpdated
         ? '<span class="badge-updated">AGGIORNATA</span>'
         : (app.__isNew ? '<span class="badge-new">NUOVA</span>' : '');
@@ -104,6 +114,7 @@ function creaCard(app) {
         ${app.description ? `<div class="app-desc">${esc(app.description)}</div>` : ''}
         ${app.author ? `<div class="app-author">${esc(app.author)}</div>` : ''}
     `;
+    applicaRipieghiImmagine(card);
     card.addEventListener('click', () => {
         try {
             if (app.__destinazione) Router.navigate(app.__destinazione);
@@ -122,16 +133,16 @@ export default {
                 <div class="k-page">
                     <header class="k-page-header">
                         <div class="k-page-heading">
-                            <span class="k-page-icon material-symbols-rounded">space_dashboard</span>
+                            ${icona3d('space_dashboard', { dimensione: 'lg', varianti: ['reattiva'] })}
                             <div>
                                 <h1 class="k-page-title">Dashboard</h1>
                                 <p class="k-page-subtitle">Seleziona un'applicazione per iniziare a lavorare</p>
                             </div>
                         </div>
-                        <div class="k-input-group" style="flex: 1 1 16rem; max-width: 22rem;">
+                        <label class="k-cerca" style="flex: 1 1 16rem; max-inline-size: 24rem;">
                             <span class="material-symbols-rounded">search</span>
-                            <input type="search" id="app-search" class="k-input" placeholder="Cerca applicazione, autore o categoria..." aria-label="Cerca applicazione">
-                        </div>
+                            <input type="search" id="app-search" placeholder="Cerca applicazione, autore o categoria…" aria-label="Cerca applicazione">
+                        </label>
                     </header>
                     <div id="apps-lanes" class="app-lanes">
                         <div class="k-loading">
@@ -173,7 +184,12 @@ export default {
 
                 contenitore.innerHTML = '';
                 if (visibili.length === 0) {
-                    contenitore.innerHTML = '<p style="color: var(--md-on-surface-variant); text-align: center; padding: 2rem;">Nessun applicativo trovato.</p>';
+                    contenitore.innerHTML = `
+                        <div class="k-empty" style="flex: 1 1 100%;">
+                            ${icona3d('search_off', { dimensione: 'lg', varianti: ['tenue'] })}
+                            <div class="k-empty-title">Nessun applicativo trovato</div>
+                            <p class="k-empty-text">Prova con un altro termine di ricerca.</p>
+                        </div>`;
                     return;
                 }
 
@@ -184,7 +200,7 @@ export default {
                     corsia.style.setProperty('--k-corsia-app', String(Math.min(nellaCorsia.length, 12)));
                     corsia.innerHTML = `
                         <header class="app-lane-header">
-                            <span class="material-symbols-rounded app-lane-icon">${esc(categoria.icona)}</span>
+                            ${icona3d(categoria.icona, { dimensione: 'xs', varianti: ['tenue'] })}
                             <h2 class="app-lane-title">${esc(categoria.etichetta)}</h2>
                             <span class="app-lane-count">${nellaCorsia.length}</span>
                         </header>

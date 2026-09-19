@@ -1,352 +1,374 @@
-import { toast, fmt } from '../../../../js/utils.js';
+import { toast, fmt, conferma } from '../../../../js/utils.js';
+import { esc } from '../../../../js/shared/html.js';
+import { icona3d } from '../../../../js/shared/tinte.js';
+import { creaProcedura } from '../../../../js/shared/procedura.js';
 import { isValidCodiceFiscale } from '../../shared/validators.js';
-import { personaFormHtml, readPersonaForm, fillPersonaForm, populatePersonaFormDatalists, KIT_STYLES } from '../../shared/persona_form.js';
-import { mountAuditButton } from '../../shared/audit_trail_button.js';
+import { passiPersona, readPersonaForm, fillPersonaForm, populatePersonaFormDatalists } from '../../shared/persona_form.js';
+import { heroHtml, apriModale, chiudiModale, mostraErrore } from '../../shared/ui_kit.js';
+
+const SCHEDE = [
+    { id: 'documenti', zona: 'documenti', etichetta: 'Documenti' },
+    { id: 'residenza', zona: 'residenza', etichetta: 'Residenza' },
+    { id: 'lavoro', zona: 'lavoro', etichetta: 'Lavoro' }
+];
+
+const oppure = (valore, ripiego) => (valore ? esc(valore) : ripiego);
+
+const vuotoHtml = (icona, titolo, testo) => `
+    <div class="ak-empty">
+        ${icona3d(icona, { dimensione: 'lg', varianti: ['tenue'] })}
+        <h4>${esc(titolo)}</h4>
+        <p>${esc(testo)}</p>
+    </div>
+`;
+
+const modaleHtml = (titolo) => `
+    <div id="persona-modal" class="ak-modal" data-aperta="no" data-zona="identita" role="dialog" aria-modal="true" aria-labelledby="persona-modal-title">
+        <div class="ak-modal-card">
+            <div class="ak-modal-head">
+                <h3 id="persona-modal-title"><span class="material-symbols-rounded">badge</span><span id="persona-modal-title-text">${esc(titolo)}</span></h3>
+                <button type="button" id="btn-close-persona-modal" class="ak-iconbtn" aria-label="Chiudi finestra"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <div class="ak-modal-body">
+                <div class="ak-modal-hint">
+                    <span class="material-symbols-rounded">lightbulb</span>
+                    <span>Il Codice Fiscale è la chiave univoca della persona: una volta creata non è più modificabile.</span>
+                </div>
+                <form id="persona-form" class="ak-form" novalidate>
+                    <div id="persona-passi"></div>
+                    <div id="persona-modal-error" class="ak-error" data-visibile="no" role="alert"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+`;
+
 export default {
     render: async (el) => {
         let rawPersone = [];
-        const renderList = async (filter = '') => {
-            el.innerHTML = `
-                <div class="fade-in-up dati-anagrafici-root" style="width:100%; height:100%; display:flex; flex-direction:column;">
-                    <div class="dati-anagrafici-header" style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:1.5rem; margin-bottom:2rem; width:100%;">
-                        <div style="flex:1; min-width:260px;">
-                            <h1 class="text-title" style="font-size:clamp(1.7rem, 2.8vw, 2.2rem); color: var(--md-primary); margin-bottom:0.2rem; letter-spacing:-0.02em; text-align:left;">Dati Anagrafici</h1>
-                            <p class="text-body" style="color: var(--md-on-surface-variant); font-size:1.05rem; text-align:left;">Anagrafe centrale delle persone</p>
-                        </div>
-                        <div class="dati-anagrafici-toolbar" style="display:flex; gap:1rem; align-items:center; flex-shrink:0; width:100%; max-width:500px; justify-content:flex-end;">
-                            <div style="position:relative; flex:1;">
-                                <span class="material-symbols-rounded" style="position:absolute; left:1rem; top:0.9rem; color: var(--md-on-surface-variant);">search</span>
-                                <input type="text" id="persone-search" class="input" placeholder="Cerca per nome, cognome o codice fiscale..." style="padding-left:3rem; padding-top:0.8rem; padding-bottom:0.8rem; width:100%; border-radius:var(--shape-full); background: var(--md-surface-variant); border:1px solid var(--md-outline-variant); font-size:1.05rem;">
-                            </div>
-                            <button id="btn-add-persona" class="btn btn-primary" style="display:flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.8rem 1.5rem; border-radius:var(--shape-full); flex-shrink:0;">
-                                <span class="material-symbols-rounded">person_add</span>Nuova Persona
-                            </button>
-                        </div>
-                    </div>
-                    <div id="persone-content" style="flex:1; overflow-y:auto; background: var(--md-surface); border-radius:var(--shape-lg); padding:2rem; border:1px solid var(--md-outline-variant);">
-                        <div style="text-align:center; padding:2rem;"><span class="material-symbols-rounded" style="animation: spin 2s linear infinite; font-size:2rem;">sync</span></div>
-                    </div>
-                </div>
-                <div id="persona-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(15,23,42,0.4); z-index:10000; align-items:center; justify-content:center; backdrop-filter: blur(12px); opacity:0; transition: opacity 0.3s ease;">
-                    <div class="card" style="width:min(92vw, 640px); max-height:88vh; overflow-y:auto; padding:2.5rem; background: rgba(255,255,255,0.97); box-shadow:0 20px 50px rgba(0,0,0,0.15); border-radius:var(--shape-xl); transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
-                            <h3 id="persona-modal-title" style="margin:0; font-family: var(--font-heading); font-size:1.6rem; color: var(--md-on-surface); font-weight:700;">Nuova Persona</h3>
-                            <button id="btn-close-persona-modal" class="btn btn-icon" style="background: var(--md-surface-variant); border:none; cursor:pointer; border-radius:var(--shape-full); width:40px; height:40px; display:flex; justify-content:center; align-items:center;">
-                                <span class="material-symbols-rounded">close</span>
-                            </button>
-                        </div>
-                        <form id="persona-form" style="display:flex; flex-direction:column; gap:1rem;">
-                            ${personaFormHtml()}
-                            <div id="persona-modal-error" style="color: var(--md-on-error-container); font-size:0.9rem; text-align:center; display:none; background: var(--md-error-container); padding:0.8rem; border-radius:var(--shape-sm);"></div>
-                            <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:1rem;">
-                                <button type="button" id="btn-cancel-persona-modal" class="btn" style="background:transparent; border:none; color: var(--md-on-surface-variant); padding:0.8rem 1.5rem; border-radius:var(--shape-md); cursor:pointer; font-weight:600;">Annulla</button>
-                                <button type="submit" id="btn-save-persona-modal" class="btn btn-primary" style="padding:0.8rem 2rem; border-radius:var(--shape-md); font-weight:600;">Salva</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                ${KIT_STYLES}
-                <style>
-                    .dati-anagrafici-header, .dati-anagrafici-toolbar { transition: all 0.2s; }
-                    @media (max-width: 720px) {
-                        .dati-anagrafici-toolbar { max-width: 100%; flex-wrap: wrap; }
-                        .dati-anagrafici-toolbar > div:first-child { min-width: 200px; }
+
+        const collegaProcedura = (contenitore, persona, { etichettaFine, onFine }) => {
+            const procedura = creaProcedura(contenitore, {
+                id: 'persona',
+                passi: passiPersona(),
+                etichettaFine,
+                iconaFine: persona ? 'save' : 'person_add',
+                etichettaAnnulla: 'Annulla',
+                onAnnulla: () => chiudiModale(el.querySelector('#persona-modal')),
+                onValida: (idPasso, scena) => {
+                    if (idPasso !== 'identita') return null;
+                    const cf = scena.querySelector('#persona-cf');
+                    if (!cf || cf.disabled) return null;
+                    if (!isValidCodiceFiscale(cf.value.trim().toUpperCase())) {
+                        cf.setAttribute('aria-invalid', 'true');
+                        cf.focus();
+                        return 'Il Codice Fiscale non è valido: è la chiave univoca della persona.';
                     }
-                </style>
-            `;
-            const content = el.querySelector('#persone-content');
-            const searchInput = el.querySelector('#persone-search');
-            const modal = el.querySelector('#persona-modal');
-            const form = el.querySelector('#persona-form');
-            const modalError = el.querySelector('#persona-modal-error');
-            const renderCards = (filterText) => {
-                const filtered = rawPersone.filter(p =>
-                    p.nome.toLowerCase().includes(filterText.toLowerCase()) ||
-                    p.cognome.toLowerCase().includes(filterText.toLowerCase()) ||
-                    (p.codice_fiscale && p.codice_fiscale.toLowerCase().includes(filterText.toLowerCase()))
-                );
-                if (filtered.length === 0) {
-                    content.innerHTML = '<p style="text-align:center; color: var(--md-on-surface-variant);">Nessuna persona trovata.</p>';
-                    return;
-                }
-                const tones = ['primary', 'tertiary', 'secondary'];
-                content.innerHTML = `<div class="persone-grid">${filtered.map((p, index) => `
-                    <div class="persona-card fade-in-up ${p.is_deleted ? 'blocked' : ''}" data-id="${p.id}">
-                        <div style="display:flex; align-items:center; gap:0.8rem;">
-                            <div class="persona-card-avatar" style="width:48px; height:48px; border-radius:var(--shape-sm); background: var(--md-${tones[index % tones.length]}); color: #ffffff; display:flex; align-items:center; justify-content:center; font-size:1.3rem; font-weight:bold; flex-shrink:0;">
-                                ${(p.cognome || '?').charAt(0).toUpperCase()}
-                            </div>
-                            <div style="flex:1; overflow:hidden;">
-                                <div style="font-weight:700; color: var(--md-on-surface); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.cognome} ${p.nome}</div>
-                                <div style="font-size:0.8rem; color: var(--md-on-surface-variant); letter-spacing:0.5px;">${p.codice_fiscale || 'CF non specificato'}</div>
-                            </div>
-                        </div>
-                        <div style="font-size:0.8rem; color: var(--md-on-surface-variant); margin-top:0.4rem;">${p.data_nascita ? 'Nato/a il ' + fmt.data(p.data_nascita) : ''}</div>
-                    </div>
-                `).join('')}</div>`;
-                content.querySelectorAll('.persona-card').forEach(card => {
-                    card.addEventListener('click', () => renderScheda(card.getAttribute('data-id')));
-                });
-            };
-            const loadPersone = async (filterText = '') => {
-                try {
-                    rawPersone = await window.electronAPI.anagrafica.persone.getAll();
-                    renderCards(filterText);
-                } catch (e) {
-                    content.innerHTML = `<p style="color:var(--md-error); text-align:center;">Errore caricamento: ${e.message}</p>`;
-                }
-            };
-            searchInput.addEventListener('input', (e) => renderCards(e.target.value));
-            const openModal = (persona = null) => {
-                modalError.style.display = 'none';
-                el.querySelector('#persona-modal-title').innerText = persona ? 'Modifica Persona' : 'Nuova Persona';
-                fillPersonaForm(el, persona);
-                populatePersonaFormDatalists(el);
-                modal.style.display = 'flex';
-                setTimeout(() => {
-                    modal.style.opacity = '1';
-                    modal.querySelector('.card').style.transform = 'scale(1)';
-                }, 10);
-            };
-            const closeModal = () => {
-                modal.style.opacity = '0';
-                modal.querySelector('.card').style.transform = 'scale(0.95)';
-                setTimeout(() => { modal.style.display = 'none'; }, 300);
-            };
-            el.querySelector('#btn-add-persona').addEventListener('click', () => openModal());
-            el.querySelector('#btn-close-persona-modal').addEventListener('click', closeModal);
-            el.querySelector('#btn-cancel-persona-modal').addEventListener('click', closeModal);
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                modalError.style.display = 'none';
-                const btnSave = el.querySelector('#btn-save-persona-modal');
-                btnSave.disabled = true;
-                try {
-                    const data = readPersonaForm(el);
-                    const id = el.querySelector('#persona-id').value;
-                    if (!id && (!data.codice_fiscale || !isValidCodiceFiscale(data.codice_fiscale))) {
-                        throw new Error('Il Codice Fiscale è obbligatorio e deve essere valido: è la chiave univoca della persona');
-                    }
-                    if (id) {
-                        data.id = id;
-                        await window.electronAPI.anagrafica.persone.update(data);
-                    } else {
-                        await window.electronAPI.anagrafica.persone.create(data);
-                    }
-                    toast('Persona salvata con successo', 'success');
-                    closeModal();
-                    await loadPersone(searchInput.value);
-                } catch (err) {
-                    modalError.innerText = err.message || 'Errore durante il salvataggio.';
-                    modalError.style.display = 'block';
-                } finally {
-                    btnSave.disabled = false;
-                }
+                    return null;
+                },
+                onFine
             });
-            await loadPersone(filter);
+            fillPersonaForm(contenitore, persona);
+            populatePersonaFormDatalists(contenitore);
+            return procedura;
         };
+
         const renderScheda = async (personaId) => {
-            el.innerHTML = `
-                <div class="fade-in-up" style="width:100%; height:100%; display:flex; flex-direction:column;">
-                    <div style="display:flex; justify-content:center; align-items:center; height:100%;">
-                        <span class="material-symbols-rounded" style="animation: spin 2s linear infinite; font-size:2rem;">sync</span>
-                    </div>
-                </div>
-            `;
+            el.innerHTML = `<div class="k-loading" data-radice-app><div class="k-spinner" style="--k-spinner-size: 2rem;"></div><span>Apertura della scheda…</span></div>`;
             let scheda;
             try {
                 scheda = await window.electronAPI.anagrafica.persone.getScheda({ id: personaId });
             } catch (e) {
-                el.innerHTML = `<p style="color:var(--md-error); text-align:center;">Errore caricamento scheda: ${e.message}</p>`;
+                el.innerHTML = `<div class="k-schermo"><div class="ak-empty"><h4>Scheda non disponibile</h4><p>${esc(e.message)}</p></div></div>`;
                 return;
             }
             const p = scheda.persona;
-            let activeTab = 'documenti';
-            const renderTabContent = () => {
-                const box = el.querySelector('#scheda-tab-content');
-                if (!box) return;
-                if (activeTab === 'documenti') {
-                    box.innerHTML = scheda.documenti.length === 0
-                        ? '<p style="color:var(--md-on-surface-variant); text-align:center; padding:1.5rem;">Nessun documento registrato.</p>'
-                        : scheda.documenti.map(d => `
-                            <div class="scheda-record">
-                                <div class="scheda-record-title">${d.tipo} — ${d.numero || 'n/d'}</div>
-                                <div class="scheda-record-sub">Rilasciato da ${d.ente_rilascio || 'n/d'} il ${d.data_rilascio ? fmt.data(d.data_rilascio) : 'n/d'} — Scadenza: ${d.data_scadenza ? fmt.data(d.data_scadenza) : 'n/d'}</div>
-                            </div>
-                        `).join('');
-                } else if (activeTab === 'residenza') {
-                    box.innerHTML = scheda.indirizzi.length === 0
-                        ? '<p style="color:var(--md-on-surface-variant); text-align:center; padding:1.5rem;">Nessun indirizzo registrato.</p>'
-                        : scheda.indirizzi.map(i => `
-                            <div class="scheda-record">
-                                <div class="scheda-record-title">${i.tipo === 'residenza' ? 'Residenza' : 'Domicilio'} ${i.is_corrente ? '(attuale)' : '(storico)'}</div>
-                                <div class="scheda-record-sub">${i.via} ${i.civico}, ${i.cap} ${i.comune} (${i.provincia}) — ${i.stato}</div>
-                            </div>
-                        `).join('');
-                } else if (activeTab === 'lavoro') {
-                    box.innerHTML = scheda.rapportiLavoro.length === 0
-                        ? '<p style="color:var(--md-on-surface-variant); text-align:center; padding:1.5rem;">Nessun rapporto di lavoro registrato.</p>'
-                        : scheda.rapportiLavoro.map(r => `
-                            <div class="scheda-record">
-                                <div class="scheda-record-title">${r.datore_lavoro} ${r.is_corrente ? '(attuale)' : '(storico)'}</div>
-                                <div class="scheda-record-sub">${r.mansione || 'n/d'} — ${r.tipo_contratto || 'n/d'} — dal ${r.data_inizio ? fmt.data(r.data_inizio) : 'n/d'}${r.data_fine ? ' al ' + fmt.data(r.data_fine) : ''}</div>
-                            </div>
-                        `).join('');
-                }
+            const conteggi = {
+                documenti: scheda.documenti.length,
+                residenza: scheda.indirizzi.length,
+                lavoro: scheda.rapportiLavoro.length
             };
+            let schedaAttiva = 'documenti';
+
+            const corpoDocumenti = () => (scheda.documenti.length === 0
+                ? vuotoHtml('folder_off', 'Nessun documento', 'Per questa persona non risultano documenti registrati.')
+                : scheda.documenti.map(d => `
+                    <article class="scheda-record" data-zona="documenti">
+                        <div class="scheda-record-title">${oppure(d.tipo, 'Documento')} — ${oppure(d.numero, 'numero non indicato')}</div>
+                        <div class="scheda-record-sub">Rilasciato da ${oppure(d.ente_rilascio, 'ente non indicato')} il ${d.data_rilascio ? esc(fmt.data(d.data_rilascio)) : 'data non indicata'} · Scadenza ${d.data_scadenza ? esc(fmt.data(d.data_scadenza)) : 'non indicata'}</div>
+                    </article>
+                `).join(''));
+
+            const corpoResidenza = () => (scheda.indirizzi.length === 0
+                ? vuotoHtml('location_off', 'Nessun indirizzo', 'Non risultano indirizzi di residenza o domicilio.')
+                : scheda.indirizzi.map(i => `
+                    <article class="scheda-record" data-zona="residenza">
+                        <div class="scheda-record-title">${i.tipo === 'residenza' ? 'Residenza' : 'Domicilio'}${i.is_corrente ? ' <span class="k-badge k-badge--sezione">Attuale</span>' : ''}</div>
+                        <div class="scheda-record-sub">${oppure(`${i.via || ''} ${i.civico || ''}`.trim(), 'Via non indicata')}, ${oppure(i.cap, '')} ${oppure(i.comune, '')} ${i.provincia ? `(${esc(i.provincia)})` : ''} ${oppure(i.stato, '')}</div>
+                    </article>
+                `).join(''));
+
+            const corpoLavoro = () => (scheda.rapportiLavoro.length === 0
+                ? vuotoHtml('work_off', 'Nessun rapporto di lavoro', 'Non risultano rapporti di lavoro registrati.')
+                : scheda.rapportiLavoro.map(r => `
+                    <article class="scheda-record" data-zona="lavoro">
+                        <div class="scheda-record-title">${oppure(r.datore_lavoro, 'Datore non indicato')}${r.is_corrente ? ' <span class="k-badge k-badge--sezione">In corso</span>' : ''}</div>
+                        <div class="scheda-record-sub">${oppure(r.mansione, 'Mansione non indicata')} · ${oppure(r.tipo_contratto, 'Contratto non indicato')} · dal ${r.data_inizio ? esc(fmt.data(r.data_inizio)) : 'n/d'}${r.data_fine ? ` al ${esc(fmt.data(r.data_fine))}` : ''}</div>
+                    </article>
+                `).join(''));
+
+            const corpi = { documenti: corpoDocumenti, residenza: corpoResidenza, lavoro: corpoLavoro };
+
             el.innerHTML = `
-                <div class="fade-in-up scheda-root" style="width:100%; height:100%; display:flex; flex-direction:column;">
-                    <div class="scheda-header" style="display:flex; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
-                        <button id="btn-back-scheda" class="btn-icon-action" title="Torna all'elenco"><span class="material-symbols-rounded">arrow_back</span></button>
-                        <div style="flex:1; min-width:200px;">
-                            <h1 class="text-title" style="font-size:clamp(1.5rem, 2.6vw, 2rem); color: var(--md-primary); margin-bottom:0.1rem;">${p.cognome} ${p.nome}</h1>
-                            <p class="text-body" style="color: var(--md-on-surface-variant);">${p.codice_fiscale || 'Codice Fiscale non specificato'}</p>
-                        </div>
-                        <div id="scheda-audit-mount"></div>
-                        <button id="btn-edit-scheda" class="btn btn-primary" style="display:flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.7rem 1.4rem; border-radius:var(--shape-full);"><span class="material-symbols-rounded">edit</span>Modifica</button>
-                        ${p.is_deleted ? '<button id="btn-restore-scheda" class="btn-icon-action" title="Ripristina"><span class="material-symbols-rounded">restore</span></button>' : '<button id="btn-delete-scheda" class="btn-icon-action danger" title="Elimina"><span class="material-symbols-rounded">delete</span></button>'}
-                        <button id="btn-harddelete-scheda" class="btn-icon-action danger" title="Elimina Definitivamente"><span class="material-symbols-rounded">delete_forever</span></button>
+                <div class="k-schermo fade-in-up" data-zona="identita">
+                    <div class="k-schermo-testa">
+                        ${heroHtml({
+                            title: `${p.cognome || ''} ${p.nome || ''}`.trim() || 'Persona',
+                            subtitle: p.codice_fiscale || 'Codice Fiscale non specificato',
+                            icon: 'person',
+                            tone: 'blue',
+                            auditMountId: 'scheda-audit-mount',
+                            actionsHtml: `
+                                ${p.is_deleted ? '<span class="ak-hero-flag">Bloccata</span>' : ''}
+                                <button type="button" id="btn-edit-scheda" class="ak-hero-btn"><span class="material-symbols-rounded">edit</span>Modifica</button>
+                                ${p.is_deleted
+                                    ? '<button type="button" id="btn-restore-scheda" class="btn-icon-action" title="Ripristina" aria-label="Ripristina"><span class="material-symbols-rounded">restore</span></button>'
+                                    : '<button type="button" id="btn-delete-scheda" class="btn-icon-action" title="Blocca" aria-label="Blocca"><span class="material-symbols-rounded">block</span></button>'}
+                                <button type="button" id="btn-harddelete-scheda" class="btn-icon-action" title="Elimina definitivamente" aria-label="Elimina definitivamente"><span class="material-symbols-rounded">delete_forever</span></button>
+                                <button type="button" id="btn-back-scheda" class="ak-hero-btn ak-hero-btn--neutro"><span class="material-symbols-rounded">arrow_back</span>Elenco</button>`
+                        })}
                     </div>
-                    <div class="card" style="padding:1.5rem; border-radius:var(--shape-lg); margin-bottom:1.5rem;">
-                        <div class="scheda-info-chips">
-                            <div class="scheda-chip tone-primary"><span class="material-symbols-rounded">cake</span>${p.data_nascita ? fmt.data(p.data_nascita) : 'Nascita n/d'} ${p.luogo_nascita ? 'a ' + p.luogo_nascita : ''} ${p.provincia_nascita ? '(' + p.provincia_nascita + ')' : ''}</div>
-                            <div class="scheda-chip tone-secondary"><span class="material-symbols-rounded">wc</span>${p.sesso || 'Sesso n/d'}</div>
-                            <div class="scheda-chip tone-tertiary"><span class="material-symbols-rounded">flag</span>${p.cittadinanza || 'Cittadinanza n/d'}</div>
-                            <div class="scheda-chip tone-primary"><span class="material-symbols-rounded">favorite</span>${p.stato_civile || 'Stato civile n/d'}</div>
-                            <div class="scheda-chip tone-secondary"><span class="material-symbols-rounded">email</span>${p.email_principale || 'Email n/d'}</div>
-                            <div class="scheda-chip tone-tertiary"><span class="material-symbols-rounded">phone</span>${p.telefono_principale || 'Telefono n/d'}</div>
-                        </div>
-                        ${p.note ? `<div style="margin-top:1rem; color: var(--md-on-surface-variant);"><b>Note:</b> ${p.note}</div>` : ''}
-                    </div>
-                    <div class="scheda-tabs" style="display:flex; gap:0.8rem; margin-bottom:1rem; flex-wrap:wrap;">
-                        <button class="scheda-tab active" data-tab="documenti">Documenti (${scheda.documenti.length})</button>
-                        <button class="scheda-tab" data-tab="residenza">Residenza e Domicilio (${scheda.indirizzi.length})</button>
-                        <button class="scheda-tab" data-tab="lavoro">Lavoro (${scheda.rapportiLavoro.length})</button>
-                    </div>
-                    <div id="scheda-tab-content" style="flex:1; overflow-y:auto; background: var(--md-surface); border-radius:var(--shape-lg); padding:1.5rem; border:1px solid var(--md-outline-variant);"></div>
-                </div>
-                <div id="persona-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(15,23,42,0.4); z-index:10000; align-items:center; justify-content:center; backdrop-filter: blur(12px); opacity:0; transition: opacity 0.3s ease;">
-                    <div class="card" style="width:min(92vw, 640px); max-height:88vh; overflow-y:auto; padding:2.5rem; background: rgba(255,255,255,0.97); box-shadow:0 20px 50px rgba(0,0,0,0.15); border-radius:var(--shape-xl); transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
-                            <h3 style="margin:0; font-family: var(--font-heading); font-size:1.6rem; color: var(--md-on-surface); font-weight:700;">Modifica Persona</h3>
-                            <button id="btn-close-persona-modal" class="btn btn-icon" style="background: var(--md-surface-variant); border:none; cursor:pointer; border-radius:var(--shape-full); width:40px; height:40px; display:flex; justify-content:center; align-items:center;">
-                                <span class="material-symbols-rounded">close</span>
-                            </button>
-                        </div>
-                        <form id="persona-form" style="display:flex; flex-direction:column; gap:1rem;">
-                            ${personaFormHtml()}
-                            <div id="persona-modal-error" style="color: var(--md-on-error-container); font-size:0.9rem; text-align:center; display:none; background: var(--md-error-container); padding:0.8rem; border-radius:var(--shape-sm);"></div>
-                            <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:1rem;">
-                                <button type="button" id="btn-cancel-persona-modal" class="btn" style="background:transparent; border:none; color: var(--md-on-surface-variant); padding:0.8rem 1.5rem; border-radius:var(--shape-md); cursor:pointer; font-weight:600;">Annulla</button>
-                                <button type="submit" id="btn-save-persona-modal" class="btn btn-primary" style="padding:0.8rem 2rem; border-radius:var(--shape-md); font-weight:600;">Salva</button>
+                    <div class="k-schermo-corpo">
+                        <section class="k-zona" data-zona="identita">
+                            <div class="k-row">
+                                <span class="k-chip" data-zona="nascita"><span class="material-symbols-rounded">cake</span>${p.data_nascita ? esc(fmt.data(p.data_nascita)) : 'Nascita non indicata'}${p.luogo_nascita ? ` · ${esc(p.luogo_nascita)}` : ''}${p.provincia_nascita ? ` (${esc(p.provincia_nascita)})` : ''}</span>
+                                <span class="k-chip" data-zona="identita"><span class="material-symbols-rounded">wc</span>${oppure(p.sesso, 'Sesso non indicato')}</span>
+                                <span class="k-chip" data-zona="nascita"><span class="material-symbols-rounded">flag</span>${oppure(p.cittadinanza, 'Cittadinanza non indicata')}</span>
+                                <span class="k-chip" data-zona="famiglia"><span class="material-symbols-rounded">favorite</span>${oppure(p.stato_civile, 'Stato civile non indicato')}</span>
+                                <span class="k-chip" data-zona="contatti"><span class="material-symbols-rounded">email</span>${oppure(p.email_principale, 'Email non indicata')}</span>
+                                <span class="k-chip" data-zona="contatti"><span class="material-symbols-rounded">phone</span>${oppure(p.telefono_principale, 'Telefono non indicato')}</span>
                             </div>
-                        </form>
+                            ${p.note ? `<p class="k-zona-nota"><strong>Note:</strong> ${esc(p.note)}</p>` : ''}
+                        </section>
+                        <div class="ak-schede" role="tablist" aria-label="Sezioni della scheda">
+                            ${SCHEDE.map((s, i) => `
+                                <button type="button" class="ak-scheda" data-scheda="${s.id}" data-zona="${s.zona}" role="tab" aria-selected="${i === 0}">
+                                    ${icona3d(s.id === 'documenti' ? 'folder_shared' : (s.id === 'residenza' ? 'home' : 'work'), { dimensione: 'xs', varianti: ['reattiva'] })}
+                                    ${esc(s.etichetta)}
+                                    <span class="ak-scheda-contatore">${conteggi[s.id]}</span>
+                                </button>`).join('')}
+                        </div>
+                        <div class="ak-panel ak-panel--fisso">
+                            <div class="ak-panel-body" id="scheda-tab-content"></div>
+                        </div>
                     </div>
                 </div>
-                ${KIT_STYLES}
-                <style>
-                    .scheda-info-chips { display: flex; gap: 0.8rem; flex-wrap: wrap; }
-                    .scheda-chip {
-                        display: flex; align-items: center; gap: 0.5rem;
-                        padding: 0.5rem 1rem; border-radius: var(--shape-full);
-                        font-size: 0.9rem; font-weight: 500;
-                    }
-                    .scheda-chip .material-symbols-rounded { font-size: 1.1rem; }
-                    .scheda-chip.tone-primary { background: var(--md-primary-container); color: var(--md-on-primary-container); }
-                    .scheda-chip.tone-secondary { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
-                    .scheda-chip.tone-tertiary { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
-                    @media (max-width: 720px) {
-                        .scheda-header { justify-content: flex-start; }
-                        #btn-edit-scheda { flex: 1; }
-                    }
-                </style>
+                ${modaleHtml('Modifica Persona')}
             `;
-            renderTabContent();
+
+            const box = el.querySelector('#scheda-tab-content');
+            const disegnaScheda = () => {
+                box.innerHTML = corpi[schedaAttiva]();
+                box.parentElement.dataset.zona = SCHEDE.find(s => s.id === schedaAttiva).zona;
+            };
+            disegnaScheda();
+
+            const { mountAuditButton } = await import('../../shared/audit_trail_button.js');
             mountAuditButton(el.querySelector('#scheda-audit-mount'), { tableName: 'persone', recordId: personaId, label: `${p.cognome} ${p.nome}` });
-            el.querySelectorAll('.scheda-tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    activeTab = tab.getAttribute('data-tab');
-                    el.querySelectorAll('.scheda-tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    renderTabContent();
+
+            for (const tasto of el.querySelectorAll('.ak-scheda')) {
+                tasto.addEventListener('click', () => {
+                    schedaAttiva = tasto.getAttribute('data-scheda');
+                    for (const altro of el.querySelectorAll('.ak-scheda')) altro.setAttribute('aria-selected', String(altro === tasto));
+                    disegnaScheda();
                 });
-            });
+            }
+
             el.querySelector('#btn-back-scheda').addEventListener('click', () => renderList());
-            const modal = el.querySelector('#persona-modal');
+
+            const modale = el.querySelector('#persona-modal');
             const form = el.querySelector('#persona-form');
-            const modalError = el.querySelector('#persona-modal-error');
-            const openModal = () => {
-                modalError.style.display = 'none';
-                fillPersonaForm(el, p);
-                populatePersonaFormDatalists(el);
-                modal.style.display = 'flex';
-                setTimeout(() => {
-                    modal.style.opacity = '1';
-                    modal.querySelector('.card').style.transform = 'scale(1)';
-                }, 10);
-            };
-            const closeModal = () => {
-                modal.style.opacity = '0';
-                modal.querySelector('.card').style.transform = 'scale(0.95)';
-                setTimeout(() => { modal.style.display = 'none'; }, 300);
-            };
-            el.querySelector('#btn-edit-scheda').addEventListener('click', openModal);
-            el.querySelector('#btn-close-persona-modal').addEventListener('click', closeModal);
-            el.querySelector('#btn-cancel-persona-modal').addEventListener('click', closeModal);
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                modalError.style.display = 'none';
-                const btnSave = el.querySelector('#btn-save-persona-modal');
-                btnSave.disabled = true;
+            const erroreBox = el.querySelector('#persona-modal-error');
+            let procedura = null;
+
+            const salva = async () => {
+                mostraErrore(erroreBox, '');
                 try {
-                    const data = readPersonaForm(el);
-                    if (data.codice_fiscale && !isValidCodiceFiscale(data.codice_fiscale)) {
-                        throw new Error('Codice Fiscale non valido');
-                    }
-                    data.id = personaId;
-                    await window.electronAPI.anagrafica.persone.update(data);
+                    const dati = readPersonaForm(modale);
+                    if (dati.codice_fiscale && !isValidCodiceFiscale(dati.codice_fiscale)) throw new Error('Codice Fiscale non valido');
+                    dati.id = personaId;
+                    await window.electronAPI.anagrafica.persone.update(dati);
                     toast('Persona aggiornata con successo', 'success');
-                    closeModal();
+                    chiudiModale(modale);
                     await renderScheda(personaId);
                 } catch (err) {
-                    modalError.innerText = err.message || 'Errore durante il salvataggio.';
-                    modalError.style.display = 'block';
-                } finally {
-                    btnSave.disabled = false;
+                    mostraErrore(erroreBox, err.message || 'Errore durante il salvataggio.');
                 }
+            };
+
+            el.querySelector('#btn-edit-scheda').addEventListener('click', () => {
+                mostraErrore(erroreBox, '');
+                procedura = collegaProcedura(el.querySelector('#persona-passi'), p, { etichettaFine: 'Salva Modifiche', onFine: salva });
+                apriModale(modale);
             });
-            const deleteBtn = el.querySelector('#btn-delete-scheda');
-            if (deleteBtn) {
-                deleteBtn.addEventListener('click', async () => {
-                    const { conferma } = await import('../../../../js/utils.js');
-                    if (!(await conferma({ titolo: 'Bloccare questa persona?', testo: 'Potrai ripristinarla in qualsiasi momento.', etichetta: 'Blocca', pericolosa: true }))) return;
+            el.querySelector('#btn-close-persona-modal').addEventListener('click', () => chiudiModale(modale));
+            modale.addEventListener('click', (evento) => { if (evento.target === modale) chiudiModale(modale); });
+            form.addEventListener('submit', async (evento) => {
+                evento.preventDefault();
+                if (!procedura) return;
+                const problema = await procedura.concludi();
+                if (problema) mostraErrore(erroreBox, problema);
+            });
+
+            const bloccaBtn = el.querySelector('#btn-delete-scheda');
+            if (bloccaBtn) bloccaBtn.addEventListener('click', async () => {
+                if (!(await conferma({ titolo: 'Bloccare questa persona?', testo: 'Potrai ripristinarla in qualsiasi momento.', etichetta: 'Blocca', pericolosa: true }))) return;
+                try {
                     await window.electronAPI.anagrafica.persone.remove({ id: personaId });
                     toast('Persona bloccata', 'success');
                     await renderScheda(personaId);
-                });
-            }
-            const restoreBtn = el.querySelector('#btn-restore-scheda');
-            if (restoreBtn) {
-                restoreBtn.addEventListener('click', async () => {
+                } catch (e) {
+                    toast(e.message || 'Operazione non riuscita', 'error');
+                }
+            });
+
+            const ripristinaBtn = el.querySelector('#btn-restore-scheda');
+            if (ripristinaBtn) ripristinaBtn.addEventListener('click', async () => {
+                try {
                     await window.electronAPI.anagrafica.persone.restore({ id: personaId });
                     toast('Persona ripristinata', 'success');
                     await renderScheda(personaId);
-                });
-            }
+                } catch (e) {
+                    toast(e.message || 'Operazione non riuscita', 'error');
+                }
+            });
+
             el.querySelector('#btn-harddelete-scheda').addEventListener('click', async () => {
-                const { conferma } = await import('../../../../js/utils.js');
                 const ok = await conferma({
                     titolo: 'Eliminare definitivamente questa persona?',
-                    testo: 'Verranno cancellati anche documenti, indirizzi e rapporti di lavoro collegati.\nL\'operazione è irreversibile e si propaga a tutti i nodi connessi.',
+                    testo: 'Verranno cancellati anche documenti, indirizzi e rapporti di lavoro collegati. L\'operazione è irreversibile e si propaga a tutti i nodi connessi.',
                     etichetta: 'Elimina definitivamente',
                     pericolosa: true
                 });
                 if (!ok) return;
-                await window.electronAPI.anagrafica.persone.hardDelete({ id: personaId });
-                toast('Persona eliminata definitivamente', 'success');
-                await renderList();
+                try {
+                    await window.electronAPI.anagrafica.persone.hardDelete({ id: personaId });
+                    toast('Persona eliminata definitivamente', 'success');
+                    await renderList();
+                } catch (e) {
+                    toast(e.message || 'Operazione non riuscita', 'error');
+                }
             });
         };
+
+        const renderList = async (filtro = '') => {
+            el.innerHTML = `
+                <div class="k-schermo fade-in-up" data-zona="identita">
+                    <div class="k-schermo-testa">
+                        ${heroHtml({
+                            title: 'Dati Anagrafici',
+                            subtitle: 'Anagrafe centrale delle persone gestite dal nodo.',
+                            icon: 'badge',
+                            tone: 'blue',
+                            actionsHtml: `<button type="button" id="btn-add-persona" class="ak-hero-btn"><span class="material-symbols-rounded">person_add</span>Nuova Persona</button>`
+                        })}
+                    </div>
+                    <div class="k-schermo-corpo">
+                        <div class="ak-panel ak-panel--fisso">
+                            <div class="ak-toolbar">
+                                <label class="k-cerca" style="flex: 1 1 16rem;">
+                                    <span class="material-symbols-rounded">search</span>
+                                    <input type="search" id="persone-search" placeholder="Cerca per nome, cognome o codice fiscale…" value="${esc(filtro)}" aria-label="Cerca persona">
+                                </label>
+                                <span class="ak-count" id="persone-count">0</span>
+                            </div>
+                            <div class="ak-panel-body" id="persone-content">
+                                <div class="k-loading"><div class="k-spinner"></div><span>Caricamento…</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ${modaleHtml('Nuova Persona')}
+            `;
+
+            const contenuto = el.querySelector('#persone-content');
+            const ricerca = el.querySelector('#persone-search');
+            const contatore = el.querySelector('#persone-count');
+            const modale = el.querySelector('#persona-modal');
+            const form = el.querySelector('#persona-form');
+            const erroreBox = el.querySelector('#persona-modal-error');
+            let procedura = null;
+
+            const disegna = (testo) => {
+                const cercato = (testo || '').toLowerCase();
+                const trovate = rawPersone.filter(p =>
+                    (p.nome || '').toLowerCase().includes(cercato) ||
+                    (p.cognome || '').toLowerCase().includes(cercato) ||
+                    (p.codice_fiscale || '').toLowerCase().includes(cercato));
+                contatore.textContent = String(trovate.length);
+                if (trovate.length === 0) {
+                    contenuto.innerHTML = vuotoHtml('person_search', 'Nessuna persona trovata', 'Modifica la ricerca oppure crea una nuova persona.');
+                    return;
+                }
+                contenuto.innerHTML = `<div class="ak-persone">${trovate.map(p => `
+                    <button type="button" class="ak-persona fade-in-up" data-id="${esc(p.id)}" data-bloccata="${p.is_deleted ? 'si' : 'no'}">
+                        ${icona3d('person', { dimensione: 'sm', varianti: ['reattiva'] })}
+                        <span class="ak-persona-corpo">
+                            <span class="ak-persona-nome">${oppure(`${p.cognome || ''} ${p.nome || ''}`.trim(), 'Senza nome')}</span>
+                            <span class="ak-persona-cf">${oppure(p.codice_fiscale, 'CF non specificato')}</span>
+                            <span class="ak-persona-nota">${p.is_deleted ? 'Bloccata' : (p.data_nascita ? `Nata il ${esc(fmt.data(p.data_nascita))}` : '')}</span>
+                        </span>
+                        <span class="material-symbols-rounded ak-persona-freccia" aria-hidden="true">chevron_right</span>
+                    </button>`).join('')}</div>`;
+                for (const card of contenuto.querySelectorAll('.ak-persona')) {
+                    card.addEventListener('click', () => renderScheda(card.getAttribute('data-id')));
+                }
+            };
+
+            const carica = async (testo = '') => {
+                try {
+                    rawPersone = await window.electronAPI.anagrafica.persone.getAll();
+                    disegna(testo);
+                } catch (e) {
+                    contenuto.innerHTML = vuotoHtml('error', 'Caricamento non riuscito', e.message || 'Errore sconosciuto.');
+                }
+            };
+
+            ricerca.addEventListener('input', () => disegna(ricerca.value));
+
+            const salva = async () => {
+                mostraErrore(erroreBox, '');
+                try {
+                    const dati = readPersonaForm(modale);
+                    if (!dati.codice_fiscale || !isValidCodiceFiscale(dati.codice_fiscale)) {
+                        throw new Error('Il Codice Fiscale è obbligatorio e deve essere valido: è la chiave univoca della persona.');
+                    }
+                    await window.electronAPI.anagrafica.persone.create(dati);
+                    toast('Persona creata con successo', 'success');
+                    chiudiModale(modale);
+                    await carica(ricerca.value);
+                } catch (err) {
+                    mostraErrore(erroreBox, err.message || 'Errore durante il salvataggio.');
+                }
+            };
+
+            el.querySelector('#btn-add-persona').addEventListener('click', () => {
+                mostraErrore(erroreBox, '');
+                procedura = collegaProcedura(el.querySelector('#persona-passi'), null, { etichettaFine: 'Crea Persona', onFine: salva });
+                apriModale(modale);
+            });
+            el.querySelector('#btn-close-persona-modal').addEventListener('click', () => chiudiModale(modale));
+            modale.addEventListener('click', (evento) => { if (evento.target === modale) chiudiModale(modale); });
+            form.addEventListener('submit', async (evento) => {
+                evento.preventDefault();
+                if (!procedura) return;
+                const problema = await procedura.concludi();
+                if (problema) mostraErrore(erroreBox, problema);
+            });
+
+            await carica(filtro);
+        };
+
         await renderList();
     }
 };
