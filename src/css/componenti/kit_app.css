@@ -1,8 +1,3 @@
-/* Kit delle applicazioni interne (prefisso ak-).
-   Prima queste regole vivevano in due stringhe <style> gemelle iniettate a ogni render:
-   il documento accumulava fogli duplicati e nessuno strumento poteva verificarli.
-   Ora sono un foglio unico, memorizzato dalla cache, con la tinta presa da --k-sezione. */
-
 .ak-root {
     display: flex;
     flex-direction: column;
@@ -17,7 +12,6 @@
 .ak-root--compatto { gap: var(--k-space-3); }
 .ak-root--centrato { align-items: center; justify-content: center; }
 
-/* ── Intestazione del modulo ────────────────────────────── */
 .ak-hero {
     position: relative;
     display: flex;
@@ -109,7 +103,6 @@
 }
 .ak-hero .btn-icon-action { inline-size: var(--k-control-h); block-size: var(--k-control-h); border: 1px solid var(--md-outline-variant); background: var(--md-surface); }
 
-/* ── Guida contestuale ──────────────────────────────────── */
 .ak-guide {
     flex: none;
     border: 1px solid var(--md-outline);
@@ -153,7 +146,6 @@
     font-weight: 700;
 }
 
-/* ── Pannello ───────────────────────────────────────────── */
 .ak-panel {
     display: flex;
     flex-direction: column;
@@ -204,7 +196,6 @@
     vertical-align: middle;
 }
 
-/* ── Modulo ─────────────────────────────────────────────── */
 .ak-form-sections-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
@@ -347,7 +338,6 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
 .ak-check-text { font-size: var(--k-font-md); font-weight: 600; line-height: 1.35; color: var(--md-on-surface); }
 .ak-check-text .ak-hint { font-weight: 400; }
 
-/* ── Card dei record ────────────────────────────────────── */
 .ak-cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
@@ -450,58 +440,39 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
 .ak-empty h4 { margin: 0; font-family: var(--font-heading); font-size: var(--k-font-base); font-weight: 700; color: var(--md-on-surface); }
 .ak-empty p { margin: 0; max-inline-size: 44ch; font-size: var(--k-font-sm); }
 
-/* ── Finestra ───────────────────────────────────────────── */
-.ak-modal {
-    position: fixed;
-    inset: 0;
-    z-index: var(--k-z-dialog);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: var(--k-space-4);
-    background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    opacity: 0;
-    transition: opacity 0.2s var(--k-ease);
-}
-.ak-modal[data-aperta="si"] { display: flex; }
-.ak-modal-card {
+.ak-editor {
     display: flex;
     flex-direction: column;
-    inline-size: min(100%, var(--ak-modal-w, 54rem));
-    max-block-size: min(100%, 88vh);
-    border: 1px solid var(--md-outline);
-    border-radius: var(--shape-xl);
+    flex: 1;
+    min-block-size: 0;
+    min-inline-size: 0;
+    border: 1px solid color-mix(in srgb, var(--k-sezione) 26%, var(--md-outline));
+    border-radius: var(--shape-lg);
     background: var(--md-surface);
-    box-shadow: var(--k-shadow-lg);
+    box-shadow: var(--k-shadow-sm);
     overflow: hidden;
-    transform: translateY(8px) scale(0.98);
-    transition: transform 0.22s var(--k-ease);
 }
-.ak-modal-card--stretta { --ak-modal-w: 36rem; }
-.ak-modal-head {
+.ak-editor-testa {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--k-space-3);
     flex: none;
-    padding: var(--k-space-4) var(--k-space-5);
+    padding: var(--k-space-3) var(--k-space-5);
     border-block-end: 1px solid var(--md-outline);
     background: linear-gradient(100deg, color-mix(in srgb, var(--k-sezione-contenitore) 42%, var(--md-surface)) 0%, var(--md-surface) 70%);
 }
-.ak-modal-head h3 {
+.ak-editor-titolo {
     display: flex;
     align-items: center;
     gap: var(--k-space-2);
     margin: 0;
     font-family: var(--font-heading);
-    font-size: var(--k-font-xl);
+    font-size: var(--k-font-lg);
     font-weight: 700;
     color: var(--md-on-surface);
 }
-.ak-modal-head h3 .material-symbols-rounded { color: var(--k-sezione); }
-.ak-modal-body {
+.ak-editor-corpo {
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -509,8 +480,7 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
     padding: var(--k-space-4) var(--k-space-5) var(--k-space-5);
     overflow: hidden;
 }
-.ak-modal-body--scorrevole { overflow: hidden auto; }
-.ak-modal-hint {
+.ak-nota {
     display: flex;
     align-items: flex-start;
     gap: var(--k-space-2);
@@ -522,7 +492,7 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
     color: var(--md-on-surface);
     font-size: var(--k-font-sm);
 }
-.ak-modal-hint .material-symbols-rounded { flex: none; font-size: 1.05rem; color: var(--k-sezione); }
+.ak-nota .material-symbols-rounded { flex: none; font-size: 1.05rem; color: var(--k-sezione); }
 .ak-form { display: flex; flex-direction: column; flex: 1; min-block-size: 0; gap: var(--k-space-3); }
 .ak-error {
     display: none;
@@ -545,6 +515,23 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
     padding-block-start: var(--k-space-3);
     border-block-start: 1px solid var(--md-outline);
 }
+
+.ak-conferma {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--k-space-2);
+    inline-size: 100%;
+    margin-block-start: var(--k-space-2);
+    padding: var(--k-space-2) var(--k-space-3);
+    border: 1px solid var(--md-error);
+    border-radius: var(--shape-sm);
+    background: var(--md-error-container);
+    color: var(--md-on-error-container);
+    font-size: var(--k-font-sm);
+    font-weight: 600;
+}
+.ak-conferma-testo { flex: 1; min-inline-size: 8rem; }
 
 .ak-btn {
     display: inline-flex;
@@ -583,7 +570,6 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
 .ak-btn-danger:hover { background: var(--md-error-container); color: var(--md-on-error-container); }
 .ak-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
 
-/* ── Record in elenco ───────────────────────────────────── */
 .scheda-record {
     position: relative;
     margin-block-end: var(--k-space-2);
@@ -611,7 +597,6 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
     color: var(--md-on-success-container);
 }
 
-/* ── Selettore di persona ───────────────────────────────── */
 .persona-picker { position: relative; inline-size: 100%; }
 .persona-picker-results { display: flex; flex-direction: column; gap: var(--k-space-2); margin-block-start: var(--k-space-2); }
 .persona-picker-item {
@@ -665,7 +650,6 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
 }
 .persona-picker-create-azioni { display: flex; justify-content: flex-end; gap: var(--k-space-2); }
 
-/* ── Storico revisioni ──────────────────────────────────── */
 .audit-event-badge {
     padding: 0.15rem 0.6rem;
     border-radius: var(--shape-full);
@@ -681,7 +665,6 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
 .scheda-record--modifica { --k-sezione: var(--md-primary); }
 .scheda-record--eliminazione { --k-sezione: var(--md-error); }
 
-/* ── Schede di navigazione del modulo ───────────────────── */
 .ak-schede {
     display: flex;
     flex-wrap: wrap;
@@ -723,7 +706,6 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
 .ak-scheda[aria-selected="true"] .ak-scheda-contatore { background: color-mix(in srgb, var(--k-sezione) 22%, transparent); }
 .ak-scena { display: flex; flex-direction: column; flex: 1; min-block-size: 0; min-inline-size: 0; }
 
-/* ── Elenco persone ────────────────────────────────────── */
 .ak-persone {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
@@ -774,7 +756,6 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
     .ak-panel-body { padding: var(--k-space-3); }
 }
 
-/* ── Rubrica dei recapiti ───────────────────────────────── */
 .ct-gruppo { margin-block-end: var(--k-space-5); }
 .ct-gruppo:last-child { margin-block-end: 0; }
 .ct-gruppo-testa {
@@ -841,3 +822,24 @@ select.ak-input { padding-inline-end: 2.2rem; cursor: pointer; }
     color: var(--md-warning);
     font-variation-settings: 'FILL' 1;
 }
+
+.audit-pannello {
+    position: relative;
+    inline-size: 100%;
+    margin-block-start: var(--k-space-2);
+    border: 1px solid var(--md-outline);
+    border-radius: var(--shape-md);
+    background: var(--md-surface-container-low);
+    overflow: hidden;
+}
+.audit-pannello-testa {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--k-space-2);
+    padding: var(--k-space-2) var(--k-space-3);
+    border-block-end: 1px solid var(--md-outline);
+    background: var(--md-surface);
+}
+.audit-pannello-titolo { font-size: var(--k-font-sm); font-weight: 700; color: var(--md-on-surface); }
+.audit-pannello-corpo { max-block-size: 18rem; padding: var(--k-space-3); overflow: hidden auto; overscroll-behavior: contain; }

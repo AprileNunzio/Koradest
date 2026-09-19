@@ -1,10 +1,10 @@
-import { toast, fmt, conferma } from '../../../../js/utils.js';
+import { toast, fmt } from '../../../../js/utils.js';
 import { esc } from '../../../../js/shared/html.js';
 import { icona3d } from '../../../../js/shared/tinte.js';
 import { creaProcedura } from '../../../../js/shared/procedura.js';
 import { isValidCodiceFiscale } from '../../shared/validators.js';
 import { passiPersona, readPersonaForm, fillPersonaForm, populatePersonaFormDatalists } from '../../shared/persona_form.js';
-import { heroHtml, apriModale, chiudiModale, mostraErrore } from '../../shared/ui_kit.js';
+import { heroHtml, mostraErrore } from '../../shared/ui_kit.js';
 
 const SCHEDE = [
     { id: 'documenti', zona: 'documenti', etichetta: 'Documenti' },
@@ -22,26 +22,62 @@ const vuotoHtml = (icona, titolo, testo) => `
     </div>
 `;
 
-const modaleHtml = (titolo) => `
-    <div id="persona-modal" class="ak-modal" data-aperta="no" data-zona="identita" role="dialog" aria-modal="true" aria-labelledby="persona-modal-title">
-        <div class="ak-modal-card">
-            <div class="ak-modal-head">
-                <h3 id="persona-modal-title"><span class="material-symbols-rounded">badge</span><span id="persona-modal-title-text">${esc(titolo)}</span></h3>
-                <button type="button" id="btn-close-persona-modal" class="ak-iconbtn" aria-label="Chiudi finestra"><span class="material-symbols-rounded">close</span></button>
+const editorHtml = (titolo) => `
+    <section class="k-vista" data-vista="modulo" data-attiva="no">
+        <div class="ak-editor" data-zona="identita">
+            <div class="ak-editor-testa">
+                <h3 class="ak-editor-titolo">
+                    <span class="material-symbols-rounded">badge</span>
+                    <span id="persona-editor-titolo">${esc(titolo)}</span>
+                </h3>
+                <button type="button" id="btn-close-persona-editor" class="ak-btn ak-btn-neutro">
+                    <span class="material-symbols-rounded">arrow_back</span>Indietro
+                </button>
             </div>
-            <div class="ak-modal-body">
-                <div class="ak-modal-hint">
+            <div class="ak-editor-corpo">
+                <div class="ak-nota">
                     <span class="material-symbols-rounded">lightbulb</span>
                     <span>Il Codice Fiscale è la chiave univoca della persona: una volta creata non è più modificabile.</span>
                 </div>
                 <form id="persona-form" class="ak-form" novalidate>
                     <div id="persona-passi"></div>
-                    <div id="persona-modal-error" class="ak-error" data-visibile="no" role="alert"></div>
+                    <div id="persona-errore" class="ak-error" data-visibile="no" role="alert"></div>
                 </form>
             </div>
         </div>
-    </div>
+    </section>
 `;
+
+const confermaHtml = (id, testo, etichetta) => `
+    <span class="ak-conferma" id="${id}" hidden role="alert">
+        <span class="ak-conferma-testo">${esc(testo)}</span>
+        <button type="button" data-ruolo="si" class="k-btn k-btn--sm k-btn--danger">${esc(etichetta)}</button>
+        <button type="button" data-ruolo="no" class="k-btn k-btn--sm">Annulla</button>
+    </span>
+`;
+
+function collegaConferma(el, idTasto, idConferma, azione) {
+    const tasto = el.querySelector(idTasto);
+    const box = el.querySelector(idConferma);
+    if (!tasto || !box) return;
+    tasto.addEventListener('click', () => {
+        box.hidden = false;
+        tasto.hidden = true;
+    });
+    box.querySelector('[data-ruolo="no"]').addEventListener('click', () => {
+        box.hidden = true;
+        tasto.hidden = false;
+    });
+    box.querySelector('[data-ruolo="si"]').addEventListener('click', async (evento) => {
+        evento.currentTarget.disabled = true;
+        try {
+            await azione();
+        } catch (e) {
+            evento.currentTarget.disabled = false;
+            toast(e.message || 'Operazione non riuscita', 'error');
+        }
+    });
+}
 
 export default {
     render: async (el) => {
@@ -54,7 +90,13 @@ export default {
                 etichettaFine,
                 iconaFine: persona ? 'save' : 'person_add',
                 etichettaAnnulla: 'Annulla',
-                onAnnulla: () => chiudiModale(el.querySelector('#persona-modal')),
+                onAnnulla: () => {
+                    const viste = contenitore.closest('.k-viste');
+                    if (!viste) return;
+                    for (const vista of viste.querySelectorAll('.k-vista')) {
+                        vista.dataset.attiva = vista.dataset.vista === 'elenco' ? 'si' : 'no';
+                    }
+                },
                 onValida: (idPasso, scena) => {
                     if (idPasso !== 'identita') return null;
                     const cf = scena.querySelector('#persona-cf');
@@ -135,10 +177,14 @@ export default {
                                     ? '<button type="button" id="btn-restore-scheda" class="btn-icon-action" title="Ripristina" aria-label="Ripristina"><span class="material-symbols-rounded">restore</span></button>'
                                     : '<button type="button" id="btn-delete-scheda" class="btn-icon-action" title="Blocca" aria-label="Blocca"><span class="material-symbols-rounded">block</span></button>'}
                                 <button type="button" id="btn-harddelete-scheda" class="btn-icon-action" title="Elimina definitivamente" aria-label="Elimina definitivamente"><span class="material-symbols-rounded">delete_forever</span></button>
+                                ${confermaHtml('conferma-blocco', 'Bloccare questa persona? Potrai ripristinarla in qualsiasi momento.', 'Blocca')}
+                                ${confermaHtml('conferma-eliminazione', "Eliminare definitivamente? Vengono cancellati anche documenti, indirizzi e rapporti di lavoro, su tutti i nodi.", 'Elimina')}
                                 <button type="button" id="btn-back-scheda" class="ak-hero-btn ak-hero-btn--neutro"><span class="material-symbols-rounded">arrow_back</span>Elenco</button>`
                         })}
                     </div>
-                    <div class="k-schermo-corpo">
+                    <div class="k-schermo-corpo k-schermo-corpo--fisso">
+                        <div class="k-viste">
+                        <section class="k-vista" data-vista="elenco" data-attiva="si" style="overflow: hidden auto;">
                         <section class="k-zona" data-zona="identita">
                             <div class="k-row">
                                 <span class="k-chip" data-zona="nascita"><span class="material-symbols-rounded">cake</span>${p.data_nascita ? esc(fmt.data(p.data_nascita)) : 'Nascita non indicata'}${p.luogo_nascita ? ` · ${esc(p.luogo_nascita)}` : ''}${p.provincia_nascita ? ` (${esc(p.provincia_nascita)})` : ''}</span>
@@ -161,9 +207,11 @@ export default {
                         <div class="ak-panel ak-panel--fisso">
                             <div class="ak-panel-body" id="scheda-tab-content"></div>
                         </div>
+                        </section>
+                        ${editorHtml('Modifica Persona')}
+                        </div>
                     </div>
                 </div>
-                ${modaleHtml('Modifica Persona')}
             `;
 
             const box = el.querySelector('#scheda-tab-content');
@@ -186,20 +234,28 @@ export default {
 
             el.querySelector('#btn-back-scheda').addEventListener('click', () => renderList());
 
-            const modale = el.querySelector('#persona-modal');
             const form = el.querySelector('#persona-form');
-            const erroreBox = el.querySelector('#persona-modal-error');
+            const erroreBox = el.querySelector('#persona-errore');
+            const viste = new Map(Array.from(el.querySelectorAll('.k-vista')).map(v => [v.dataset.vista, v]));
+            const mostraVista = (nome) => {
+                for (const [chiave, vista] of viste) vista.dataset.attiva = chiave === nome ? 'si' : 'no';
+            };
+            const tornaIndietro = () => {
+                mostraErrore(erroreBox, '');
+                mostraVista('elenco');
+                const modifica = el.querySelector('#btn-edit-scheda');
+                if (modifica) modifica.focus();
+            };
             let procedura = null;
 
             const salva = async () => {
                 mostraErrore(erroreBox, '');
                 try {
-                    const dati = readPersonaForm(modale);
+                    const dati = readPersonaForm(el);
                     if (dati.codice_fiscale && !isValidCodiceFiscale(dati.codice_fiscale)) throw new Error('Codice Fiscale non valido');
                     dati.id = personaId;
                     await window.electronAPI.anagrafica.persone.update(dati);
                     toast('Persona aggiornata con successo', 'success');
-                    chiudiModale(modale);
                     await renderScheda(personaId);
                 } catch (err) {
                     mostraErrore(erroreBox, err.message || 'Errore durante il salvataggio.');
@@ -209,10 +265,9 @@ export default {
             el.querySelector('#btn-edit-scheda').addEventListener('click', () => {
                 mostraErrore(erroreBox, '');
                 procedura = collegaProcedura(el.querySelector('#persona-passi'), p, { etichettaFine: 'Salva Modifiche', onFine: salva });
-                apriModale(modale);
+                mostraVista('modulo');
             });
-            el.querySelector('#btn-close-persona-modal').addEventListener('click', () => chiudiModale(modale));
-            modale.addEventListener('click', (evento) => { if (evento.target === modale) chiudiModale(modale); });
+            el.querySelector('#btn-close-persona-editor').addEventListener('click', tornaIndietro);
             form.addEventListener('submit', async (evento) => {
                 evento.preventDefault();
                 if (!procedura) return;
@@ -220,16 +275,10 @@ export default {
                 if (problema) mostraErrore(erroreBox, problema);
             });
 
-            const bloccaBtn = el.querySelector('#btn-delete-scheda');
-            if (bloccaBtn) bloccaBtn.addEventListener('click', async () => {
-                if (!(await conferma({ titolo: 'Bloccare questa persona?', testo: 'Potrai ripristinarla in qualsiasi momento.', etichetta: 'Blocca', pericolosa: true }))) return;
-                try {
-                    await window.electronAPI.anagrafica.persone.remove({ id: personaId });
-                    toast('Persona bloccata', 'success');
-                    await renderScheda(personaId);
-                } catch (e) {
-                    toast(e.message || 'Operazione non riuscita', 'error');
-                }
+            collegaConferma(el, '#btn-delete-scheda', '#conferma-blocco', async () => {
+                await window.electronAPI.anagrafica.persone.remove({ id: personaId });
+                toast('Persona bloccata', 'success');
+                await renderScheda(personaId);
             });
 
             const ripristinaBtn = el.querySelector('#btn-restore-scheda');
@@ -243,21 +292,10 @@ export default {
                 }
             });
 
-            el.querySelector('#btn-harddelete-scheda').addEventListener('click', async () => {
-                const ok = await conferma({
-                    titolo: 'Eliminare definitivamente questa persona?',
-                    testo: 'Verranno cancellati anche documenti, indirizzi e rapporti di lavoro collegati. L\'operazione è irreversibile e si propaga a tutti i nodi connessi.',
-                    etichetta: 'Elimina definitivamente',
-                    pericolosa: true
-                });
-                if (!ok) return;
-                try {
-                    await window.electronAPI.anagrafica.persone.hardDelete({ id: personaId });
-                    toast('Persona eliminata definitivamente', 'success');
-                    await renderList();
-                } catch (e) {
-                    toast(e.message || 'Operazione non riuscita', 'error');
-                }
+            collegaConferma(el, '#btn-harddelete-scheda', '#conferma-eliminazione', async () => {
+                await window.electronAPI.anagrafica.persone.hardDelete({ id: personaId });
+                toast('Persona eliminata definitivamente', 'success');
+                await renderList();
             });
         };
 
@@ -273,30 +311,43 @@ export default {
                             actionsHtml: `<button type="button" id="btn-add-persona" class="ak-hero-btn"><span class="material-symbols-rounded">person_add</span>Nuova Persona</button>`
                         })}
                     </div>
-                    <div class="k-schermo-corpo">
-                        <div class="ak-panel ak-panel--fisso">
-                            <div class="ak-toolbar">
-                                <label class="k-cerca" style="flex: 1 1 16rem;">
-                                    <span class="material-symbols-rounded">search</span>
-                                    <input type="search" id="persone-search" placeholder="Cerca per nome, cognome o codice fiscale…" value="${esc(filtro)}" aria-label="Cerca persona">
-                                </label>
-                                <span class="ak-count" id="persone-count">0</span>
-                            </div>
-                            <div class="ak-panel-body" id="persone-content">
-                                <div class="k-loading"><div class="k-spinner"></div><span>Caricamento…</span></div>
-                            </div>
+                    <div class="k-schermo-corpo k-schermo-corpo--fisso">
+                        <div class="k-viste">
+                            <section class="k-vista" data-vista="elenco" data-attiva="si">
+                                <div class="ak-panel">
+                                    <div class="ak-toolbar">
+                                        <label class="k-cerca" style="flex: 1 1 16rem;">
+                                            <span class="material-symbols-rounded">search</span>
+                                            <input type="search" id="persone-search" placeholder="Cerca per nome, cognome o codice fiscale…" value="${esc(filtro)}" aria-label="Cerca persona">
+                                        </label>
+                                        <span class="ak-count" id="persone-count">0</span>
+                                    </div>
+                                    <div class="ak-panel-body" id="persone-content">
+                                        <div class="k-loading"><div class="k-spinner"></div><span>Caricamento…</span></div>
+                                    </div>
+                                </div>
+                            </section>
+                            ${editorHtml('Nuova Persona')}
                         </div>
                     </div>
                 </div>
-                ${modaleHtml('Nuova Persona')}
             `;
 
             const contenuto = el.querySelector('#persone-content');
             const ricerca = el.querySelector('#persone-search');
             const contatore = el.querySelector('#persone-count');
-            const modale = el.querySelector('#persona-modal');
             const form = el.querySelector('#persona-form');
-            const erroreBox = el.querySelector('#persona-modal-error');
+            const erroreBox = el.querySelector('#persona-errore');
+            const viste = new Map(Array.from(el.querySelectorAll('.k-vista')).map(v => [v.dataset.vista, v]));
+            const mostraVista = (nome) => {
+                for (const [chiave, vista] of viste) vista.dataset.attiva = chiave === nome ? 'si' : 'no';
+            };
+            const tornaIndietro = () => {
+                mostraErrore(erroreBox, '');
+                mostraVista('elenco');
+                const aggiungi = el.querySelector('#btn-add-persona');
+                if (aggiungi) aggiungi.focus();
+            };
             let procedura = null;
 
             const disegna = (testo) => {
@@ -339,13 +390,13 @@ export default {
             const salva = async () => {
                 mostraErrore(erroreBox, '');
                 try {
-                    const dati = readPersonaForm(modale);
+                    const dati = readPersonaForm(el);
                     if (!dati.codice_fiscale || !isValidCodiceFiscale(dati.codice_fiscale)) {
                         throw new Error('Il Codice Fiscale è obbligatorio e deve essere valido: è la chiave univoca della persona.');
                     }
                     await window.electronAPI.anagrafica.persone.create(dati);
                     toast('Persona creata con successo', 'success');
-                    chiudiModale(modale);
+                    tornaIndietro();
                     await carica(ricerca.value);
                 } catch (err) {
                     mostraErrore(erroreBox, err.message || 'Errore durante il salvataggio.');
@@ -355,10 +406,9 @@ export default {
             el.querySelector('#btn-add-persona').addEventListener('click', () => {
                 mostraErrore(erroreBox, '');
                 procedura = collegaProcedura(el.querySelector('#persona-passi'), null, { etichettaFine: 'Crea Persona', onFine: salva });
-                apriModale(modale);
+                mostraVista('modulo');
             });
-            el.querySelector('#btn-close-persona-modal').addEventListener('click', () => chiudiModale(modale));
-            modale.addEventListener('click', (evento) => { if (evento.target === modale) chiudiModale(modale); });
+            el.querySelector('#btn-close-persona-editor').addEventListener('click', tornaIndietro);
             form.addEventListener('submit', async (evento) => {
                 evento.preventDefault();
                 if (!procedura) return;

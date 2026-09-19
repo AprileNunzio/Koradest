@@ -1,0 +1,107 @@
+Icone in rilievo (tecnica 3d)
+
+Copiare qui i PNG scaricati da https://icons8.it/icons/set/<nome>--technique-3d
+con il nome del glifo Material Symbols usato dal programma, in minuscolo, estensione .png.
+Dimensione consigliata: 256 px, sfondo trasparente.
+
+Finche il file non e presente, la stessa icona viene disegnata dal CSS con la
+tinta della sua zona: il programma funziona in entrambi i casi e il passaggio
+e automatico alla prima apertura.
+
+File attesi (95):
+
+  account_balance.png
+  account_tree.png
+  add_circle.png
+  admin_panel_settings.png
+  alternate_email.png
+  apartment.png
+  apps.png
+  assignment_ind.png
+  backup.png
+  badge.png
+  broken_image.png
+  brush.png
+  bug_report.png
+  business_center.png
+  cake.png
+  calendar_month.png
+  calendar_today.png
+  category.png
+  check_circle.png
+  contact_page.png
+  contacts.png
+  delete.png
+  dentistry.png
+  description.png
+  device_hub.png
+  diversity_1.png
+  domain.png
+  download.png
+  edit_note.png
+  engineering.png
+  error.png
+  event.png
+  event_available.png
+  event_busy.png
+  extension_off.png
+  family_restroom.png
+  favorite.png
+  find_in_page.png
+  fingerprint.png
+  flag.png
+  folder_shared.png
+  gpp_bad.png
+  grade.png
+  group_add.png
+  groups.png
+  handshake.png
+  health_and_safety.png
+  history_toggle_off.png
+  home.png
+  hub.png
+  info.png
+  key.png
+  lan.png
+  location_city.png
+  location_on.png
+  lock.png
+  lock_open.png
+  lock_person.png
+  logout.png
+  manage_accounts.png
+  map.png
+  markunread_mailbox.png
+  medical_services.png
+  memory.png
+  more_time.png
+  payments.png
+  person.png
+  person_off.png
+  person_search.png
+  public.png
+  receipt_long.png
+  refresh.png
+  router.png
+  running_with_errors.png
+  safety_check.png
+  schedule.png
+  school.png
+  search_off.png
+  security.png
+  settings.png
+  shield.png
+  signpost.png
+  space_dashboard.png
+  storefront.png
+  system_update.png
+  tag.png
+  task_alt.png
+  travel_explore.png
+  update.png
+  verified.png
+  vpn_key.png
+  warning.png
+  work.png
+  work_history.png
+  workspace_premium.png

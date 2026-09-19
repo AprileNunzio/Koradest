@@ -26,6 +26,8 @@ export const iconaDiZona = (nome) => zona(nome).icona;
 export const ordinaPerZona = (elenco, leggiZona) => [...elenco]
     .sort((a, b) => zona(leggiZona(a)).ordine - zona(leggiZona(b)).ordine);
 
+export const ARTE_3D_BASE = 'icone/3d/';
+
 const DIMENSIONI = new Set(['2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl']);
 const VARIANTI = new Set(['tenue', 'vetro', 'tondo', 'reattiva', 'successo', 'attenzione', 'errore', 'informazione', 'neutra']);
 const NOME_ICONA = /^[a-z0-9_]{1,48}$/;
@@ -40,7 +42,7 @@ const classiIcona = (dimensione, varianti) => {
 };
 
 export function icona3d(nome, opzioni = {}) {
-    const { dimensione = 'md', varianti = [], zona: nomeZona = null, tinta = null, titolo = null } = opzioni;
+    const { dimensione = 'md', varianti = [], zona: nomeZona = null, tinta = null, titolo = null, arte = true } = opzioni;
     const glifo = NOME_ICONA.test(String(nome)) ? String(nome) : 'help';
     const scelte = Array.isArray(varianti) ? varianti : [varianti];
     const tintaScelta = tinta && TINTE.includes(tinta) ? tinta : null;
@@ -48,7 +50,40 @@ export function icona3d(nome, opzioni = {}) {
     if (nomeZona && ZONE[nomeZona]) attributi.push(`data-zona="${esc(nomeZona)}"`);
     else if (tintaScelta) attributi.push(`data-tinta="${tintaScelta}"`);
     attributi.push(titolo ? `role="img" aria-label="${esc(titolo)}"` : 'aria-hidden="true"');
-    return `<span ${attributi.join(' ')}><span class="material-symbols-rounded">${glifo}</span></span>`;
+    const disegno = arte ? `<img class="k-i3d-arte" src="${ARTE_3D_BASE}${glifo}.png" alt="" loading="lazy" data-arte>` : '';
+    return `<span ${attributi.join(' ')}>${disegno}<span class="material-symbols-rounded">${glifo}</span></span>`;
+}
+
+export function attivaArte3d(radice) {
+    if (!radice || typeof radice.querySelectorAll !== 'function') return;
+    for (const immagine of radice.querySelectorAll('img.k-i3d-arte[data-arte]')) {
+        immagine.removeAttribute('data-arte');
+        const piastra = immagine.parentElement;
+        if (!piastra) continue;
+        const accetta = () => {
+            if (immagine.naturalWidth > 0) piastra.dataset.arte = 'si';
+        };
+        if (immagine.complete) accetta();
+        else immagine.addEventListener('load', accetta, { once: true });
+        immagine.addEventListener('error', () => immagine.remove(), { once: true });
+    }
+}
+
+let osservatoreArte = null;
+
+export function osservaArte3d(radice = document.body) {
+    if (osservatoreArte || !radice) return;
+    attivaArte3d(radice);
+    osservatoreArte = new MutationObserver((mutazioni) => {
+        for (const mutazione of mutazioni) {
+            for (const nodo of mutazione.addedNodes) {
+                if (nodo.nodeType !== 1) continue;
+                if (nodo.matches && nodo.matches('img.k-i3d-arte[data-arte]')) attivaArte3d(nodo.parentElement);
+                attivaArte3d(nodo);
+            }
+        }
+    });
+    osservatoreArte.observe(radice, { childList: true, subtree: true });
 }
 
 export function icona3dImmagine(percorso, opzioni = {}) {

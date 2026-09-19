@@ -1,8 +1,8 @@
-import { toast, conferma } from '../../../js/utils.js';
+import { toast } from '../../../js/utils.js';
 import { esc } from '../../../js/shared/html.js';
 import { icona3d } from '../../../js/shared/tinte.js';
 import { creaProcedura } from '../../../js/shared/procedura.js';
-import { attributoTono, apriModale, chiudiModale, mostraErrore } from './ui_kit.js';
+import { attributoTono, mostraErrore } from './ui_kit.js';
 
 const CATEGORIE = ['Telefono', 'Email', 'Social', 'Web', 'VoIP', 'Emergenza', 'Altro'];
 
@@ -91,55 +91,75 @@ export function mountContattiSection(el, opts = {}) {
     el.innerHTML = `
         <div class="k-schermo k-schermo--pieno k-schermo--compatto"${attributo} data-radice-app>
             <div class="k-schermo-corpo k-schermo-corpo--fisso">
-                <section class="ak-panel">
-                    <div class="ak-toolbar">
-                        <h3>Recapiti<span class="ak-count" id="ct-count">0</span></h3>
-                        <button type="button" id="ct-add" class="ak-btn ak-btn-primary"><span class="material-symbols-rounded">add_ic_call</span>Nuovo Contatto</button>
-                    </div>
-                    <div class="ak-panel-body" id="ct-list"></div>
-                </section>
-            </div>
-        </div>
-        <div id="ct-modal" class="ak-modal" data-aperta="no"${attributo} role="dialog" aria-modal="true" aria-labelledby="ct-modal-title">
-            <div class="ak-modal-card ak-modal-card--stretta">
-                <div class="ak-modal-head">
-                    <h3 id="ct-modal-title"><span class="material-symbols-rounded">contact_phone</span><span id="ct-modal-title-text">Nuovo Contatto</span></h3>
-                    <button type="button" id="ct-close" class="ak-iconbtn" aria-label="Chiudi finestra"><span class="material-symbols-rounded">close</span></button>
-                </div>
-                <div class="ak-modal-body">
-                    <div class="ak-modal-hint">
-                        <span class="material-symbols-rounded">lightbulb</span>
-                        <span>Scegli prima la categoria: i tipi suggeriti e il formato del valore si adattano di conseguenza.</span>
-                    </div>
-                    <form id="ct-form" class="ak-form" novalidate>
-                        <input type="hidden" id="ct-id">
-                        <div id="ct-passi"></div>
-                        <div id="ct-error" class="ak-error" data-visibile="no" role="alert"></div>
-                        <div class="ak-actions">
-                            <button type="button" id="ct-delete" class="ak-btn ak-btn-danger" hidden><span class="material-symbols-rounded">delete</span>Elimina</button>
+                <div class="k-viste">
+                    <section class="k-vista" data-vista="elenco" data-attiva="si">
+                        <div class="ak-panel">
+                            <div class="ak-toolbar">
+                                <h3>Recapiti<span class="ak-count" id="ct-count">0</span></h3>
+                                <button type="button" id="ct-add" class="ak-btn ak-btn-primary"><span class="material-symbols-rounded">add_ic_call</span>Nuovo Contatto</button>
+                            </div>
+                            <div class="ak-panel-body" id="ct-list"></div>
                         </div>
-                    </form>
+                    </section>
+                    <section class="k-vista" data-vista="modulo" data-attiva="no">
+                        <div class="ak-editor">
+                            <div class="ak-editor-testa">
+                                <h3 class="ak-editor-titolo">
+                                    <span class="material-symbols-rounded">contact_phone</span>
+                                    <span id="ct-editor-titolo">Nuovo Contatto</span>
+                                </h3>
+                                <button type="button" id="ct-close" class="ak-btn ak-btn-neutro">
+                                    <span class="material-symbols-rounded">arrow_back</span>Torna alla rubrica
+                                </button>
+                            </div>
+                            <div class="ak-editor-corpo">
+                                <div class="ak-nota">
+                                    <span class="material-symbols-rounded">lightbulb</span>
+                                    <span>Scegli prima la categoria: i tipi suggeriti e il formato del valore si adattano di conseguenza.</span>
+                                </div>
+                                <form id="ct-form" class="ak-form" novalidate>
+                                    <input type="hidden" id="ct-id">
+                                    <div id="ct-passi"></div>
+                                    <div id="ct-error" class="ak-error" data-visibile="no" role="alert"></div>
+                                    <div class="ak-actions" id="ct-azioni" hidden>
+                                        <button type="button" id="ct-delete" class="ak-btn ak-btn-danger"><span class="material-symbols-rounded">delete</span>Elimina</button>
+                                        <span class="ak-conferma" id="ct-conferma" hidden role="alert">
+                                            <span class="ak-conferma-testo">Eliminare questo contatto?</span>
+                                            <button type="button" id="ct-delete-si" class="k-btn k-btn--sm k-btn--danger">Elimina</button>
+                                            <button type="button" id="ct-delete-no" class="k-btn k-btn--sm">Annulla</button>
+                                        </span>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
     `;
 
     const listBox = el.querySelector('#ct-list');
-    const modal = el.querySelector('#ct-modal');
     const form = el.querySelector('#ct-form');
     const errorBox = el.querySelector('#ct-error');
-    const titleText = el.querySelector('#ct-modal-title-text');
+    const titoloEditor = el.querySelector('#ct-editor-titolo');
+    const azioni = el.querySelector('#ct-azioni');
     const btnDelete = el.querySelector('#ct-delete');
+    const confermaBox = el.querySelector('#ct-conferma');
     const countEl = el.querySelector('#ct-count');
+    const viste = new Map(Array.from(el.querySelectorAll('.k-vista')).map(v => [v.dataset.vista, v]));
+
+    const mostraVista = (nome) => {
+        for (const [chiave, vista] of viste) vista.dataset.attiva = chiave === nome ? 'si' : 'no';
+    };
 
     const procedura = creaProcedura(el.querySelector('#ct-passi'), {
         id: 'contatto',
         passi: [
-            { id: 'categoria', zona: 'contatti', etichetta: 'Categoria', titolo: 'Che tipo di recapito è', nota: 'La categoria decide i suggerimenti del passaggio successivo.', corpo: passoCategoria() },
-            { id: 'valore', zona: 'contatti', etichetta: 'Recapito', titolo: 'Il recapito', nota: 'Il valore viene controllato in base alla categoria scelta.', corpo: passoValore() }
+            { id: 'categoria', zona: 'contatti', icona: 'category', etichetta: 'Categoria', titolo: 'Che tipo di recapito è', nota: 'La categoria decide i suggerimenti del passaggio successivo.', corpo: passoCategoria() },
+            { id: 'valore', zona: 'contatti', icona: 'alternate_email', etichetta: 'Recapito', titolo: 'Il recapito', nota: 'Il valore viene controllato in base alla categoria scelta.', corpo: passoValore() }
         ],
         etichettaAnnulla: 'Annulla',
-        onAnnulla: () => chiudiModale(modal),
+        onAnnulla: () => tornaAllElenco(),
         onFine: () => salva()
     });
 
@@ -200,7 +220,7 @@ export function mountContattiSection(el, opts = {}) {
         for (const card of listBox.querySelectorAll('.ct-card')) {
             card.addEventListener('click', () => {
                 const contatto = contatti.find(x => x.id === card.getAttribute('data-id'));
-                if (contatto) openModal(contatto);
+                if (contatto) apriEditor(contatto);
             });
         }
     }
@@ -225,10 +245,12 @@ export function mountContattiSection(el, opts = {}) {
         inVal.type = TIPI_VALORE[categoria] || 'text';
     }
 
-    function openModal(contatto = null) {
+    function apriEditor(contatto = null) {
         mostraErrore(errorBox, '');
+        confermaBox.hidden = true;
+        btnDelete.hidden = false;
         if (contatto) {
-            titleText.textContent = 'Modifica Contatto';
+            titoloEditor.textContent = 'Modifica Contatto';
             inId.value = contatto.id;
             inCat.value = contatto.categoria || '';
             aggiornaSuggerimenti(contatto.categoria);
@@ -236,17 +258,25 @@ export function mountContattiSection(el, opts = {}) {
             inVal.value = contatto.valore || '';
             inPrin.checked = contatto.is_principale === 1;
             inNote.value = contatto.note || '';
-            btnDelete.hidden = false;
+            azioni.hidden = false;
         } else {
-            titleText.textContent = 'Nuovo Contatto';
+            titoloEditor.textContent = 'Nuovo Contatto';
             form.reset();
             inId.value = '';
             inCat.value = '';
             aggiornaSuggerimenti('');
-            btnDelete.hidden = true;
+            azioni.hidden = true;
         }
+        mostraVista('modulo');
         if (procedura) procedura.vaiA(0, { valida: false });
-        apriModale(modal);
+    }
+
+    function tornaAllElenco() {
+        mostraErrore(errorBox, '');
+        confermaBox.hidden = true;
+        mostraVista('elenco');
+        const aggiungi = el.querySelector('#ct-add');
+        if (aggiungi) aggiungi.focus();
     }
 
     async function salva() {
@@ -268,7 +298,7 @@ export function mountContattiSection(el, opts = {}) {
                 await window.electronAPI.anagrafica.contatti.create(dati);
                 toast('Contatto aggiunto', 'success');
             }
-            chiudiModale(modal);
+            tornaAllElenco();
             await load();
         } catch (err) {
             mostraErrore(errorBox, err.message || 'Errore durante il salvataggio.');
@@ -279,30 +309,34 @@ export function mountContattiSection(el, opts = {}) {
         aggiornaSuggerimenti(inCat.value);
         inTipo.value = '';
     });
-    el.querySelector('#ct-add').addEventListener('click', () => openModal());
-    el.querySelector('#ct-close').addEventListener('click', () => chiudiModale(modal));
-    modal.addEventListener('click', (evento) => { if (evento.target === modal) chiudiModale(modal); });
-    document.addEventListener('keydown', (evento) => {
-        if (evento.key === 'Escape' && modal.dataset.aperta === 'si') chiudiModale(modal);
-    });
+    el.querySelector('#ct-add').addEventListener('click', () => apriEditor());
+    el.querySelector('#ct-close').addEventListener('click', tornaAllElenco);
     form.addEventListener('submit', async (evento) => {
         evento.preventDefault();
         if (!procedura) return;
         const problema = await procedura.concludi();
         if (problema) mostraErrore(errorBox, problema);
     });
-    btnDelete.addEventListener('click', async () => {
-        if (!(await conferma({ titolo: 'Eliminare questo contatto?', etichetta: 'Elimina', pericolosa: true }))) return;
+    btnDelete.addEventListener('click', () => {
+        confermaBox.hidden = false;
+        btnDelete.hidden = true;
+    });
+    el.querySelector('#ct-delete-no').addEventListener('click', () => {
+        confermaBox.hidden = true;
+        btnDelete.hidden = false;
+    });
+    el.querySelector('#ct-delete-si').addEventListener('click', async (evento) => {
+        const tasto = evento.currentTarget;
+        tasto.disabled = true;
         try {
-            btnDelete.disabled = true;
             await window.electronAPI.anagrafica.contatti.remove({ id: inId.value });
             toast('Contatto eliminato', 'success');
-            chiudiModale(modal);
+            tornaAllElenco();
             await load();
         } catch (err) {
-            mostraErrore(errorBox, err.message || 'Errore durante l\'eliminazione.');
+            mostraErrore(errorBox, err.message || "Errore durante l'eliminazione.");
         } finally {
-            btnDelete.disabled = false;
+            tasto.disabled = false;
         }
     });
 

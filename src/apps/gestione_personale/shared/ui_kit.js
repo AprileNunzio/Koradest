@@ -186,24 +186,6 @@ export function toISODate(value) {
     return s;
 }
 
-export function apriModale(modale) {
-    if (!modale) return;
-    modale.dataset.aperta = 'si';
-    requestAnimationFrame(() => {
-        modale.style.opacity = '1';
-        const scheda = modale.querySelector('.ak-modal-card');
-        if (scheda) scheda.style.transform = 'none';
-    });
-}
-
-export function chiudiModale(modale) {
-    if (!modale) return;
-    modale.style.opacity = '0';
-    const scheda = modale.querySelector('.ak-modal-card');
-    if (scheda) scheda.style.transform = 'translateY(8px) scale(0.98)';
-    setTimeout(() => { modale.dataset.aperta = 'no'; }, 220);
-}
-
 export function mostraErrore(box, messaggio) {
     if (!box) return;
     box.textContent = messaggio || '';

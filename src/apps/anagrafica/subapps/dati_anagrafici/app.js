@@ -76,7 +76,7 @@ const subapp = {
                         <div class="ak-panel-body">
                             <form id="persona-form" class="ak-form">
                                 ${personaFormHtml()}
-                                <div id="persona-modal-error" class="ak-error" data-visibile="no" role="alert"></div>
+                                <div id="persona-errore" class="ak-error" data-visibile="no" role="alert"></div>
                                 <div class="ak-actions">
                                     <button type="submit" id="btn-save-persona" class="ak-btn ak-btn-primary">
                                         <span class="material-symbols-rounded">${persona ? 'save' : 'person_add'}</span>
@@ -91,7 +91,7 @@ const subapp = {
         `;
 
         const form = el.querySelector('#persona-form');
-        const erroreBox = el.querySelector('#persona-modal-error');
+        const erroreBox = el.querySelector('#persona-errore');
         fillPersonaForm(el, persona);
         populatePersonaFormDatalists(el);
 

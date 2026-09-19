@@ -5,6 +5,7 @@ import initStatusBar from './shell/status_bar.js';
 import initUpdateOverlay from './shell/update_overlay.js';
 import initSessionEvents from './shell/session_events.js';
 import initGlobalErrorHandling from './shell/global_errors.js';
+import { osservaArte3d } from './shared/tinte.js';
 
 const SPLASH_DELAY_MS = 2000;
 const SPLASH_FADE_MS = 800;
@@ -38,6 +39,7 @@ window.Pages = PAGES;
 
 document.addEventListener('DOMContentLoaded', async () => {
     initGlobalErrorHandling();
+    osservaArte3d();
     dismissSplash();
     initTitleBar();
     initStatusBar();

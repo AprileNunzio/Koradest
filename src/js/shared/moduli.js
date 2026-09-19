@@ -3,10 +3,6 @@ import { icona3d, icona3dImmagine, applicaRipieghiImmagine, TINTE, ZONE, zona as
 
 const RIPIEGO = 'icone/applicazione_generica.png';
 
-/* La tinta di un modulo e una costante, non una decorazione: la stessa voce
-   porta lo stesso colore per tutta la vita del programma. Le voci note sono
-   dichiarate qui; per quelle nuove il colore nasce da un'impronta del nome,
-   quindi resta comunque stabile fra un avvio e l altro. */
 const TINTE_MODULI = {
     dati_anagrafici: 'indaco',
     contatti: 'violetto',

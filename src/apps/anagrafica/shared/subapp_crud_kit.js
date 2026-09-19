@@ -1,11 +1,11 @@
-import { toast, conferma } from '../../../js/utils.js';
+import { toast } from '../../../js/utils.js';
 import { esc } from '../../../js/shared/html.js';
 import { icona3d } from '../../../js/shared/tinte.js';
 import { creaProcedura } from '../../../js/shared/procedura.js';
 import { mountPersonaPicker } from './persona_picker.js';
 import { mountAuditButton } from './audit_trail_button.js';
 import { populateProvinceDatalist, populateNazioniDatalist, populateSuggestionDatalist, populateComuniDatalist, getComuniCache } from './riferimenti.js';
-import { tono, attributoTono, heroHtml, guidaHtml, campoHtml, leggiCampo, toISODate, apriModale, chiudiModale, mostraErrore } from './ui_kit.js';
+import { tono, attributoTono, heroHtml, guidaHtml, campoHtml, leggiCampo, toISODate, mostraErrore } from './ui_kit.js';
 
 const CAMPI_PER_PASSO = 4;
 
@@ -38,10 +38,6 @@ function collegaComuni(el, fields) {
     }
 }
 
-/* I campi vengono distribuiti su passaggi da quattro: ogni schermata entra
-   nell altezza disponibile, quindi la barra di scorrimento non compare mai
-   mentre si scrive. Un gruppo dichiarato dal chiamante vince sulla divisione
-   automatica, cosi i campi che si leggono insieme restano insieme. */
 function costruisciPassi(fields, zonaBase) {
     const gruppi = new Map();
     let automatico = 0;
@@ -52,7 +48,7 @@ function costruisciPassi(fields, zonaBase) {
         gruppi.get(chiave).push(field);
     }
     const totale = gruppi.size;
-    return Array.from(gruppi.entries()).map(([chiave, campi], indice) => {
+    return Array.from(gruppi.values()).map((campi, indice) => {
         const primo = campi.find(c => c.gruppoEtichetta) || campi[0];
         return {
             id: `passo-${indice + 1}`,
@@ -76,8 +72,7 @@ export function renderPersonScopedCrudSubapp(el, config) {
     const scelto = tono(tone);
     const attributo = attributoTono(tone);
     const iconaScheda = icon || scelto.icon;
-    const zonaBase = scelto.zona;
-    const passi = costruisciPassi(fields, zonaBase);
+    const passi = costruisciPassi(fields, scelto.zona);
 
     el.innerHTML = `
         <div class="k-schermo fade-in-up${embedded ? ' k-schermo--pieno k-schermo--compatto' : ''}"${attributo} data-radice-app>
@@ -87,33 +82,39 @@ export function renderPersonScopedCrudSubapp(el, config) {
                 ${fixedPersona ? '' : '<div class="ak-panel ak-panel--fisso" style="flex: 1 1 100%;"><div class="ak-panel-body" id="crud-kit-picker"></div></div>'}
             </div>
             <div class="k-schermo-corpo k-schermo-corpo--fisso">
-                <section id="crud-kit-records" class="ak-panel" hidden>
-                    <div class="ak-toolbar">
-                        <h3>${esc(recordsTitle)}<span class="ak-count" id="crud-kit-count">0</span></h3>
-                        <button type="button" id="crud-kit-btn-new" class="ak-btn ak-btn-primary">
-                            <span class="material-symbols-rounded">add</span>${esc(newLabel)}
-                        </button>
-                    </div>
-                    <div class="ak-panel-body" id="crud-kit-grid"></div>
-                </section>
-            </div>
-        </div>
-        <div id="crud-kit-modal" class="ak-modal" data-aperta="no"${attributo} role="dialog" aria-modal="true" aria-labelledby="crud-kit-modal-title">
-            <div class="ak-modal-card">
-                <div class="ak-modal-head">
-                    <h3 id="crud-kit-modal-title">
-                        <span class="material-symbols-rounded">${esc(iconaScheda)}</span>
-                        <span id="crud-kit-modal-title-text"></span>
-                    </h3>
-                    <button type="button" id="crud-kit-btn-close" class="ak-iconbtn" aria-label="Chiudi finestra"><span class="material-symbols-rounded">close</span></button>
-                </div>
-                <div class="ak-modal-body">
-                    ${modalHint ? `<div class="ak-modal-hint"><span class="material-symbols-rounded">lightbulb</span><span>${modalHint}</span></div>` : ''}
-                    <form id="crud-kit-form" class="ak-form" novalidate>
-                        <input type="hidden" id="crud-field-id">
-                        <div id="crud-kit-passi"></div>
-                        <div id="crud-kit-modal-error" class="ak-error" data-visibile="no" role="alert"></div>
-                    </form>
+                <div class="k-viste">
+                    <section class="k-vista" data-vista="elenco" data-attiva="si">
+                        <div class="ak-panel" id="crud-kit-records" hidden>
+                            <div class="ak-toolbar">
+                                <h3>${esc(recordsTitle)}<span class="ak-count" id="crud-kit-count">0</span></h3>
+                                <button type="button" id="crud-kit-btn-new" class="ak-btn ak-btn-primary">
+                                    <span class="material-symbols-rounded">add</span>${esc(newLabel)}
+                                </button>
+                            </div>
+                            <div class="ak-panel-body" id="crud-kit-grid"></div>
+                        </div>
+                    </section>
+                    <section class="k-vista" data-vista="modulo" data-attiva="no">
+                        <div class="ak-editor">
+                            <div class="ak-editor-testa">
+                                <h3 class="ak-editor-titolo">
+                                    <span class="material-symbols-rounded">${esc(iconaScheda)}</span>
+                                    <span id="crud-kit-editor-titolo"></span>
+                                </h3>
+                                <button type="button" id="crud-kit-btn-close" class="ak-btn ak-btn-neutro">
+                                    <span class="material-symbols-rounded">arrow_back</span>Torna all'elenco
+                                </button>
+                            </div>
+                            <div class="ak-editor-corpo">
+                                ${modalHint ? `<div class="ak-nota"><span class="material-symbols-rounded">lightbulb</span><span>${modalHint}</span></div>` : ''}
+                                <form id="crud-kit-form" class="ak-form" novalidate>
+                                    <input type="hidden" id="crud-field-id">
+                                    <div id="crud-kit-passi"></div>
+                                    <div id="crud-kit-error" class="ak-error" data-visibile="no" role="alert"></div>
+                                </form>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -122,20 +123,26 @@ export function renderPersonScopedCrudSubapp(el, config) {
     const recordsSection = el.querySelector('#crud-kit-records');
     const grid = el.querySelector('#crud-kit-grid');
     const countEl = el.querySelector('#crud-kit-count');
-    const modal = el.querySelector('#crud-kit-modal');
     const form = el.querySelector('#crud-kit-form');
-    const modalError = el.querySelector('#crud-kit-modal-error');
+    const erroreBox = el.querySelector('#crud-kit-error');
     const passiBox = el.querySelector('#crud-kit-passi');
+    const titoloEditor = el.querySelector('#crud-kit-editor-titolo');
+    const viste = new Map(Array.from(el.querySelectorAll('.k-vista')).map(v => [v.dataset.vista, v]));
 
     let currentPersona = null;
     let records = [];
+    let daEliminare = null;
+
+    const mostraVista = (nome) => {
+        for (const [chiave, vista] of viste) vista.dataset.attiva = chiave === nome ? 'si' : 'no';
+    };
 
     const procedura = creaProcedura(passiBox, {
         id: 'crud',
         passi,
         etichettaFine: 'Salva',
         etichettaAnnulla: 'Annulla',
-        onAnnulla: () => chiudiModale(modal),
+        onAnnulla: () => tornaAllElenco(),
         onFine: () => salva()
     });
 
@@ -169,6 +176,12 @@ export function renderPersonScopedCrudSubapp(el, config) {
                         <button type="button" class="ak-iconbtn crud-kit-btn-edit" data-id="${esc(r.id)}" title="Modifica" aria-label="Modifica"><span class="material-symbols-rounded">edit</span></button>
                         <button type="button" class="ak-iconbtn danger crud-kit-btn-delete" data-id="${esc(r.id)}" title="Elimina" aria-label="Elimina"><span class="material-symbols-rounded">delete</span></button>
                     </div>
+                    ${daEliminare === r.id ? `
+                        <div class="ak-conferma" role="alert">
+                            <span class="ak-conferma-testo">Eliminare definitivamente?</span>
+                            <button type="button" class="k-btn k-btn--sm k-btn--danger crud-kit-conferma-si" data-id="${esc(r.id)}">Elimina</button>
+                            <button type="button" class="k-btn k-btn--sm crud-kit-conferma-no">Annulla</button>
+                        </div>` : ''}
                 </article>`;
         }).join('')}</div>`;
 
@@ -182,17 +195,32 @@ export function renderPersonScopedCrudSubapp(el, config) {
         for (const btn of grid.querySelectorAll('.crud-kit-btn-edit')) {
             btn.addEventListener('click', () => {
                 const record = records.find(r => r.id === btn.getAttribute('data-id'));
-                if (record) openModal(record);
+                if (record) apriEditor(record);
             });
         }
         for (const btn of grid.querySelectorAll('.crud-kit-btn-delete')) {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
+                daEliminare = daEliminare === id ? null : id;
+                renderRecords();
+            });
+        }
+        for (const btn of grid.querySelectorAll('.crud-kit-conferma-no')) {
+            btn.addEventListener('click', () => {
+                daEliminare = null;
+                renderRecords();
+            });
+        }
+        for (const btn of grid.querySelectorAll('.crud-kit-conferma-si')) {
             btn.addEventListener('click', async () => {
-                if (!(await conferma({ titolo: 'Eliminare questo elemento?', testo: 'L\'operazione non è reversibile.', etichetta: 'Elimina', pericolosa: true }))) return;
+                btn.disabled = true;
                 try {
                     await api.remove({ id: btn.getAttribute('data-id') });
+                    daEliminare = null;
                     toast('Eliminato con successo', 'success');
                     await loadRecords();
                 } catch (e) {
+                    btn.disabled = false;
                     toast(e.message || "Errore durante l'eliminazione", 'error');
                 }
             });
@@ -213,9 +241,10 @@ export function renderPersonScopedCrudSubapp(el, config) {
         }
     }
 
-    function openModal(record = null) {
-        mostraErrore(modalError, '');
-        el.querySelector('#crud-kit-modal-title-text').textContent = record ? 'Modifica' : newLabel;
+    function apriEditor(record = null) {
+        mostraErrore(erroreBox, '');
+        daEliminare = null;
+        titoloEditor.textContent = record ? 'Modifica' : newLabel;
         el.querySelector('#crud-field-id').value = record ? record.id : '';
         for (const f of fields) {
             const input = el.querySelector(`#crud-field-${f.key}`);
@@ -225,14 +254,21 @@ export function renderPersonScopedCrudSubapp(el, config) {
             else if (f.type === 'date') input.value = toISODate(valore);
             else input.value = valore === undefined || valore === null ? '' : valore;
         }
+        mostraVista('modulo');
         if (procedura) procedura.vaiA(0, { valida: false });
-        apriModale(modal);
+    }
+
+    function tornaAllElenco() {
+        mostraErrore(erroreBox, '');
+        mostraVista('elenco');
+        const nuovo = el.querySelector('#crud-kit-btn-new');
+        if (nuovo) nuovo.focus();
     }
 
     async function salva() {
-        mostraErrore(modalError, '');
-        const btnSave = passiBox.querySelector('[data-ruolo="fine"]');
-        if (btnSave) btnSave.disabled = true;
+        mostraErrore(erroreBox, '');
+        const tastoSalva = passiBox.querySelector('[data-ruolo="fine"]');
+        if (tastoSalva) tastoSalva.disabled = true;
         try {
             const id = el.querySelector('#crud-field-id').value;
             const dati = { persona_id: currentPersona.id };
@@ -244,27 +280,22 @@ export function renderPersonScopedCrudSubapp(el, config) {
                 await api.create(dati);
             }
             toast('Salvato con successo', 'success');
-            chiudiModale(modal);
+            tornaAllElenco();
             await loadRecords();
         } catch (e) {
-            mostraErrore(modalError, e.message || 'Errore durante il salvataggio.');
+            mostraErrore(erroreBox, e.message || 'Errore durante il salvataggio.');
         } finally {
-            if (btnSave) btnSave.disabled = false;
+            if (tastoSalva) tastoSalva.disabled = false;
         }
     }
 
-    el.querySelector('#crud-kit-btn-new').addEventListener('click', () => openModal());
-    el.querySelector('#crud-kit-btn-close').addEventListener('click', () => chiudiModale(modal));
-    modal.addEventListener('click', (evento) => { if (evento.target === modal) chiudiModale(modal); });
-    const allaFuga = (evento) => {
-        if (evento.key === 'Escape' && modal.dataset.aperta === 'si') chiudiModale(modal);
-    };
-    document.addEventListener('keydown', allaFuga);
+    el.querySelector('#crud-kit-btn-new').addEventListener('click', () => apriEditor());
+    el.querySelector('#crud-kit-btn-close').addEventListener('click', tornaAllElenco);
     form.addEventListener('submit', async (evento) => {
         evento.preventDefault();
         if (!procedura) return;
         const problema = await procedura.concludi();
-        if (problema) mostraErrore(modalError, problema);
+        if (problema) mostraErrore(erroreBox, problema);
     });
 
     if (fixedPersona) {
@@ -284,7 +315,6 @@ export function renderPersonScopedCrudSubapp(el, config) {
     return {
         ricarica: loadRecords,
         distruggi: () => {
-            document.removeEventListener('keydown', allaFuga);
             if (procedura) procedura.distruggi();
         }
     };

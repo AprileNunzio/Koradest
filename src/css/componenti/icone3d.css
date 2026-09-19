@@ -1,9 +1,3 @@
-/* Icone in rilievo (tecnica 3d).
-   La piastra e generata dal solo CSS: nessun file remoto, nessun PNG da aggiornare.
-   Il volume nasce da tre strati sovrapposti: gradiente di corpo, luce speculare in alto,
-   rimbalzo di luce in basso. Il colore arriva sempre da --k-sezione, quindi l icona
-   assume da sola la tinta della sezione in cui vive. */
-
 .k-i3d {
     --k-i3d-tinta: var(--k-sezione, var(--md-primary));
     position: relative;
@@ -65,7 +59,6 @@
     filter: drop-shadow(0 2px 4px rgba(11, 18, 32, 0.32));
 }
 
-/* ── Scala ──────────────────────────────────────────────── */
 .k-i3d--2xs { --k-i3d-size: 1.25rem; --k-i3d-radius: 28%; }
 .k-i3d--xs { --k-i3d-size: 1.625rem; }
 .k-i3d--sm { --k-i3d-size: 2.125rem; }
@@ -74,8 +67,6 @@
 .k-i3d--xl { --k-i3d-size: 4.5rem; --k-i3d-radius: 27%; }
 .k-i3d--2xl { --k-i3d-size: 5.75rem; --k-i3d-radius: 26%; }
 
-/* ── Varianti ───────────────────────────────────────────── */
-/* Tenue: stessa geometria, peso visivo minore, per icone ripetute in elenco. */
 .k-i3d--tenue {
     background:
         linear-gradient(
@@ -96,7 +87,6 @@
 }
 .k-i3d--tenue::after { background: radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.7), transparent 72%); }
 
-/* Vetro: piastra neutra per icone che portano il proprio colore (PNG delle app). */
 .k-i3d--vetro {
     background: linear-gradient(158deg, #ffffff 0%, var(--md-surface-container) 62%, var(--md-surface-container-high) 100%);
     box-shadow:
@@ -110,10 +100,8 @@
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-/* Cerchio, per avatar e passaggi numerati. */
 .k-i3d--tondo { --k-i3d-radius: 50%; }
 
-/* Reattiva: si solleva quando il contenitore riceve il puntatore. */
 .k-i3d--reattiva { will-change: transform; }
 .k-i3d--reattiva:hover,
 :hover > .k-i3d--reattiva,
@@ -128,14 +116,12 @@ a:hover .k-i3d--reattiva,
         0 20px 28px -12px color-mix(in srgb, var(--k-i3d-tinta) 70%, transparent);
 }
 
-/* Stati diagnostici: il rilievo parla la lingua del semaforo. */
 .k-i3d--successo { --k-i3d-tinta: var(--md-success); }
 .k-i3d--attenzione { --k-i3d-tinta: var(--md-warning); }
 .k-i3d--errore { --k-i3d-tinta: var(--md-error); }
 .k-i3d--informazione { --k-i3d-tinta: var(--md-info); }
 .k-i3d--neutra { --k-i3d-tinta: var(--k-tinta-ardesia); }
 
-/* Pila: due piastre sfalsate, per rappresentare una raccolta di elementi. */
 .k-i3d--pila { position: relative; }
 .k-i3d--pila > .k-i3d-ombra {
     position: absolute;
@@ -153,4 +139,22 @@ a:hover .k-i3d--reattiva,
 @media (prefers-reduced-motion: reduce) {
     .k-i3d--reattiva:hover,
     :hover > .k-i3d--reattiva { transform: none; }
+}
+
+.k-i3d-arte { display: none; }
+.k-i3d[data-arte="si"] {
+    background: none;
+    box-shadow: none;
+}
+.k-i3d[data-arte="si"]::before,
+.k-i3d[data-arte="si"]::after { display: none; }
+.k-i3d[data-arte="si"] > .material-symbols-rounded { display: none; }
+.k-i3d[data-arte="si"] > .k-i3d-arte {
+    display: block;
+    position: relative;
+    z-index: var(--k-z-base);
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 12px rgba(11, 18, 32, 0.22));
 }

@@ -1,9 +1,9 @@
-import { toast, fmt, conferma } from '../../js/utils.js';
+import { toast, fmt } from '../../js/utils.js';
 import { esc } from '../../js/shared/html.js';
 import { icona3d, ZONE } from '../../js/shared/tinte.js';
 import { creaProcedura } from '../../js/shared/procedura.js';
 import { isValidCodiceFiscale } from './shared/validators.js';
-import { heroHtml, guidaHtml, apriModale, chiudiModale, mostraErrore } from './shared/ui_kit.js';
+import { heroHtml, guidaHtml, mostraErrore } from './shared/ui_kit.js';
 import { passiPersona, personaFormHtml, readPersonaForm, fillPersonaForm, populatePersonaFormDatalists } from './shared/persona_form.js';
 import { renderPersonScopedCrudSubapp } from './shared/subapp_crud_kit.js';
 import { mountContattiSection } from './shared/contatti_section.js';
@@ -210,25 +210,30 @@ const SCHEDE = [
     { id: 'residenza', zona: 'residenza', etichetta: 'Residenza' }
 ];
 
-const modalePersonaHtml = (titolo) => `
-    <div id="persona-modal" class="ak-modal" data-aperta="no" data-zona="identita" role="dialog" aria-modal="true" aria-labelledby="persona-modal-title">
-        <div class="ak-modal-card">
-            <div class="ak-modal-head">
-                <h3 id="persona-modal-title"><span class="material-symbols-rounded">badge</span><span id="persona-modal-title-text">${esc(titolo)}</span></h3>
-                <button type="button" id="persona-modal-close" class="ak-iconbtn" aria-label="Chiudi finestra"><span class="material-symbols-rounded">close</span></button>
+const editorPersonaHtml = (titolo) => `
+    <section class="k-vista" data-vista="modulo" data-attiva="no">
+        <div class="ak-editor" data-zona="identita">
+            <div class="ak-editor-testa">
+                <h3 class="ak-editor-titolo">
+                    <span class="material-symbols-rounded">badge</span>
+                    <span id="persona-editor-titolo">${esc(titolo)}</span>
+                </h3>
+                <button type="button" id="persona-editor-close" class="ak-btn ak-btn-neutro">
+                    <span class="material-symbols-rounded">arrow_back</span>Torna all'elenco
+                </button>
             </div>
-            <div class="ak-modal-body">
-                <div class="ak-modal-hint">
+            <div class="ak-editor-corpo">
+                <div class="ak-nota">
                     <span class="material-symbols-rounded">lightbulb</span>
                     <span>Il Codice Fiscale è la chiave univoca della persona: una volta creata non è più modificabile.</span>
                 </div>
                 <form id="persona-form" class="ak-form" novalidate>
                     <div id="persona-passi"></div>
-                    <div id="persona-modal-error" class="ak-error" data-visibile="no" role="alert"></div>
+                    <div id="persona-errore" class="ak-error" data-visibile="no" role="alert"></div>
                 </form>
             </div>
         </div>
-    </div>
+    </section>
 `;
 
 export default {
@@ -257,29 +262,42 @@ export default {
                         })}
                     </div>
                     <div class="k-schermo-corpo k-schermo-corpo--fisso">
-                        <div class="ak-panel">
-                            <div class="ak-toolbar">
-                                <label class="k-cerca" style="flex: 1 1 18rem;">
-                                    <span class="material-symbols-rounded">search</span>
-                                    <input type="search" id="gp-search" placeholder="Cerca per nome, cognome o codice fiscale…" value="${esc(filtro)}" aria-label="Cerca persona">
-                                </label>
-                                <span class="ak-count" id="gp-count">0</span>
-                            </div>
-                            <div class="ak-panel-body" id="gp-directory">
-                                <div class="k-loading"><div class="k-spinner"></div><span>Caricamento del personale…</span></div>
-                            </div>
+                        <div class="k-viste">
+                            <section class="k-vista" data-vista="elenco" data-attiva="si">
+                                <div class="ak-panel">
+                                    <div class="ak-toolbar">
+                                        <label class="k-cerca" style="flex: 1 1 18rem;">
+                                            <span class="material-symbols-rounded">search</span>
+                                            <input type="search" id="gp-search" placeholder="Cerca per nome, cognome o codice fiscale…" value="${esc(filtro)}" aria-label="Cerca persona">
+                                        </label>
+                                        <span class="ak-count" id="gp-count">0</span>
+                                    </div>
+                                    <div class="ak-panel-body" id="gp-directory">
+                                        <div class="k-loading"><div class="k-spinner"></div><span>Caricamento del personale…</span></div>
+                                    </div>
+                                </div>
+                            </section>
+                            ${editorPersonaHtml('Nuova Persona')}
                         </div>
                     </div>
                 </div>
-                ${modalePersonaHtml('Nuova Persona')}
             `;
 
             const directory = el.querySelector('#gp-directory');
             const ricerca = el.querySelector('#gp-search');
             const contatore = el.querySelector('#gp-count');
-            const modale = el.querySelector('#persona-modal');
             const form = el.querySelector('#persona-form');
-            const erroreBox = el.querySelector('#persona-modal-error');
+            const erroreBox = el.querySelector('#persona-errore');
+            const viste = new Map(Array.from(el.querySelectorAll('.k-vista')).map(v => [v.dataset.vista, v]));
+            const mostraVista = (nome) => {
+                for (const [chiave, vista] of viste) vista.dataset.attiva = chiave === nome ? 'si' : 'no';
+            };
+            const tornaAllElenco = () => {
+                mostraErrore(erroreBox, '');
+                mostraVista('elenco');
+                const aggiungi = el.querySelector('#gp-add-persona');
+                if (aggiungi) aggiungi.focus();
+            };
             let procedura = null;
 
             const disegna = (testo) => {
@@ -332,13 +350,13 @@ export default {
             const salva = async () => {
                 mostraErrore(erroreBox, '');
                 try {
-                    const dati = readPersonaForm(modale);
+                    const dati = readPersonaForm(el);
                     if (!dati.codice_fiscale || !isValidCodiceFiscale(dati.codice_fiscale)) {
                         throw new Error('Il Codice Fiscale è obbligatorio e deve essere valido: è la chiave univoca della persona.');
                     }
                     const creata = await window.electronAPI.anagrafica.persone.create(dati);
                     toast('Persona creata con successo', 'success');
-                    chiudiModale(modale);
+                    tornaAllElenco();
                     if (creata && creata.id) openWorkspace(creata.id);
                     else await carica(ricerca.value);
                 } catch (err) {
@@ -354,7 +372,7 @@ export default {
                     etichettaFine: 'Crea Persona',
                     iconaFine: 'person_add',
                     etichettaAnnulla: 'Annulla',
-                    onAnnulla: () => chiudiModale(modale),
+                    onAnnulla: tornaAllElenco,
                     onValida: (idPasso, scena) => {
                         if (idPasso !== 'identita') return null;
                         const cf = scena.querySelector('#persona-cf');
@@ -368,12 +386,11 @@ export default {
                     },
                     onFine: salva
                 });
-                fillPersonaForm(modale, null);
-                populatePersonaFormDatalists(modale);
-                apriModale(modale);
+                fillPersonaForm(el, null);
+                populatePersonaFormDatalists(el);
+                mostraVista('modulo');
             });
-            el.querySelector('#persona-modal-close').addEventListener('click', () => chiudiModale(modale));
-            modale.addEventListener('click', (evento) => { if (evento.target === modale) chiudiModale(modale); });
+            el.querySelector('#persona-editor-close').addEventListener('click', tornaAllElenco);
             form.addEventListener('submit', async (evento) => {
                 evento.preventDefault();
                 if (!procedura) return;
@@ -433,7 +450,12 @@ export default {
                                 ${p.is_deleted ? '<span class="ak-hero-flag">Bloccata</span>' : ''}
                                 ${p.is_deleted
                                     ? '<button type="button" id="gp-restore" class="ak-hero-btn"><span class="material-symbols-rounded">restore</span>Ripristina</button>'
-                                    : '<button type="button" id="gp-block" class="ak-hero-btn ak-hero-btn--neutro"><span class="material-symbols-rounded">block</span>Blocca</button>'}
+                                    : `<button type="button" id="gp-block" class="ak-hero-btn ak-hero-btn--neutro"><span class="material-symbols-rounded">block</span>Blocca</button>
+                                       <span class="ak-conferma" id="gp-block-conferma" hidden role="alert">
+                                           <span class="ak-conferma-testo">Bloccare questa persona? Potrai ripristinarla in qualsiasi momento.</span>
+                                           <button type="button" id="gp-block-si" class="k-btn k-btn--sm k-btn--danger">Blocca</button>
+                                           <button type="button" id="gp-block-no" class="k-btn k-btn--sm">Annulla</button>
+                                       </span>`}
                                 <button type="button" id="gp-back" class="ak-hero-btn ak-hero-btn--neutro"><span class="material-symbols-rounded">arrow_back</span>Elenco</button>`
                         })}
                         <div class="ak-schede" role="tablist" aria-label="Sezioni della persona">
@@ -453,16 +475,28 @@ export default {
             el.querySelector('#gp-back').addEventListener('click', () => renderDirectory());
 
             const bloccaBtn = el.querySelector('#gp-block');
-            if (bloccaBtn) bloccaBtn.addEventListener('click', async () => {
-                if (!(await conferma({ titolo: 'Bloccare questa persona?', testo: 'Potrai ripristinarla in qualsiasi momento.', etichetta: 'Blocca', pericolosa: true }))) return;
-                try {
-                    await window.electronAPI.anagrafica.persone.remove({ id: personaId });
-                    toast('Persona bloccata', 'success');
-                    openWorkspace(personaId);
-                } catch (e) {
-                    toast(e.message || 'Operazione non riuscita', 'error');
-                }
-            });
+            const confermaBlocco = el.querySelector('#gp-block-conferma');
+            if (bloccaBtn && confermaBlocco) {
+                bloccaBtn.addEventListener('click', () => {
+                    confermaBlocco.hidden = false;
+                    bloccaBtn.hidden = true;
+                });
+                el.querySelector('#gp-block-no').addEventListener('click', () => {
+                    confermaBlocco.hidden = true;
+                    bloccaBtn.hidden = false;
+                });
+                el.querySelector('#gp-block-si').addEventListener('click', async (evento) => {
+                    evento.currentTarget.disabled = true;
+                    try {
+                        await window.electronAPI.anagrafica.persone.remove({ id: personaId });
+                        toast('Persona bloccata', 'success');
+                        openWorkspace(personaId);
+                    } catch (e) {
+                        evento.currentTarget.disabled = false;
+                        toast(e.message || 'Operazione non riuscita', 'error');
+                    }
+                });
+            }
 
             const ripristinaBtn = el.querySelector('#gp-restore');
             if (ripristinaBtn) ripristinaBtn.addEventListener('click', async () => {
