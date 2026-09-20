@@ -1,0 +1,160 @@
+.k-i3d {
+    --k-i3d-tinta: var(--k-sezione, var(--md-primary));
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    inline-size: var(--k-i3d-size);
+    block-size: var(--k-i3d-size);
+    border-radius: var(--k-i3d-radius);
+    background:
+        linear-gradient(
+            158deg,
+            color-mix(in srgb, #ffffff var(--k-i3d-luce), var(--k-i3d-tinta)) 0%,
+            var(--k-i3d-tinta) 46%,
+            color-mix(in srgb, var(--k-notte) var(--k-i3d-ombra), var(--k-i3d-tinta)) 100%
+        );
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        inset 0 -2px 4px color-mix(in srgb, var(--k-notte) 30%, transparent),
+        0 1px 1px rgba(15, 23, 42, 0.12),
+        0 12px 20px -10px color-mix(in srgb, var(--k-i3d-tinta) var(--k-i3d-glow), transparent);
+    transition: transform var(--transition-medium), box-shadow var(--transition-medium);
+}
+.k-i3d::before {
+    content: '';
+    position: absolute;
+    inset: 7% 9% auto 9%;
+    block-size: 40%;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+.k-i3d::after {
+    content: '';
+    position: absolute;
+    inset: auto 16% 6% 16%;
+    block-size: 20%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.42), transparent 72%);
+    pointer-events: none;
+}
+.k-i3d > .material-symbols-rounded {
+    position: relative;
+    z-index: var(--k-z-base);
+    font-size: calc(var(--k-i3d-size) * 0.5);
+    color: #ffffff;
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 40;
+    text-shadow:
+        0 1px 0 color-mix(in srgb, var(--k-notte) 28%, transparent),
+        0 2px 5px color-mix(in srgb, var(--k-notte) 32%, transparent);
+}
+.k-i3d > img,
+.k-i3d > svg {
+    position: relative;
+    z-index: var(--k-z-base);
+    inline-size: calc(var(--k-i3d-size) * 0.62);
+    block-size: calc(var(--k-i3d-size) * 0.62);
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(11, 18, 32, 0.32));
+}
+
+.k-i3d--2xs { --k-i3d-size: 1.25rem; --k-i3d-radius: 28%; }
+.k-i3d--xs { --k-i3d-size: 1.625rem; }
+.k-i3d--sm { --k-i3d-size: 2.125rem; }
+.k-i3d--md { --k-i3d-size: 2.75rem; }
+.k-i3d--lg { --k-i3d-size: 3.5rem; }
+.k-i3d--xl { --k-i3d-size: 4.5rem; --k-i3d-radius: 27%; }
+.k-i3d--2xl { --k-i3d-size: 5.75rem; --k-i3d-radius: 26%; }
+
+.k-i3d--tenue {
+    background:
+        linear-gradient(
+            158deg,
+            #ffffff 0%,
+            color-mix(in srgb, var(--k-i3d-tinta) 14%, var(--md-surface)) 55%,
+            color-mix(in srgb, var(--k-i3d-tinta) 26%, var(--md-surface)) 100%
+        );
+    box-shadow:
+        inset 0 1px 0 #ffffff,
+        inset 0 -2px 3px color-mix(in srgb, var(--k-i3d-tinta) 18%, transparent),
+        0 1px 1px rgba(15, 23, 42, 0.06),
+        0 8px 16px -10px color-mix(in srgb, var(--k-i3d-tinta) 45%, transparent);
+}
+.k-i3d--tenue > .material-symbols-rounded {
+    color: color-mix(in srgb, var(--k-notte) 18%, var(--k-i3d-tinta));
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+.k-i3d--tenue::after { background: radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.7), transparent 72%); }
+
+.k-i3d--vetro {
+    background: linear-gradient(158deg, #ffffff 0%, var(--md-surface-container) 62%, var(--md-surface-container-high) 100%);
+    box-shadow:
+        inset 0 1px 0 #ffffff,
+        inset 0 -2px 4px rgba(11, 18, 32, 0.08),
+        0 1px 1px rgba(15, 23, 42, 0.06),
+        0 10px 18px -10px rgba(15, 23, 42, 0.25);
+}
+.k-i3d--vetro > .material-symbols-rounded {
+    color: var(--k-i3d-tinta);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.k-i3d--tondo { --k-i3d-radius: 50%; }
+
+.k-i3d--reattiva { will-change: transform; }
+.k-i3d--reattiva:hover,
+:hover > .k-i3d--reattiva,
+button:hover .k-i3d--reattiva,
+a:hover .k-i3d--reattiva,
+[role="button"]:hover .k-i3d--reattiva {
+    transform: translateY(var(--k-i3d-lift)) rotate(-2deg) scale(1.04);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -2px 4px color-mix(in srgb, var(--k-notte) 30%, transparent),
+        0 2px 2px rgba(15, 23, 42, 0.12),
+        0 20px 28px -12px color-mix(in srgb, var(--k-i3d-tinta) 70%, transparent);
+}
+
+.k-i3d--successo { --k-i3d-tinta: var(--md-success); }
+.k-i3d--attenzione { --k-i3d-tinta: var(--md-warning); }
+.k-i3d--errore { --k-i3d-tinta: var(--md-error); }
+.k-i3d--informazione { --k-i3d-tinta: var(--md-info); }
+.k-i3d--neutra { --k-i3d-tinta: var(--k-tinta-ardesia); }
+
+.k-i3d--pila { position: relative; }
+.k-i3d--pila > .k-i3d-ombra {
+    position: absolute;
+    inset: 12% -10% -12% 10%;
+    z-index: 0;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--k-notte) 12%, var(--k-i3d-tinta));
+    opacity: 0.35;
+}
+
+@media (prefers-contrast: more) {
+    .k-i3d { outline: 1px solid color-mix(in srgb, var(--k-notte) 45%, var(--k-i3d-tinta)); outline-offset: -1px; }
+    .k-i3d--tenue > .material-symbols-rounded { color: var(--k-notte); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .k-i3d--reattiva:hover,
+    :hover > .k-i3d--reattiva { transform: none; }
+}
+
+.k-i3d-arte { display: none; }
+.k-i3d[data-arte="si"] {
+    background: none;
+    box-shadow: none;
+}
+.k-i3d[data-arte="si"]::before,
+.k-i3d[data-arte="si"]::after { display: none; }
+.k-i3d[data-arte="si"] > .material-symbols-rounded { display: none; }
+.k-i3d[data-arte="si"] > .k-i3d-arte {
+    display: block;
+    position: relative;
+    z-index: var(--k-z-base);
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 12px rgba(11, 18, 32, 0.22));
+}

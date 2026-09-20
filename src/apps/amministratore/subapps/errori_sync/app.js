@@ -1,33 +1,11 @@
-import { Router, toast, conferma } from '../../../../js/utils.js';
+import { Router, toast } from '../../../../js/utils.js';
+import { confermaInLinea, pannelloInLinea } from '../../../../js/shared/conferma_inline.js';
 
 const esc = (valore) => String(valore ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-
-const mostraDettagli = (meta) => {
-    const sfondo = document.createElement('div');
-    sfondo.className = 'k-dialog-backdrop';
-    sfondo.innerHTML = `
-        <div class="k-dialog k-dialog--lg" role="dialog" aria-modal="true" aria-label="Dettagli tecnici">
-            <div class="k-dialog-header">
-                <span class="k-page-icon material-symbols-rounded">code</span>
-                <h2 class="k-dialog-title" style="align-self: center;">Dettagli tecnici</h2>
-            </div>
-            <div class="k-dialog-body"><pre class="k-console"></pre></div>
-            <div class="k-dialog-footer"><button class="k-btn k-btn--primary" data-chiudi>Chiudi</button></div>
-        </div>`;
-    sfondo.querySelector('pre').textContent = JSON.stringify(meta, null, 2);
-    const tasti = (e) => { if (e.key === 'Escape') chiudi(); };
-    const chiudi = () => {
-        document.removeEventListener('keydown', tasti);
-        sfondo.remove();
-    };
-    document.addEventListener('keydown', tasti);
-    sfondo.addEventListener('click', (e) => { if (e.target === sfondo || e.target.closest('[data-chiudi]')) chiudi(); });
-    document.body.appendChild(sfondo);
-};
 
 const statoCentrato = ({ icona, tono, titolo, testo, pulsanti }) => `
     <div class="k-page k-page--narrow fade-in-up" style="justify-content: center; min-height: 100%;">
@@ -145,7 +123,7 @@ export default {
 
             container.addEventListener('click', async (e) => {
                 const dettagli = e.target.closest('[data-dettagli]');
-                if (dettagli) return mostraDettagli(metadati[Number(dettagli.dataset.dettagli)]);
+                if (dettagli) return pannelloInLinea(dettagli, { titolo: 'Dettagli tecnici', testo: JSON.stringify(metadati[Number(dettagli.dataset.dettagli)], null, 2) });
                 const risolvi = e.target.closest('[data-risolvi]');
                 if (!risolvi) return;
                 risolvi.setAttribute('aria-busy', 'true');
@@ -165,12 +143,10 @@ export default {
             });
 
             el.querySelector('#refresh-logs-btn').addEventListener('click', loadLogs);
-            el.querySelector('#clear-logs-btn').addEventListener('click', async () => {
-                const ok = await conferma({
-                    titolo: 'Svuotare i log di errore?',
-                    testo: 'Verranno eliminati tutti i log di errore di questa rete.',
-                    etichetta: 'Svuota tutti',
-                    pericolosa: true
+            el.querySelector('#clear-logs-btn').addEventListener('click', async (evento) => {
+                const ok = await confermaInLinea(evento.currentTarget, {
+                    testo: 'Svuotare i log di errore? Verranno eliminati tutti i log di errore di questa rete.',
+                    etichetta: 'Svuota tutti'
                 });
                 if (!ok) return;
                 const btn = el.querySelector('#clear-logs-btn');

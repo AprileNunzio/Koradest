@@ -3,6 +3,28 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.2.0] - 2026-09-20
+
+### Aggiunto
+- **Icone in rilievo (tecnica 3d)**: i PNG di icons8 collocati in `src/icone/3d/<glifo>.png` vengono usati appena presenti; finché mancano, la stessa icona è una piastra generata dal solo CSS — gradiente di corpo, luce speculare in alto, rimbalzo di luce in basso, alone colorato — sostituisce le icone piatte su moduli, intestazioni, passaggi e schede. Nessun file remoto e nessun PNG da aggiornare: il colore arriva da `--k-sezione`, quindi l'icona assume da sola la tinta della sezione in cui vive. Sette misure, variante tenue per gli elenchi, variante a vetro per le icone che portano già il proprio colore.
+- **Schermata singola (above the fold)**: `k-schermo` è una griglia a tre fasce — testa fissa, corpo che scorre, piede fisso — e solo il corpo può scorrere. Le pagine delle applicazioni non producono più una barra di scorrimento a livello di finestra.
+- **Procedura a passaggi** (`creaProcedura`): un modulo lungo diventa una sequenza di schermate brevi che entrano nell'altezza disponibile, quindi **durante l'inserimento dei dati la barra di scorrimento non compare**. Pastiglie di avanzamento con icona propria, barra di percentuale, convalida per passaggio con messa a fuoco sul primo campo non valido, stato *fatto* ed *errore* sulla pastiglia, spostamento da tastiera con `Alt+←` e `Alt+→` e conferma con `Invio`. I campi si distribuiscono da soli a gruppi di quattro, oppure seguono i gruppi dichiarati dal modulo.
+- **Zone del dato**: dieci tinte costanti (`identità`, `nascita`, `contatti`, `famiglia`, `documenti`, `lavoro`, `titoli`, `bancari`, `residenza`, `sistema`) con icona e posizione fisse. La stessa materia porta lo stesso colore nel menu, sulla pastiglia del passaggio, sul filo della card e sulla piastra dell'icona: la posizione diventa memorizzabile senza leggere. Il colore non è mai l'unico segnale, icona e testo restano sempre presenti (WCAG 2.2, criterio 1.4.1).
+- **Registro delle tinte dei moduli**: ogni voce ha un colore dichiarato e le voci nuove lo ricavano da un'impronta del nome, quindi resta identico fra un avvio e l'altro.
+
+### Corretto
+- **Nessuna finestra a comparsa in tutta l'applicazione principale**: creazione utenti, gestione sedi, ruoli RBAC, test SMTP, svuotamento dei registri, allineamento dei nodi, rimozione delle passkey e dettagli tecnici degli errori non aprono più un riquadro sovrapposto. Le conferme compaiono accanto al pulsante che le ha chieste (`confermaInLinea`), i dettagli in un pannello che si apre sotto la voce (`pannelloInLinea`) e i moduli in una vista che sostituisce l'elenco nella stessa schermata. Gli avvisi puramente informativi diventano notifiche. Resta a comparsa solo `src/js/shell/dialogo.js`, perché `app_bridge.js` lo espone come contratto alle app v2 di terze parti: cambiarlo romperebbe le applicazioni già distribuite.
+- **Nessuna finestra a comparsa nell'inserimento dati**: creazione e modifica di persone, documenti, lavoro, titoli, dati bancari, indirizzi, familiari e recapiti avvengono ora in una vista in linea che sostituisce l'elenco dentro la stessa schermata, con il ritorno all'elenco sempre nello stesso punto. Le conferme di eliminazione e di blocco compaiono nella card o accanto al pulsante che le ha chieste, e lo storico revisioni è un pannello che si apre sotto la voce invece di coprire la pagina.
+- **Card incollate alla cornice** in `src/apps`: `#main-content` azzera margine e scorrimento quando ospita un modulo, ma nessuna regola restituiva la luce fra card e bordo, così ogni applicazione appariva a filo di finestra e non poteva nemmeno scorrere. Il margine nasce ora nel contenitore, una volta per tutte le applicazioni e per i moduli figli.
+- **Dati esterni scritti nel DOM senza sanificazione** nello storico revisioni, nel selettore di persona e nelle card dei record: nome dell'autore, campi modificati, valori precedenti e successivi, nome, cognome e codice fiscale venivano interpolati grezzi.
+- **Tinte delle sezioni sbagliate**: titoli di studio, dati bancari e residenza usavano il colore di un'altra materia, e il tono `pink` della famiglia non esisteva affatto, quindi ricadeva sul blu.
+
+### Modificato
+- **Nessun foglio di stile generato da JavaScript nelle applicazioni**: le regole del kit `ak-` vivevano in due stringhe `<style>` gemelle iniettate a ogni render, il documento accumulava fogli duplicati e nessuno strumento poteva verificarli. Ora sono un foglio unico memorizzato dalla cache.
+- **Interfaccia uniforme su tutta l'applicazione principale**: dashboard, Amministratore, Impostazioni, Profilo Personale, Gestione del Personale, Dati Azienda e tutti i moduli figli condividono schermata, card, controlli e icone.
+- **Controlli moderni**: casella di spunta in rilievo, campi con icona che si accende alla messa a fuoco, ricerca a pillola, pastiglie di navigazione con contatore, card dei moduli con filo di tinta e alone colorato.
+- **Convalida nativa nei moduli**: codice fiscale, CAP e IBAN dichiarano un formato, i campi di testo una lunghezza massima.
+
 ## [1.1.8] - 2026-09-18
 
 ### Aggiunto

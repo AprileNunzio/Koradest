@@ -1,4 +1,5 @@
-import { toast, conferma, avviso } from '../../../../js/utils.js';
+import { toast } from '../../../../js/utils.js';
+import { confermaInLinea } from '../../../../js/shared/conferma_inline.js';
 
 const CF_CODICI_DISPARI = {
     '0': 1, '1': 0, '2': 5, '3': 7, '4': 9, '5': 13, '6': 15, '7': 17, '8': 19, '9': 21,
@@ -74,20 +75,20 @@ export default {
                     </label>
                 </section>
 
+                <div class="k-viste">
+                <section class="k-vista" data-vista="elenco" data-attiva="si">
                 <div id="users-content">
                     <div class="k-card k-loading"><div class="k-spinner"></div></div>
                 </div>
-            </div>
+                </section>
 
-            <div id="user-modal" class="k-dialog-backdrop" style="display: none;">
-                <div class="k-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-                    <form id="user-form" novalidate style="display: contents;">
-                        <div class="k-dialog-header">
-                            <span class="k-page-icon material-symbols-rounded">badge</span>
-                            <h2 id="modal-title" class="k-dialog-title" style="flex: 1; align-self: center;">Nuovo utente</h2>
-                            <button type="button" id="btn-close-modal" class="k-btn k-btn--ghost k-btn--icon k-btn--sm" aria-label="Chiudi"><span class="material-symbols-rounded">close</span></button>
+                <section class="k-vista" data-vista="modulo" data-attiva="no" id="user-modal">
+                    <form id="user-form" class="k-card" novalidate>
+                        <div class="k-card-header">
+                            <div class="k-card-title"><span class="material-symbols-rounded">badge</span><span id="modal-title">Nuovo utente</span></div>
+                            <button type="button" id="btn-close-modal" class="k-btn k-btn--ghost k-btn--sm"><span class="material-symbols-rounded">arrow_back</span>Torna all'elenco</button>
                         </div>
-                        <div class="k-dialog-body">
+                        <div>
                             <input type="hidden" id="user-id">
                             <div class="k-form-grid">
                                 ${campo('user-nome', 'Nome', 'type="text" required autocomplete="given-name"')}
@@ -103,11 +104,12 @@ export default {
                             </div>
                             <div id="modal-error" class="k-alert k-alert--danger" style="display: none; margin-top: var(--k-space-4);"></div>
                         </div>
-                        <div class="k-dialog-footer">
+                        <div class="k-card-footer">
                             <button type="button" id="btn-cancel-modal" class="k-btn k-btn--ghost">Annulla</button>
                             <button type="submit" id="btn-save-modal" class="k-btn k-btn--primary">Salva</button>
                         </div>
                     </form>
+                </section>
                 </div>
             </div>
         `;
@@ -213,26 +215,26 @@ export default {
                 const user = rawUsers.find(ru => ru.id === id);
                 if (user) openModal(user);
             },
-            blocca: async (id) => {
+            blocca: async (id, pulsante) => {
                 if (id === sessionStorage.getItem('currentUserId')) {
-                    return avviso({ titolo: 'Azione non consentita', testo: 'Non puoi bloccare il tuo stesso account.', tono: 'pericolo' });
+                    return toast('Non puoi bloccare il tuo stesso account.', 'error');
                 }
                 if (await unicoSuperAdmin(id)) {
-                    return avviso({ titolo: 'Azione non consentita', testo: 'Questo è l\'unico super amministratore attivo: bloccandolo perderesti il controllo della rete.', tono: 'pericolo' });
+                    return toast('Questo è l\'unico super amministratore attivo: bloccandolo perderesti il controllo della rete.', 'error');
                 }
-                if (!(await conferma({ titolo: 'Bloccare questo utente?', testo: 'Non potrà più accedere finché non lo sblocchi.', etichetta: 'Blocca', pericolosa: true }))) return;
+                if (!(await confermaInLinea(pulsante, { testo: 'Bloccare questo utente? Non potrà più accedere finché non lo sblocchi.', etichetta: 'Blocca' }))) return;
                 await window.electronAPI.usersDelete({ id });
                 toast('Utente bloccato', 'success');
                 await loadUsers(searchInput.value);
             },
-            sblocca: async (id) => {
-                if (!(await conferma({ titolo: 'Sbloccare questo utente?', testo: 'Potrà di nuovo accedere alla rete.', etichetta: 'Sblocca' }))) return;
+            sblocca: async (id, pulsante) => {
+                if (!(await confermaInLinea(pulsante, { testo: 'Sbloccare questo utente? Potrà di nuovo accedere alla rete.', etichetta: 'Sblocca', pericolosa: false }))) return;
                 await window.electronAPI.usersRestore({ id });
                 toast('Utente sbloccato', 'success');
                 await loadUsers(searchInput.value);
             },
-            'reset-2fa': async (id) => {
-                if (!(await conferma({ titolo: 'Azzerare la 2FA?', testo: 'L\'utente dovrà configurare di nuovo TOTP o Passkey al prossimo accesso.', etichetta: 'Azzera 2FA', pericolosa: true }))) return;
+            'reset-2fa': async (id, pulsante) => {
+                if (!(await confermaInLinea(pulsante, { testo: 'Azzerare la 2FA? L\'utente dovrà configurare di nuovo TOTP o Passkey al prossimo accesso.', etichetta: 'Azzera 2FA' }))) return;
                 const r = await window.electronAPI.twofa.adminReset({ actorUserId, targetUserId: id });
                 if (r && r.success) {
                     toast('2FA azzerata', 'success');
@@ -241,15 +243,13 @@ export default {
                     toast((r && r.error) || 'Azzeramento non riuscito', 'error');
                 }
             },
-            elimina: async (id) => {
+            elimina: async (id, pulsante) => {
                 if (id === sessionStorage.getItem('currentUserId')) {
-                    return avviso({ titolo: 'Azione non consentita', testo: 'Non puoi eliminare il tuo stesso account.', tono: 'pericolo' });
+                    return toast('Non puoi eliminare il tuo stesso account.', 'error');
                 }
-                const ok = await conferma({
-                    titolo: 'Eliminare definitivamente questo utente?',
-                    testo: 'Il record verrà cancellato da questo database e da tutti i nodi connessi.\nL\'operazione è irreversibile.',
-                    etichetta: 'Elimina definitivamente',
-                    pericolosa: true
+                const ok = await confermaInLinea(pulsante, {
+                    testo: 'Eliminare definitivamente? Il record viene cancellato da questo database e da tutti i nodi connessi: operazione irreversibile.',
+                    etichetta: 'Elimina definitivamente'
                 });
                 if (!ok) return;
                 await window.electronAPI.usersHardDelete({ id });
@@ -262,7 +262,7 @@ export default {
             const pulsante = e.target.closest('[data-azione]');
             if (!pulsante || !AZIONI[pulsante.dataset.azione]) return;
             try {
-                await AZIONI[pulsante.dataset.azione](pulsante.dataset.id);
+                await AZIONI[pulsante.dataset.azione](pulsante.dataset.id, pulsante);
             } catch (err) {
                 toast('Errore: ' + err.message, 'error');
             }
@@ -281,6 +281,11 @@ export default {
         }
 
         searchInput.addEventListener('input', (e) => renderUsers(e.target.value));
+
+        const viste = new Map(Array.from(el.querySelectorAll('.k-vista')).map(v => [v.dataset.vista, v]));
+        const mostraVista = (nome) => {
+            for (const [chiave, vista] of viste) vista.dataset.attiva = chiave === nome ? 'si' : 'no';
+        };
 
         const openModal = (user = null) => {
             modalError.style.display = 'none';
@@ -308,15 +313,18 @@ export default {
                 cfInput.disabled = false;
                 cfInput.required = true;
             }
-            modal.style.display = 'grid';
+            mostraVista('modulo');
             setTimeout(() => el.querySelector('#user-nome').focus(), 30);
         };
-        const closeModal = () => { modal.style.display = 'none'; };
+        const closeModal = () => {
+            mostraVista('elenco');
+            const aggiungi = el.querySelector('#btn-add-user');
+            if (aggiungi) aggiungi.focus();
+        };
 
         el.querySelector('#btn-add-user').addEventListener('click', () => openModal());
         el.querySelector('#btn-close-modal').addEventListener('click', closeModal);
         el.querySelector('#btn-cancel-modal').addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
         modal.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
         form.addEventListener('submit', async (e) => {

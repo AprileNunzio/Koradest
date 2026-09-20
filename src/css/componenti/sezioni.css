@@ -32,6 +32,18 @@
     --k-tinta-ardesia-contenitore: #e2e8f0;
     --k-tinta-ardesia-testo: #1e293b;
 
+    --k-tinta-cobalto: #1d4ed8;
+    --k-tinta-cobalto-contenitore: #dbeafe;
+    --k-tinta-cobalto-testo: #1e3a8a;
+
+    --k-tinta-pino: #0f766e;
+    --k-tinta-pino-contenitore: #ccfbf1;
+    --k-tinta-pino-testo: #134e4a;
+
+    --k-tinta-ruggine: #c2410c;
+    --k-tinta-ruggine-contenitore: #ffedd5;
+    --k-tinta-ruggine-testo: #7c2d12;
+
     --k-sezione: var(--md-primary);
     --k-sezione-contenitore: var(--md-primary-container);
     --k-sezione-testo: var(--md-on-primary-container);
@@ -44,6 +56,23 @@
 [data-tinta="ambra"] { --k-sezione: var(--k-tinta-ambra); --k-sezione-contenitore: var(--k-tinta-ambra-contenitore); --k-sezione-testo: var(--k-tinta-ambra-testo); }
 [data-tinta="rosa"] { --k-sezione: var(--k-tinta-rosa); --k-sezione-contenitore: var(--k-tinta-rosa-contenitore); --k-sezione-testo: var(--k-tinta-rosa-testo); }
 [data-tinta="ardesia"] { --k-sezione: var(--k-tinta-ardesia); --k-sezione-contenitore: var(--k-tinta-ardesia-contenitore); --k-sezione-testo: var(--k-tinta-ardesia-testo); }
+[data-tinta="cobalto"] { --k-sezione: var(--k-tinta-cobalto); --k-sezione-contenitore: var(--k-tinta-cobalto-contenitore); --k-sezione-testo: var(--k-tinta-cobalto-testo); }
+[data-tinta="pino"] { --k-sezione: var(--k-tinta-pino); --k-sezione-contenitore: var(--k-tinta-pino-contenitore); --k-sezione-testo: var(--k-tinta-pino-testo); }
+[data-tinta="ruggine"] { --k-sezione: var(--k-tinta-ruggine); --k-sezione-contenitore: var(--k-tinta-ruggine-contenitore); --k-sezione-testo: var(--k-tinta-ruggine-testo); }
+
+/* Zone del dato: la stessa materia porta la stessa tinta in ogni punto del programma.
+   Un documento e ambra nel menu, nella pastiglia del passaggio, sul filo della card e
+   sulla piastra dell icona. La coerenza e cio che rende la posizione memorizzabile. */
+[data-zona="identita"] { --k-sezione: var(--k-tinta-indaco); --k-sezione-contenitore: var(--k-tinta-indaco-contenitore); --k-sezione-testo: var(--k-tinta-indaco-testo); }
+[data-zona="nascita"] { --k-sezione: var(--k-tinta-acqua); --k-sezione-contenitore: var(--k-tinta-acqua-contenitore); --k-sezione-testo: var(--k-tinta-acqua-testo); }
+[data-zona="contatti"] { --k-sezione: var(--k-tinta-violetto); --k-sezione-contenitore: var(--k-tinta-violetto-contenitore); --k-sezione-testo: var(--k-tinta-violetto-testo); }
+[data-zona="famiglia"] { --k-sezione: var(--k-tinta-rosa); --k-sezione-contenitore: var(--k-tinta-rosa-contenitore); --k-sezione-testo: var(--k-tinta-rosa-testo); }
+[data-zona="documenti"] { --k-sezione: var(--k-tinta-ambra); --k-sezione-contenitore: var(--k-tinta-ambra-contenitore); --k-sezione-testo: var(--k-tinta-ambra-testo); }
+[data-zona="lavoro"] { --k-sezione: var(--k-tinta-pino); --k-sezione-contenitore: var(--k-tinta-pino-contenitore); --k-sezione-testo: var(--k-tinta-pino-testo); }
+[data-zona="titoli"] { --k-sezione: var(--k-tinta-cobalto); --k-sezione-contenitore: var(--k-tinta-cobalto-contenitore); --k-sezione-testo: var(--k-tinta-cobalto-testo); }
+[data-zona="bancari"] { --k-sezione: var(--k-tinta-verde); --k-sezione-contenitore: var(--k-tinta-verde-contenitore); --k-sezione-testo: var(--k-tinta-verde-testo); }
+[data-zona="residenza"] { --k-sezione: var(--k-tinta-ruggine); --k-sezione-contenitore: var(--k-tinta-ruggine-contenitore); --k-sezione-testo: var(--k-tinta-ruggine-testo); }
+[data-zona="sistema"] { --k-sezione: var(--k-tinta-ardesia); --k-sezione-contenitore: var(--k-tinta-ardesia-contenitore); --k-sezione-testo: var(--k-tinta-ardesia-testo); }
 
 /* Menu: la voce attiva porta la tinta della propria sezione, le altre restano neutre.
    La barra laterale diventa cosi una mappa di colori stabile nel tempo. */
@@ -64,6 +93,32 @@
 .k-stat-icon { background: var(--k-sezione-contenitore); color: var(--k-sezione); }
 .k-card-title .material-symbols-rounded { color: var(--k-sezione); }
 .k-badge--sezione { background: var(--k-sezione-contenitore); color: var(--k-sezione-testo); }
+.k-btn--sezione {
+    --k-btn-bg: var(--k-sezione);
+    --k-btn-fg: #ffffff;
+    --k-btn-border: transparent;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--k-sezione) 45%, transparent);
+}
+.k-btn--sezione:hover {
+    background: color-mix(in srgb, var(--k-notte) 12%, var(--k-sezione));
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--k-sezione) 65%, transparent);
+}
+.k-btn--sezione:active { transform: translateY(0); }
+.k-btn--sezione-tenue { --k-btn-bg: var(--k-sezione-contenitore); --k-btn-fg: var(--k-sezione-testo); --k-btn-border: transparent; }
+.k-btn--sezione-tenue:hover { background: color-mix(in srgb, var(--k-sezione) 18%, var(--k-sezione-contenitore)); }
+.k-chip[aria-pressed="true"], .k-chip.active { background: var(--k-sezione-contenitore); color: var(--k-sezione-testo); }
+.k-tab[aria-selected="true"], .k-tab.active { color: var(--k-sezione); border-bottom-color: var(--k-sezione); }
+.k-list-item[aria-current="true"], .k-list-item.active { background: var(--k-sezione-contenitore); color: var(--k-sezione-testo); }
+.k-list-item[aria-current="true"] .material-symbols-rounded, .k-list-item.active .material-symbols-rounded { color: var(--k-sezione); }
+.k-input:focus, .k-select:focus, .k-textarea:focus { border-color: var(--k-sezione); }
+.k-progress > span { background: var(--k-progress-color, var(--k-sezione)); }
+
+/* Filo di tinta: la card dichiara la propria materia con una fascia costante a sinistra. */
+.k-card--filo { position: relative; padding-inline-start: calc(clamp(var(--k-space-4), 0.6rem + 1.2vw, var(--k-space-6)) + 3px); overflow: hidden; }
+.k-card--filo::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 0; inline-size: 3px; background: var(--k-sezione); }
+.k-card--sezione { border-color: color-mix(in srgb, var(--k-sezione) 26%, var(--md-outline)); }
+.k-card--interactive:hover { border-color: color-mix(in srgb, var(--k-sezione) 45%, var(--md-outline)); }
 
 @media (prefers-contrast: more) {
     .k-app-link[aria-current="page"] { box-shadow: inset 4px 0 0 var(--k-sezione); outline: 1px solid var(--k-sezione); }

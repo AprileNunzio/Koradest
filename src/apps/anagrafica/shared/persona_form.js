@@ -1,94 +1,117 @@
 import { populateProvinceDatalist, populateNazioniDatalist, populateComuniDatalist, getComuniCache } from './riferimenti.js';
-import { campoHtml } from './ui_kit.js';
+import { campoHtml, toISODate, zonaHtml } from './ui_kit.js';
+
 export const STATI_CIVILI = ['Celibe/Nubile', 'Coniugato/a', 'Divorziato/a', 'Vedovo/a', 'Unione civile'];
+
 const P = 'persona-';
+const CF_PATTERN = '[A-Za-z]{6}[0-9LMNPQRSTUVlmnpqrstuv]{2}[A-Za-z][0-9LMNPQRSTUVlmnpqrstuv]{2}[A-Za-z][0-9LMNPQRSTUVlmnpqrstuv]{3}[A-Za-z]';
+
 const CAMPI_IDENTITA = [
-    { key: 'cognome', label: 'Cognome', icon: 'badge', type: 'text', required: true, hint: 'Il tuo cognome, come sui documenti.' },
-    { key: 'nome', label: 'Nome', icon: 'person', type: 'text', required: true, hint: 'Il tuo nome di battesimo.' },
-    { key: 'cf', label: 'Codice Fiscale', icon: 'fingerprint', type: 'text', required: true, uppercase: true, full: true, hint: 'Chiave univoca della persona: una volta salvato non è più modificabile.' },
+    { key: 'cognome', label: 'Cognome', icon: 'badge', type: 'text', required: true, maxLength: 80, hint: 'Il cognome come riportato sui documenti.' },
+    { key: 'nome', label: 'Nome', icon: 'person', type: 'text', required: true, maxLength: 80, hint: 'Il nome di battesimo.' },
+    { key: 'cf', label: 'Codice Fiscale', icon: 'fingerprint', type: 'text', required: true, uppercase: true, full: true, maxLength: 16, pattern: CF_PATTERN, hint: 'Chiave univoca della persona: una volta salvato non è più modificabile.' },
     { key: 'sesso', label: 'Sesso', icon: 'wc', type: 'select', required: true, hint: 'Come indicato sui documenti.', options: [
         { value: 'M', label: 'Maschio' }, { value: 'F', label: 'Femmina' }, { value: 'Altro', label: 'Altro' }
     ] },
-    { key: 'stato-civile', label: 'Stato Civile', icon: 'favorite', type: 'select', required: true, hint: 'La tua situazione familiare attuale.', options: STATI_CIVILI.map(s => ({ value: s, label: s })) }
+    { key: 'stato-civile', label: 'Stato Civile', icon: 'favorite', type: 'select', required: true, hint: 'La situazione familiare attuale.', options: STATI_CIVILI.map(s => ({ value: s, label: s })) }
 ];
+
 const CAMPI_NASCITA = [
     { key: 'data-nascita', label: 'Data di Nascita', icon: 'cake', type: 'date', required: true, hint: 'Giorno, mese e anno di nascita.' },
-    { key: 'luogo-nascita', label: 'Luogo di Nascita', icon: 'location_on', type: 'text', datalist: true, hint: 'Comune di nascita: la Provincia si compila da sola.' },
-    { key: 'provincia-nascita', label: 'Provincia', icon: 'map', type: 'text', uppercase: true, datalist: true, hint: 'Sigla (es. RM). Suggerita in automatico.' },
-    { key: 'cap-nascita', label: 'CAP di Nascita', icon: 'markunread_mailbox', type: 'text', uppercase: true, hint: 'Suggerito in automatico dal Comune.' },
-    { key: 'cittadinanza', label: 'Cittadinanza', icon: 'flag', type: 'text', datalist: true, hint: 'La tua nazionalità (es. Italiana).' }
+    { key: 'luogo-nascita', label: 'Luogo di Nascita', icon: 'location_on', type: 'text', datalist: true, maxLength: 80, hint: 'Comune di nascita: Provincia e CAP arrivano da soli.' },
+    { key: 'provincia-nascita', label: 'Provincia', icon: 'map', type: 'text', uppercase: true, datalist: true, maxLength: 2, hint: 'Sigla di due lettere, suggerita in automatico.' },
+    { key: 'cap-nascita', label: 'CAP di Nascita', icon: 'markunread_mailbox', type: 'text', datalist: true, maxLength: 5, pattern: '[0-9]{5}', hint: 'Codice postale a cinque cifre.' },
+    { key: 'cittadinanza', label: 'Cittadinanza', icon: 'flag', type: 'text', datalist: true, maxLength: 60, hint: 'La nazionalità, ad esempio Italiana.' }
 ];
-function sectionHtml(icon, title, tone, campi) {
+
+const grigliaHtml = (campi) => `<div class="ak-form-grid">${campi.map(f => campoHtml(f, '', P)).join('')}</div>`;
+
+export function personaFormHtml() {
     return `
-        <div class="ak-section" style="--ak-accent:${tone.accent}; --ak-soft:${tone.soft};">
-            <div class="ak-section-head">
-                <div class="ak-section-icon"><span class="material-symbols-rounded">${icon}</span></div>
-                <h3 class="ak-section-title">${title}</h3>
-            </div>
-            <div class="ak-form-grid">
-                ${campi.map(f => campoHtml(f, '', P)).join('')}
-            </div>
+        <input type="hidden" id="persona-id">
+        <div class="k-zone">
+            ${zonaHtml({ zona: 'identita', titolo: 'Identità', nota: 'Chi è la persona.', corpo: grigliaHtml(CAMPI_IDENTITA) })}
+            ${zonaHtml({ zona: 'nascita', titolo: 'Nascita e cittadinanza', nota: 'Dove e quando è nata.', corpo: grigliaHtml(CAMPI_NASCITA) })}
         </div>
     `;
 }
-export function personaFormHtml() {
-    const blue = { accent: '#2563eb', soft: 'rgba(37,99,235,0.10)' };
-    const teal = { accent: '#0f766e', soft: 'rgba(15,118,110,0.10)' };
-    return `
-        <input type="hidden" id="persona-id">
-        ${sectionHtml('badge', 'Identità', blue, CAMPI_IDENTITA)}
-        ${sectionHtml('public', 'Nascita e Cittadinanza', teal, CAMPI_NASCITA)}
-    `;
+
+export function passiPersona() {
+    return [
+        {
+            id: 'identita',
+            zona: 'identita',
+            etichetta: 'Identità',
+            titolo: 'Identità della persona',
+            nota: 'Cognome, nome e codice fiscale sono obbligatori.',
+            corpo: `<input type="hidden" id="persona-id">${grigliaHtml(CAMPI_IDENTITA)}`
+        },
+        {
+            id: 'nascita',
+            zona: 'nascita',
+            etichetta: 'Nascita',
+            titolo: 'Nascita e cittadinanza',
+            nota: 'Scrivendo il comune, Provincia e CAP vengono suggeriti.',
+            corpo: grigliaHtml(CAMPI_NASCITA)
+        }
+    ];
 }
+
 export function readPersonaForm(el) {
+    const valore = (selettore) => {
+        const campo = el.querySelector(selettore);
+        return campo ? campo.value.trim() : '';
+    };
     return {
-        cognome: el.querySelector('#persona-cognome').value.trim(),
-        nome: el.querySelector('#persona-nome').value.trim(),
-        codice_fiscale: el.querySelector('#persona-cf').value.trim().toUpperCase(),
-        sesso: el.querySelector('#persona-sesso').value,
-        data_nascita: el.querySelector('#persona-data-nascita').value,
-        luogo_nascita: el.querySelector('#persona-luogo-nascita').value.trim(),
-        provincia_nascita: el.querySelector('#persona-provincia-nascita').value.trim().toUpperCase(),
-        cap_nascita: el.querySelector('#persona-cap-nascita').value.trim().toUpperCase(),
-        cittadinanza: el.querySelector('#persona-cittadinanza').value.trim(),
-        stato_civile: el.querySelector('#persona-stato-civile').value
+        cognome: valore('#persona-cognome'),
+        nome: valore('#persona-nome'),
+        codice_fiscale: valore('#persona-cf').toUpperCase(),
+        sesso: valore('#persona-sesso'),
+        data_nascita: valore('#persona-data-nascita'),
+        luogo_nascita: valore('#persona-luogo-nascita'),
+        provincia_nascita: valore('#persona-provincia-nascita').toUpperCase(),
+        cap_nascita: valore('#persona-cap-nascita'),
+        cittadinanza: valore('#persona-cittadinanza'),
+        stato_civile: valore('#persona-stato-civile')
     };
 }
+
 export function populatePersonaFormDatalists(el) {
     populateProvinceDatalist(el.querySelector('#dl-provincia-nascita'));
     populateNazioniDatalist(el.querySelector('#dl-cittadinanza'));
     populateComuniDatalist(el.querySelector('#dl-luogo-nascita'));
     const inputLuogoNascita = el.querySelector('#persona-luogo-nascita');
-    if (inputLuogoNascita) {
-        inputLuogoNascita.addEventListener('change', () => {
-            const cache = getComuniCache();
-            const val = inputLuogoNascita.value.trim().toLowerCase();
-            const comune = cache.find(c => c.n.toLowerCase() === val);
-            if (comune) {
-                const provInput = el.querySelector('#persona-provincia-nascita');
-                if (provInput) provInput.value = comune.p;
-                const capInput = el.querySelector('#persona-cap-nascita');
-                if (capInput && !capInput.value) capInput.value = comune.c;
-            }
-        });
-    }
-}
-export function fillPersonaForm(el, persona) {
-    const cfInput = el.querySelector('#persona-cf');
-    el.querySelector('#persona-id').value = persona ? persona.id : '';
-    el.querySelector('#persona-cognome').value = persona ? persona.cognome : '';
-    el.querySelector('#persona-nome').value = persona ? persona.nome : '';
-    cfInput.value = persona ? persona.codice_fiscale : '';
-    cfInput.disabled = !!persona;
-    cfInput.title = persona ? 'Il Codice Fiscale è la chiave univoca della persona e non può essere modificato' : '';
-    el.querySelector('#persona-sesso').value = persona ? persona.sesso : '';
-    el.querySelector('#persona-data-nascita').value = persona ? persona.data_nascita : '';
-    el.querySelector('#persona-luogo-nascita').value = persona ? persona.luogo_nascita : '';
-    el.querySelector('#persona-provincia-nascita').value = persona ? persona.provincia_nascita : '';
-    const capInput = el.querySelector('#persona-cap-nascita');
-    if (capInput) capInput.value = persona && persona.cap_nascita ? persona.cap_nascita : '';
-    el.querySelector('#persona-cittadinanza').value = persona ? persona.cittadinanza : '';
-    el.querySelector('#persona-stato-civile').value = persona ? persona.stato_civile : '';
+    if (!inputLuogoNascita) return;
+    inputLuogoNascita.addEventListener('input', () => {
+        const cache = getComuniCache();
+        const cercato = inputLuogoNascita.value.trim().toLowerCase();
+        const comune = cache.find(c => c.n.toLowerCase() === cercato);
+        if (!comune) return;
+        const provincia = el.querySelector('#persona-provincia-nascita');
+        if (provincia) provincia.value = comune.p;
+        const cap = el.querySelector('#persona-cap-nascita');
+        if (cap) cap.value = comune.c;
+    });
 }
 
-export const KIT_STYLES = '';
+export function fillPersonaForm(el, persona) {
+    const scrivi = (selettore, valore) => {
+        const campo = el.querySelector(selettore);
+        if (campo) campo.value = valore == null ? '' : valore;
+    };
+    scrivi('#persona-id', persona ? persona.id : '');
+    scrivi('#persona-cognome', persona ? persona.cognome : '');
+    scrivi('#persona-nome', persona ? persona.nome : '');
+    scrivi('#persona-sesso', persona ? persona.sesso : '');
+    scrivi('#persona-data-nascita', persona ? toISODate(persona.data_nascita) : '');
+    scrivi('#persona-luogo-nascita', persona ? persona.luogo_nascita : '');
+    scrivi('#persona-provincia-nascita', persona ? persona.provincia_nascita : '');
+    scrivi('#persona-cap-nascita', persona ? persona.cap_nascita : '');
+    scrivi('#persona-cittadinanza', persona ? persona.cittadinanza : '');
+    scrivi('#persona-stato-civile', persona ? persona.stato_civile : '');
+    const cfInput = el.querySelector('#persona-cf');
+    if (!cfInput) return;
+    cfInput.value = persona ? persona.codice_fiscale : '';
+    cfInput.disabled = Boolean(persona);
+    cfInput.title = persona ? 'Il Codice Fiscale è la chiave univoca della persona e non può essere modificato' : '';
+}

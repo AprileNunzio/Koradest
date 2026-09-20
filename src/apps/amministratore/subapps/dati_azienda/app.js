@@ -1,4 +1,5 @@
-import { toast } from '../../../../js/utils.js';
+import { esc } from '../../../../js/shared/html.js';
+import { icona3d } from '../../../../js/shared/tinte.js';
 import GeneraliView from './views/Generali.js';
 import SediView from './views/Sedi.js';
 import FiscaliView from './views/Fiscali.js';
@@ -6,107 +7,89 @@ import ResponsabiliView from './views/Responsabili.js';
 import BrandView from './views/Brand.js';
 import CertificazioniView from './views/Certificazioni.js';
 
+const VISTE = [
+    { id: 'generali', etichetta: 'Dati Generali', icona: 'apartment', tinta: 'cobalto', vista: GeneraliView, conConfig: true },
+    { id: 'fiscali', etichetta: 'Fiscali e Tesoreria', icona: 'receipt_long', tinta: 'verde', vista: FiscaliView, conConfig: true },
+    { id: 'responsabili', etichetta: 'Organigramma', icona: 'account_tree', tinta: 'indaco', vista: ResponsabiliView, conConfig: true },
+    { id: 'sedi', etichetta: 'Sedi', icona: 'location_city', tinta: 'ruggine', vista: SediView, conConfig: false },
+    { id: 'brand', etichetta: 'Brand e Firme', icona: 'brush', tinta: 'violetto', vista: BrandView, conConfig: true },
+    { id: 'certificazioni', etichetta: 'Certificazioni', icona: 'verified', tinta: 'ambra', vista: CertificazioniView, conConfig: true }
+];
+
 export default {
     render: async (el) => {
         try {
             el.innerHTML = `
-                <div class="dati-azienda-container fade-in-up" style="display:flex; flex-direction:column; height:100%; overflow:hidden;">
-                    <div style="padding: 1.5rem 1.5rem 0 1.5rem;">
-                        <h2 style="margin:0 0 0.4rem; font-size:2rem; color:var(--md-on-surface); font-weight:800; letter-spacing:-0.02em;">Dati Azienda</h2>
-                        <p style="margin:0; color:var(--md-on-surface-variant); font-size:1.05rem; max-width:640px;">Gestione dei dati anagrafici, fiscali e sedi dell'ente o dell'azienda.</p>
-                        
-                        <div class="tabs-header" style="display:flex; gap:1.5rem; margin-top:1.5rem; border-bottom:1px solid var(--md-outline-variant); flex-wrap:wrap;">
-                            <div class="tab-btn active" data-target="generali">Dati Generali</div>
-                            <div class="tab-btn" data-target="fiscali">Dati Fiscali / Tesoreria</div>
-                            <div class="tab-btn" data-target="responsabili">Organigramma & Responsabili</div>
-                            <div class="tab-btn" data-target="sedi">Gestione Sedi</div>
-                            <div class="tab-btn" data-target="brand">Brand & Firme</div>
-                            <div class="tab-btn" data-target="certificazioni">Certificazioni / Qualità</div>
+                <div class="k-schermo fade-in-up k-schermo--compatto" data-tinta="cobalto" data-radice-app>
+                    <div class="k-schermo-testa">
+                        <div class="k-page-heading">
+                            ${icona3d('domain', { dimensione: 'lg', varianti: ['reattiva'] })}
+                            <div>
+                                <h1 class="k-page-title">Dati Azienda</h1>
+                                <p class="k-page-subtitle">Dati anagrafici, fiscali e sedi dell'ente o dell'azienda.</p>
+                            </div>
+                        </div>
+                        <div class="ak-schede" role="tablist" aria-label="Sezioni dei dati azienda">
+                            ${VISTE.map((v, i) => `
+                                <button type="button" class="ak-scheda" data-vista="${v.id}" data-tinta="${v.tinta}" role="tab" aria-selected="${i === 0}">
+                                    ${icona3d(v.icona, { dimensione: 'xs', varianti: ['reattiva'] })}
+                                    <span>${esc(v.etichetta)}</span>
+                                </button>`).join('')}
                         </div>
                     </div>
-                    
-                    <div class="tab-content" id="tab-content-container" style="flex:1; overflow-y:auto; padding:1.5rem; position:relative;">
-                        <!-- Content rendered dynamically -->
-                    </div>
+                    <div class="k-schermo-corpo" id="dati-azienda-contenuto"></div>
                 </div>
-
-                <style>
-                    .tab-btn {
-                        padding: 0.8rem 1rem;
-                        cursor: pointer;
-                        font-weight: 600;
-                        color: var(--md-on-surface-variant);
-                        border-bottom: 3px solid transparent;
-                        transition: all 0.2s;
-                    }
-                    .tab-btn:hover {
-                        color: var(--md-primary);
-                    }
-                    .tab-btn.active {
-                        color: var(--md-primary);
-                        border-bottom-color: var(--md-primary);
-                    }
-                </style>
             `;
 
-            const container = el.querySelector('#tab-content-container');
-            const tabs = el.querySelectorAll('.tab-btn');
-            
-            let currentView = null;
-            let configCache = await window.electronAPI.readConfig() || {};
+            const contenitore = el.querySelector('#dati-azienda-contenuto');
+            const schede = Array.from(el.querySelectorAll('.ak-scheda'));
+
+            let configCache = (await window.electronAPI.readConfig()) || {};
 
             const saveConfig = async (patch) => {
-                const newConfig = { ...configCache, ...patch };
-                const ok = await window.electronAPI.saveConfig(newConfig);
-                if (ok) configCache = newConfig;
+                const aggiornata = { ...configCache, ...patch };
+                const ok = await window.electronAPI.saveConfig(aggiornata);
+                if (ok) configCache = aggiornata;
                 return ok;
             };
 
-            const renderTab = async (target) => {
-                container.innerHTML = '<div style="text-align:center; padding:2rem;"><span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Caricamento...</div>';
-                tabs.forEach(t => t.classList.remove('active'));
-                el.querySelector(`.tab-btn[data-target="${target}"]`).classList.add('active');
-
+            const apri = async (id) => {
+                const scelta = VISTE.find(v => v.id === id) || VISTE[0];
+                for (const scheda of schede) scheda.setAttribute('aria-selected', String(scheda.dataset.vista === scelta.id));
+                contenitore.dataset.tinta = scelta.tinta;
+                contenitore.innerHTML = '<div class="k-loading"><div class="k-spinner"></div><span>Caricamento…</span></div>';
                 try {
-                    if (target === 'generali') {
-                        currentView = GeneraliView;
-                        await currentView.render(container, configCache, saveConfig);
-                    } else if (target === 'fiscali') {
-                        currentView = FiscaliView;
-                        await currentView.render(container, configCache, saveConfig);
-                    } else if (target === 'responsabili') {
-                        currentView = ResponsabiliView;
-                        await currentView.render(container, configCache, saveConfig);
-                    } else if (target === 'sedi') {
-                        currentView = SediView;
-                        await currentView.render(container);
-                    } else if (target === 'brand') {
-                        currentView = BrandView;
-                        await currentView.render(container, configCache, saveConfig);
-                    } else if (target === 'certificazioni') {
-                        currentView = CertificazioniView;
-                        await currentView.render(container, configCache, saveConfig);
-                    }
+                    if (scelta.conConfig) await scelta.vista.render(contenitore, configCache, saveConfig);
+                    else await scelta.vista.render(contenitore);
                 } catch (e) {
-                    console.error(e);
-                    container.innerHTML = `<div style="color:var(--md-error);">Errore di rendering modulo: ${e.message}</div>`;
+                    console.error('[DatiAzienda] Vista non caricata:', e);
+                    contenitore.innerHTML = `
+                        <div class="k-empty">
+                            ${icona3d('error', { dimensione: 'lg', varianti: ['errore'] })}
+                            <div class="k-empty-title">Sezione non caricata</div>
+                            <p class="k-empty-text">${esc(e.message || 'Errore sconosciuto.')}</p>
+                        </div>`;
                 }
             };
 
-            tabs.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    if (!btn.classList.contains('active')) {
-                        renderTab(btn.dataset.target);
-                    }
+            for (const scheda of schede) {
+                scheda.addEventListener('click', () => {
+                    if (scheda.getAttribute('aria-selected') === 'true') return;
+                    apri(scheda.dataset.vista);
                 });
-            });
+            }
 
-            
-            renderTab('generali');
-
+            await apri('generali');
         } catch (e) {
-            console.error(e);
-            el.innerHTML = '<div style="padding:2rem; color:var(--md-error);">Errore critico: ' + e.message + '</div>';
+            console.error('[DatiAzienda] Avvio non riuscito:', e);
+            el.innerHTML = `
+                <div class="k-schermo">
+                    <div class="k-empty">
+                        ${icona3d('error', { dimensione: 'lg', varianti: ['errore'] })}
+                        <div class="k-empty-title">Avvio non riuscito</div>
+                        <p class="k-empty-text">${esc(e.message || 'Errore sconosciuto.')}</p>
+                    </div>
+                </div>`;
         }
     }
 };

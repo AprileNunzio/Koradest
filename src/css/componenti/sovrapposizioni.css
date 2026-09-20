@@ -212,3 +212,61 @@
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+.k-conferma {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--k-space-2);
+    padding: var(--k-space-2) var(--k-space-3);
+    border: 1px solid var(--md-error);
+    border-radius: var(--shape-sm);
+    background: var(--md-error-container);
+    color: var(--md-on-error-container);
+    font-size: var(--k-font-sm);
+    font-weight: 600;
+    animation: kFade 0.16s var(--k-ease);
+}
+.k-conferma-testo { flex: 1 1 auto; min-inline-size: 8rem; }
+
+.k-pannello-linea {
+    inline-size: 100%;
+    margin-block-start: var(--k-space-2);
+    border: 1px solid var(--md-outline);
+    border-radius: var(--shape-md);
+    background: var(--md-surface-container-low);
+    overflow: hidden;
+    animation: kFade 0.16s var(--k-ease);
+}
+.k-pannello-linea-testa {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--k-space-2);
+    padding: var(--k-space-2) var(--k-space-3);
+    border-block-end: 1px solid var(--md-outline);
+    background: var(--md-surface);
+}
+.k-pannello-linea-titolo { font-size: var(--k-font-sm); font-weight: 700; color: var(--md-on-surface); }
+.k-pannello-linea-corpo { max-block-size: 22rem; padding: var(--k-space-3); overflow: hidden auto; overscroll-behavior: contain; }
+.k-pannello-linea-corpo > .k-console { max-block-size: none; }
+
+.k-richiesta-linea {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--k-space-3);
+    inline-size: 100%;
+    padding: var(--k-space-3);
+    border: 1px solid var(--k-sezione);
+    border-radius: var(--shape-md);
+    background: var(--md-surface-container-low);
+    animation: kFade 0.16s var(--k-ease);
+}
+
+.k-riquadro-linea {
+    inline-size: 100%;
+    margin-block-end: var(--k-space-4);
+    animation: kFade 0.16s var(--k-ease);
+}
+.k-riquadro-linea > .k-card { border-color: color-mix(in srgb, var(--k-sezione) 32%, var(--md-outline)); }
