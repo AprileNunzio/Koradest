@@ -1,38 +1,11 @@
 import { toast } from '../../../../js/utils.js';
+import { confermaInLinea } from '../../../../js/shared/conferma_inline.js';
 
 const esc = (valore) => String(valore ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-
-const conferma = ({ titolo, testo, etichetta, pericolosa = true }) => new Promise((resolve) => {
-    const sfondo = document.createElement('div');
-    sfondo.className = 'k-dialog-backdrop';
-    sfondo.innerHTML = `
-        <div class="k-dialog" role="alertdialog" aria-modal="true" aria-labelledby="db-conferma-titolo">
-            <div class="k-dialog-header">
-                <span class="k-page-icon material-symbols-rounded" style="${pericolosa ? 'background: var(--md-error-container); color: var(--md-error);' : ''}">${pericolosa ? 'warning' : 'help'}</span>
-                <h2 id="db-conferma-titolo" class="k-dialog-title">${esc(titolo)}</h2>
-            </div>
-            <div class="k-dialog-body"><p>${esc(testo)}</p></div>
-            <div class="k-dialog-footer">
-                <button class="k-btn k-btn--ghost" data-esito="no">Annulla</button>
-                <button class="k-btn ${pericolosa ? 'k-btn--danger' : 'k-btn--primary'}" data-esito="si">${esc(etichetta)}</button>
-            </div>
-        </div>`;
-    const chiudi = (esito) => {
-        sfondo.remove();
-        resolve(esito);
-    };
-    sfondo.addEventListener('click', (e) => {
-        if (e.target === sfondo) return chiudi(false);
-        const pulsante = e.target.closest('[data-esito]');
-        if (pulsante) chiudi(pulsante.dataset.esito === 'si');
-    });
-    document.body.appendChild(sfondo);
-    sfondo.querySelector('[data-esito="no"]').focus();
-});
 
 const AZIONI = {
     soft_sync: null,
@@ -103,10 +76,9 @@ export default {
             const nodesContainer = el.querySelector('#nodes-container');
             const localBlocksEl = el.querySelector('#local-blocks');
 
-            el.querySelector('#btn-nuke').addEventListener('click', async () => {
-                const ok = await conferma({
-                    titolo: 'Allineare tutti i nodi?',
-                    testo: 'Stai per sovrascrivere i dati di tutti gli altri nodi della rete. I dati non ancora sincronizzati sui nodi remoti restano solo nelle loro cartelle dei backup.',
+            el.querySelector('#btn-nuke').addEventListener('click', async (evento) => {
+                const ok = await confermaInLinea(evento.currentTarget, {
+                    testo: 'Allineare tutti i nodi? Stai per sovrascrivere i dati di tutti gli altri nodi della rete: quelli non ancora sincronizzati restano solo nelle cartelle dei backup dei nodi remoti.',
                     etichetta: 'Procedi'
                 });
                 if (!ok) return;
@@ -188,7 +160,7 @@ export default {
                 if (!pulsante) return;
                 const azione = pulsante.dataset.azione;
                 const avviso = AZIONI[azione];
-                if (avviso && !(await conferma(avviso))) return;
+                if (avviso && !(await confermaInLinea(pulsante, { testo: `${avviso.titolo} ${avviso.testo}`, etichetta: avviso.etichetta }))) return;
                 toast('Invio del comando in corso...', 'info');
                 try {
                     const res = await window.electronAPI.executeNodeAction(azione, pulsante.dataset.ip, Number(pulsante.dataset.porta));

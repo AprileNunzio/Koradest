@@ -3,7 +3,7 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
-## [1.1.9] - 2026-09-19
+## [1.2.0] - 2026-09-20
 
 ### Aggiunto
 - **Icone in rilievo (tecnica 3d)**: i PNG di icons8 collocati in `src/icone/3d/<glifo>.png` vengono usati appena presenti; finché mancano, la stessa icona è una piastra generata dal solo CSS — gradiente di corpo, luce speculare in alto, rimbalzo di luce in basso, alone colorato — sostituisce le icone piatte su moduli, intestazioni, passaggi e schede. Nessun file remoto e nessun PNG da aggiornare: il colore arriva da `--k-sezione`, quindi l'icona assume da sola la tinta della sezione in cui vive. Sette misure, variante tenue per gli elenchi, variante a vetro per le icone che portano già il proprio colore.
@@ -13,6 +13,7 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e i
 - **Registro delle tinte dei moduli**: ogni voce ha un colore dichiarato e le voci nuove lo ricavano da un'impronta del nome, quindi resta identico fra un avvio e l'altro.
 
 ### Corretto
+- **Nessuna finestra a comparsa in tutta l'applicazione principale**: creazione utenti, gestione sedi, ruoli RBAC, test SMTP, svuotamento dei registri, allineamento dei nodi, rimozione delle passkey e dettagli tecnici degli errori non aprono più un riquadro sovrapposto. Le conferme compaiono accanto al pulsante che le ha chieste (`confermaInLinea`), i dettagli in un pannello che si apre sotto la voce (`pannelloInLinea`) e i moduli in una vista che sostituisce l'elenco nella stessa schermata. Gli avvisi puramente informativi diventano notifiche. Resta a comparsa solo `src/js/shell/dialogo.js`, perché `app_bridge.js` lo espone come contratto alle app v2 di terze parti: cambiarlo romperebbe le applicazioni già distribuite.
 - **Nessuna finestra a comparsa nell'inserimento dati**: creazione e modifica di persone, documenti, lavoro, titoli, dati bancari, indirizzi, familiari e recapiti avvengono ora in una vista in linea che sostituisce l'elenco dentro la stessa schermata, con il ritorno all'elenco sempre nello stesso punto. Le conferme di eliminazione e di blocco compaiono nella card o accanto al pulsante che le ha chieste, e lo storico revisioni è un pannello che si apre sotto la voce invece di coprire la pagina.
 - **Card incollate alla cornice** in `src/apps`: `#main-content` azzera margine e scorrimento quando ospita un modulo, ma nessuna regola restituiva la luce fra card e bordo, così ogni applicazione appariva a filo di finestra e non poteva nemmeno scorrere. Il margine nasce ora nel contenitore, una volta per tutte le applicazioni e per i moduli figli.
 - **Dati esterni scritti nel DOM senza sanificazione** nello storico revisioni, nel selettore di persona e nelle card dei record: nome dell'autore, campi modificati, valori precedenti e successivi, nome, cognome e codice fiscale venivano interpolati grezzi.

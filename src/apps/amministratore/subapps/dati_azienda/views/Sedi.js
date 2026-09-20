@@ -1,4 +1,5 @@
-import { toast, conferma } from '../../../../../js/utils.js';
+import { toast } from '../../../../../js/utils.js';
+import { confermaInLinea } from '../../../../../js/shared/conferma_inline.js';
 
 export default {
     render: async (container) => {
@@ -14,6 +15,8 @@ export default {
             ];
 
             container.innerHTML = `
+                <div class="k-viste">
+                <section class="k-vista" data-vista="elenco" data-attiva="si">
                 <div class="k-row k-row--between" style="align-items: center; margin-bottom: var(--k-space-4);">
                     <div>
                         <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--md-on-surface);">Sedi Aziendali</h3>
@@ -42,17 +45,17 @@ export default {
                         </table>
                     </div>
                 </div>
+                </section>
 
-                <div id="da-sede-modal" class="k-dialog-backdrop" style="display: none;">
-                    <div class="k-dialog k-dialog--lg" role="dialog" aria-modal="true" aria-label="Gestione Sede">
-                        <div class="k-dialog-header">
-                            <span class="k-page-icon material-symbols-rounded">domain</span>
-                            <h2 id="da-sede-modal-title" class="k-dialog-title" style="align-self: center;">Gestione Sede</h2>
-                            <button id="da-sede-modal-close" class="k-btn k-btn--ghost" style="margin-left: auto;" aria-label="Chiudi">
-                                <span class="material-symbols-rounded">close</span>
+                <section id="da-sede-modal" class="k-vista" data-vista="modulo" data-attiva="no">
+                    <div class="k-card">
+                        <div class="k-card-header">
+                            <div class="k-card-title"><span class="material-symbols-rounded">domain</span><span id="da-sede-modal-title">Gestione Sede</span></div>
+                            <button id="da-sede-modal-close" class="k-btn k-btn--ghost k-btn--sm">
+                                <span class="material-symbols-rounded">arrow_back</span>Torna all'elenco
                             </button>
                         </div>
-                        <div class="k-dialog-body" style="max-height: 70vh; overflow-y: auto;">
+                        <div>
                             <input type="hidden" id="da-sede-id">
                             
                             <div class="k-form-grid">
@@ -135,7 +138,7 @@ export default {
                                 </div>
                             </div>
                         </div>
-                        <div class="k-dialog-footer">
+                        <div class="k-card-footer">
                             <button id="da-sede-modal-cancel" class="k-btn k-btn--ghost">Annulla</button>
                             <button id="da-sede-modal-save" class="k-btn k-btn--primary">
                                 <span class="material-symbols-rounded">check</span>
@@ -143,10 +146,15 @@ export default {
                             </button>
                         </div>
                     </div>
+                </section>
                 </div>`;
 
             const tbody = container.querySelector('#da-sedi-tbody');
             const modal = container.querySelector('#da-sede-modal');
+            const viste = new Map(Array.from(container.querySelectorAll('.k-vista')).map(v => [v.dataset.vista, v]));
+            const mostraVista = (nome) => {
+                for (const [chiave, vista] of viste) vista.dataset.attiva = chiave === nome ? 'si' : 'no';
+            };
 
             const loadSedi = async () => {
                 try {
@@ -182,7 +190,7 @@ export default {
                     });
 
                     tbody.querySelectorAll('.btn-edit').forEach(b => b.addEventListener('click', () => openModal(b.dataset.id)));
-                    tbody.querySelectorAll('.btn-delete').forEach(b => b.addEventListener('click', () => deleteSede(b.dataset.id)));
+                    tbody.querySelectorAll('.btn-delete').forEach(b => b.addEventListener('click', () => deleteSede(b.dataset.id, b)));
 
                 } catch (e) {
                     tbody.innerHTML = `<tr><td colspan="4" style="color: var(--md-error); padding: var(--k-space-4);">Errore caricamento: ${e.message}</td></tr>`;
@@ -254,11 +262,11 @@ export default {
                     }
                 }
                 
-                modal.style.display = 'flex';
+                mostraVista('modulo');
             };
 
             const chiudiModal = () => {
-                modal.style.display = 'none';
+                mostraVista('elenco');
             };
 
             container.querySelector('#da-btn-add-sede').addEventListener('click', () => openModal());
@@ -339,8 +347,8 @@ export default {
                 }
             });
 
-            const deleteSede = async (id) => {
-                if (await conferma({ titolo: 'Eliminare questa sede?', testo: 'La sede verrà rimossa dai dati aziendali di tutti i nodi.', etichetta: 'Elimina', pericolosa: true })) {
+            const deleteSede = async (id, bottone) => {
+                if (await confermaInLinea(bottone, { testo: 'Eliminare questa sede? Verrà rimossa dai dati aziendali di tutti i nodi.', etichetta: 'Elimina' })) {
                     try {
                         await window.electronAPI.datiAzienda.deleteSede(id);
                         toast('Sede eliminata', 'success');

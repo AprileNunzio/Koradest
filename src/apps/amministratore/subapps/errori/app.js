@@ -1,4 +1,5 @@
-import { toast, conferma } from '../../../../js/utils.js';
+import { toast } from '../../../../js/utils.js';
+import { confermaInLinea } from '../../../../js/shared/conferma_inline.js';
 
 const esc = (valore) => String(valore ?? '')
     .replace(/&/g, '&amp;')
@@ -92,7 +93,7 @@ export default {
             content.addEventListener('click', async (e) => {
                 const pulsante = e.target.closest('[data-elimina]');
                 if (!pulsante) return;
-                if (!(await conferma({ titolo: 'Eliminare questa voce?', etichetta: 'Elimina', pericolosa: true }))) return;
+                if (!(await confermaInLinea(pulsante, { testo: 'Eliminare questa voce?', etichetta: 'Elimina' }))) return;
                 try {
                     const res = await window.electronAPI.deleteSystemLog(parseInt(pulsante.dataset.elimina, 10));
                     if (res && res.success) {
@@ -107,12 +108,10 @@ export default {
             });
 
             el.querySelector('#btn-refresh').addEventListener('click', loadLogs);
-            el.querySelector('#btn-clear-all').addEventListener('click', async () => {
-                const ok = await conferma({
-                    titolo: 'Svuotare il registro?',
-                    testo: 'Tutti gli errori e i log di sistema verranno eliminati definitivamente.',
-                    etichetta: 'Svuota registro',
-                    pericolosa: true
+            el.querySelector('#btn-clear-all').addEventListener('click', async (evento) => {
+                const ok = await confermaInLinea(evento.currentTarget, {
+                    testo: 'Svuotare il registro? Tutti gli errori e i log di sistema verranno eliminati definitivamente.',
+                    etichetta: 'Svuota registro'
                 });
                 if (!ok) return;
                 try {

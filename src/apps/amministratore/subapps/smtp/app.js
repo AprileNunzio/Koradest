@@ -7,43 +7,50 @@ const campo = (id, etichetta, attributi = '', aiuto = '') => `
         ${aiuto ? `<span class="k-hint">${aiuto}</span>` : ''}
     </div>`;
 
-const chiediEmailDiTest = () => new Promise((resolve) => {
-    const sfondo = document.createElement('div');
-    sfondo.className = 'k-dialog-backdrop';
-    sfondo.innerHTML = `
-        <div class="k-dialog" role="dialog" aria-modal="true" aria-labelledby="smtp-test-title">
-            <div class="k-dialog-header">
-                <span class="k-page-icon material-symbols-rounded">forward_to_inbox</span>
-                <div>
-                    <h2 id="smtp-test-title" class="k-dialog-title">Test SMTP</h2>
-                    <p class="k-hint">Invia un messaggio di prova con la configurazione attuale.</p>
-                </div>
-            </div>
-            <div class="k-dialog-body">
-                <div class="k-field">
-                    <label class="k-label" for="smtp-test-email-input">Indirizzo destinatario</label>
-                    <input type="email" id="smtp-test-email-input" class="k-input" placeholder="nome@esempio.it" autocomplete="email">
-                </div>
-            </div>
-            <div class="k-dialog-footer">
-                <button id="smtp-test-email-cancel" class="k-btn k-btn--ghost">Annulla</button>
-                <button id="smtp-test-email-ok" class="k-btn k-btn--primary"><span class="material-symbols-rounded">send</span>Invia</button>
-            </div>
-        </div>`;
+const chiediEmailDiTest = (ancora) => new Promise((resolve) => {
+    if (!ancora || !ancora.parentElement) {
+        resolve(null);
+        return;
+    }
+    const esistente = ancora.parentElement.querySelector('.k-richiesta-linea');
+    if (esistente) esistente.remove();
+    const riquadro = document.createElement('div');
+    riquadro.className = 'k-richiesta-linea';
+    riquadro.setAttribute('role', 'group');
+    riquadro.setAttribute('aria-label', 'Test SMTP');
+    riquadro.innerHTML = `
+        <div class="k-field" style="flex: 1 1 16rem;">
+            <label class="k-label" for="smtp-test-email-input">Indirizzo destinatario</label>
+            <input type="email" id="smtp-test-email-input" class="k-input" placeholder="nome@esempio.it" autocomplete="email">
+            <span class="k-hint">Invia un messaggio di prova con la configurazione attuale.</span>
+        </div>
+        <button type="button" id="smtp-test-email-ok" class="k-btn k-btn--primary"><span class="material-symbols-rounded">send</span>Invia</button>
+        <button type="button" id="smtp-test-email-cancel" class="k-btn k-btn--ghost">Annulla</button>
+    `;
     const chiudi = (valore) => {
-        sfondo.remove();
+        document.removeEventListener('keydown', allaTastiera, true);
+        riquadro.remove();
+        ancora.hidden = false;
         resolve(valore);
     };
-    document.body.appendChild(sfondo);
-    const input = sfondo.querySelector('#smtp-test-email-input');
-    sfondo.querySelector('#smtp-test-email-ok').addEventListener('click', () => chiudi(input.value.trim()));
-    sfondo.querySelector('#smtp-test-email-cancel').addEventListener('click', () => chiudi(null));
-    sfondo.addEventListener('click', (e) => { if (e.target === sfondo) chiudi(null); });
+    const allaTastiera = (e) => {
+        if (e.key !== 'Escape') return;
+        e.preventDefault();
+        chiudi(null);
+    };
+    ancora.hidden = true;
+    ancora.after(riquadro);
+    const input = riquadro.querySelector('#smtp-test-email-input');
+    riquadro.querySelector('#smtp-test-email-ok').addEventListener('click', () => chiudi(input.value.trim()));
+    riquadro.querySelector('#smtp-test-email-cancel').addEventListener('click', () => chiudi(null));
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') chiudi(input.value.trim());
-        if (e.key === 'Escape') chiudi(null);
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            chiudi(input.value.trim());
+        }
     });
-    setTimeout(() => input.focus(), 50);
+    document.addEventListener('keydown', allaTastiera, true);
+    input.focus();
 });
 
 export default {
@@ -195,13 +202,13 @@ export default {
                 consoleOut.scrollTop = consoleOut.scrollHeight;
             };
 
-            el.querySelector('#btn-test-smtp').addEventListener('click', async () => {
+            el.querySelector('#btn-test-smtp').addEventListener('click', async (evento) => {
                 const formData = getFormData();
                 if (!formData.smtp_host || !formData.smtp_port) {
                     toast('Host e porta sono obbligatori per il test.', 'warning');
                     return;
                 }
-                const testEmail = await chiediEmailDiTest();
+                const testEmail = await chiediEmailDiTest(evento.currentTarget);
                 if (!testEmail) return;
                 const btn = el.querySelector('#btn-test-smtp');
                 btn.setAttribute('aria-busy', 'true');

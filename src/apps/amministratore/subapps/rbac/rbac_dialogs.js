@@ -18,31 +18,40 @@ export function interruttore(attributi, etichettaNascosta) {
     }
 }
 
-export function apriDialog({ titolo, icona, corpo, pulsanti, largo = false }) {
+export function apriDialog({ titolo, icona, corpo, pulsanti, largo = false, ancora = null }) {
     try {
-        const sfondo = document.createElement('div');
-        sfondo.className = 'k-dialog-backdrop';
-        sfondo.innerHTML = `
-            <div class="k-dialog${largo ? ' k-dialog--lg' : ''}" role="dialog" aria-modal="true" aria-label="${esc(titolo)}">
-                <div class="k-dialog-header">
-                    <span class="k-page-icon material-symbols-rounded">${icona}</span>
-                    <h2 class="k-dialog-title" style="align-self: center;">${esc(titolo)}</h2>
+        const ospite = ancora || document.getElementById('app-mount-point') || document.getElementById('main-content') || document.body;
+        const esistente = ospite.querySelector(':scope > .k-riquadro-linea');
+        if (esistente) esistente.remove();
+        const riquadro = document.createElement('section');
+        riquadro.className = `k-riquadro-linea${largo ? ' k-riquadro-linea--largo' : ''}`;
+        riquadro.setAttribute('role', 'group');
+        riquadro.setAttribute('aria-label', titolo);
+        riquadro.innerHTML = `
+            <div class="k-card">
+                <div class="k-card-header">
+                    <div class="k-card-title"><span class="material-symbols-rounded">${icona}</span><span>${esc(titolo)}</span></div>
+                    <button type="button" class="k-btn k-btn--ghost k-btn--sm" data-chiudi>
+                        <span class="material-symbols-rounded">arrow_back</span>Chiudi
+                    </button>
                 </div>
-                <div class="k-dialog-body">${corpo}</div>
-                <div class="k-dialog-footer">${pulsanti}</div>
+                <div>${corpo}</div>
+                <div class="k-card-footer">${pulsanti}</div>
             </div>`;
         const tasti = (e) => { if (e.key === 'Escape') chiudi(); };
         const chiudi = () => {
             document.removeEventListener('keydown', tasti);
-            sfondo.remove();
+            riquadro.remove();
         };
         document.addEventListener('keydown', tasti);
-        sfondo.addEventListener('click', (e) => {
-            if (e.target === sfondo || e.target.closest('[data-chiudi]')) chiudi();
+        riquadro.addEventListener('click', (e) => {
+            if (e.target.closest('[data-chiudi]')) chiudi();
         });
-        document.body.appendChild(sfondo);
-        return { el: sfondo, chiudi };
+        ospite.prepend(riquadro);
+        riquadro.scrollIntoView({ block: 'nearest' });
+        return { el: riquadro, chiudi };
     } catch (e) {
+        console.error('[RBAC] Riquadro non aperto:', e);
         return { el: null, chiudi: () => {} };
     }
 }
