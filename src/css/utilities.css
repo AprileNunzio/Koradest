@@ -185,17 +185,17 @@ textarea.input-field, textarea.input { height: auto; min-height: 6rem; padding: 
     box-shadow: 0 6px 16px -4px rgba(99, 102, 241, 0.16);
 }
 .app-card .app-icon {
-    width: 52px;
-    height: 52px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
-    margin-top: 0.35rem;
-    margin-bottom: 0.75rem;
+    margin-top: 0.8rem;
+    margin-bottom: 1.2rem;
     filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.1));
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 46px;
+    font-size: 36px;
     color: var(--md-primary);
 }
 .app-card:hover .app-icon {

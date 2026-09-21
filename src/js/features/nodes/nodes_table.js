@@ -119,10 +119,11 @@ export class NodesTable {
                     const reliability = node.isLocal ? 100 : (node.reliability || 100);
                     const relColor = reliability >= 90 ? '#10b981' : (reliability >= 60 ? '#f59e0b' : '#ef4444');
                     const protoStr = `v${node.protocolVersion || 2}`;
+                    const nodeLabel = node.displayName || (node.networkName && node.pcName ? `${node.networkName} (${node.pcName})` : (node.name || 'Nodo'));
                     return `
                         <tr class="${rowClass}">
                             <td><span class="td-status ${statusClass}"><span style="width:5px;height:5px;border-radius:50%;background:currentColor;"></span> ${this._esc(statusText)}</span></td>
-                            <td style="font-weight: 600;">${this._esc(node.name || 'Nodo')}</td>
+                            <td style="font-weight: 600;">${this._esc(nodeLabel)}</td>
                             <td class="td-mono">${this._esc(ipStr)}</td>
                             <td class="td-mono">${this._esc(idStr)}</td>
                             <td>${latencyStr}</td>

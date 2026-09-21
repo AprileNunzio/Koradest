@@ -10,7 +10,7 @@ const { loadPeers, savePeers } = require('./peers/peer_cache');
 const { loadFromCache, getAllPeers, getDetailedPeers, getPexPeers, clearPeers } = require('./peers/peer_registry');
 const { syncWithPeer, fullResync } = require('../dag/sync/sync_coordinator');
 const { PORT, UDP_PORT, PROTOCOL_VERSION, SERVICE_NAME, PORT_FALLBACK_ATTEMPTS } = require('./protocol/constants');
-const { getNetworkName, getNodeId } = require('../core/node_identity');
+const { getNetworkName, getNodeId, getPcName, getNodeDisplayName } = require('../core/node_identity');
 const { getCurrentTips } = require('../dag/graph/dag_tips');
 const bus = require('../core/event_bus');
 const express = require('express');
@@ -130,10 +130,8 @@ async function safeTriggerResync(ip, port) {
         const { app: electronApp } = require('electron');
         const path = require('path');
         const BackupManager = require('../db/backup_manager');
-        const { getNetworkName } = require('../core/node_identity');
-        const networkName = getNetworkName() || 'default';
-        const safeNode = networkName.replace(/[^a-zA-Z0-9_-]/g, '');
-        const basePath = path.join(electronApp.getPath('userData'), 'dbs', safeNode);
+        const dbManager = require('../db/db_manager');
+        const basePath = dbManager.basePath || path.join(electronApp.getPath('userData'), 'dbs', networkSession.getActiveSlug() || 'default');
         BackupManager.createPreSyncCheckpoint(basePath);
         const esito = await fullResync(ip, port || PORT);
         _ultimoErroreResync = esito
@@ -174,7 +172,7 @@ function startSyncServer() {
                 const { app: electronApp } = require('electron');
                 const { getPendingUpdateVersion } = require('../core/updaterService');
                 const isInitialized = await checkIsRegistered();
-                res.json({ status: 'ok', node: getNetworkName(), protocolVersion: PROTOCOL_VERSION, appVersion: electronApp.getVersion(), nodeId: getNodeId(), isInitialized, networkPublicId: networkSession.getActivePublicId(), blockCount: getTotalBlocksCount(), updateReadyVersion: typeof getPendingUpdateVersion === 'function' ? getPendingUpdateVersion() : null });
+                res.json({ status: 'ok', node: getNodeDisplayName(), displayName: getNodeDisplayName(), networkName: getNetworkName(), pcName: getPcName(), protocolVersion: PROTOCOL_VERSION, appVersion: electronApp.getVersion(), nodeId: getNodeId(), isInitialized, networkPublicId: networkSession.getActivePublicId(), blockCount: getTotalBlocksCount(), updateReadyVersion: typeof getPendingUpdateVersion === 'function' ? getPendingUpdateVersion() : null });
             } catch (e) {
                 res.status(500).json({ error: 'Internal error' });
             }
@@ -352,7 +350,7 @@ function startSyncServer() {
         };
         _server.on('listening', () => {
             console.log(`[P2P] Server WebSocket in ascolto su porta ${_boundPort}`);
-            _udpServer = startUdpListener(UDP_PORT, getNodeId, getNetworkName, PROTOCOL_VERSION, (version, senderIp) => {
+            _udpServer = startUdpListener(UDP_PORT, getNodeId, getNodeDisplayName, PROTOCOL_VERSION, (version, senderIp) => {
                 try { require('../core/updaterService').maybeAdoptLanUpdate(version, senderIp, _boundPort); } catch (_) {}
             }, (senderIp, token) => {
                 try {

@@ -103,8 +103,22 @@ async function fetchRemoteMarketplace(forceRefresh = false) {
         const results = await Promise.allSettled(activeRepos.map(async (repo) => {
             const res = await fetchWithTimeout(repo.url + '?t=' + bust, { headers: noCache }, 3500);
             if (!res.ok) throw new Error('HTTP ' + res.status);
-            const data = await res.json();
+            let data = await res.json();
             if (!Array.isArray(data)) throw new Error('Formato non valido');
+            
+            data = await Promise.all(data.map(async (app) => {
+                if (app.manifestUrl) {
+                    try {
+                        const mRes = await fetchWithTimeout(app.manifestUrl + '?t=' + bust, { headers: noCache }, 3500);
+                        if (mRes.ok) {
+                            const mData = await mRes.json();
+                            return { ...app, ...mData };
+                        }
+                    } catch (e) {}
+                }
+                return app;
+            }));
+
             return { repo, data };
         }));
 

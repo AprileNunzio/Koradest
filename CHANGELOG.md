@@ -3,6 +3,19 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.1.20] - 2026-09-21
+
+### Aggiunto
+- **Nome rete automatico all'accesso**: rimosso l'inserimento manuale del nome rete durante l'unione a una rete esistente; il nodo eredita e registra in automatico il nome originale assegnato dall'amministratore/creatore.
+- **Identificazione nodi `Nome Rete (Nome PC)`**: i nodi rilevati sulla rete P2P vengono identificati e visualizzati uniformemente come `Nome Rete (Nome PC)`, sia nella tabella nodi, sia nel canvas topologico che nei messaggi di annuncio UDP/Ping.
+- **Protocolli P2P e DAG Enterprise**: albero di ricerca Merkle (MST) per anti-entropia veloce O(1), gossipsub, MVCC branch manager, crittografia dei carichi per ruolo e convalida nodi tramite PKI CA.
+
+### Corretto
+- **Grafica registrazione primo amministratore**: layout riprogettato con design Fluent 2 pulito, campi PIN a 6 cifre senza wrapping, supporto incolla sequenziale e barra di robustezza password integrata nel modulo.
+
+### Rimosso
+- **Gestione del Personale non è più un'app di sistema**: è diventata un'applicazione del Marketplace (`gestione_personale` 2.0.0, manifest v2, autore NunzioTech) con archivio proprio e interfaccia isolata. La cartella `src/apps/gestione_personale` è stata eliminata, i permessi `gestione_personale:*` non compaiono più nella policy IPC di Anagrafica e l'id non è più considerato un modulo di sistema dal risolutore delle dipendenze, così le app che dipendono da `gestione_personale` lo installano davvero dallo Store.
+
 ## [1.1.8] - 2026-09-18
 
 ### Aggiunto

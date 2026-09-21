@@ -295,7 +295,8 @@ export class TopologyCanvas {
                     ctx.beginPath();
                     ctx.arc(pos.x, pos.y, pulseR * hoverScale, 0, Math.PI * 2);
                     ctx.stroke();
-                    const label = isLocal ? 'LOCAL' : (pos.node.name || pos.node.ip || '').substring(0, 20);
+                    const nodeLabel = pos.node.displayName || (pos.node.networkName && pos.node.pcName ? `${pos.node.networkName} (${pos.node.pcName})` : (pos.node.name || pos.node.ip || ''));
+                    const label = isLocal ? 'LOCAL' : nodeLabel.substring(0, 28);
                     ctx.fillStyle = labelColor;
                     ctx.font = `600 ${isLocal ? '9' : '8'}px Inter, sans-serif`;
                     ctx.textAlign = 'center';

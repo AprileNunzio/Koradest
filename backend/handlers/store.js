@@ -74,7 +74,7 @@ async function install(event, appId, versioneRichiesta) {
         if (!accessGuard.isSuperadmin()) return { success: false, error: 'Permesso negato' };
         if (!appId) return { success: false, error: 'appId mancante' };
 
-        const availableRes = await getAvailable();
+        const availableRes = await getAvailable(true);
         const availableApps = availableRes.success ? availableRes.data : [];
         const nomeDi = id => (availableApps.find(m => m.id === id) || {}).name || id;
 
@@ -203,7 +203,7 @@ async function installaSingola(appId, versioneRichiesta, availableApps) {
 
         appPackageFetcher.pulisciStagingResidui();
 
-        const updatedManifests = await appsRegistry.getAppsRegistry();
+        const updatedManifests = await appsRegistry.getAppsRegistry(true);
         const manifest = updatedManifests.find(m => m.id === appId) || targetManifest;
         const ok = await AppLoader.loadApp(manifest);
         if (!ok) {

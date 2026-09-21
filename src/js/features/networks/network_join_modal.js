@@ -20,11 +20,6 @@ const JOIN_FORM = `
         <label for="net-join-code">Codice di sicurezza della rete</label>
         <input id="net-join-code" name="code" class="net-code-input" type="text" maxlength="20" autocomplete="off" placeholder="XXX-XXX-XXX" required>
     </div>
-    <div class="net-field">
-        <label for="net-join-name">Nome con cui salvare la rete (facoltativo)</label>
-        <input id="net-join-name" name="name" type="text" maxlength="60" autocomplete="off" placeholder="Lascia vuoto per usare il nome originale">
-        <small>Se lo lasci vuoto viene usato il nome scelto da chi ha creato la rete. Compilalo solo se vuoi un'etichetta diversa su questa postazione.</small>
-    </div>
     <label class="net-check">
         <input name="remember" type="checkbox">
         <span>Memorizza il codice su questo dispositivo per rientrare senza digitarlo.</span>
@@ -36,15 +31,18 @@ const renderScanResults = (container, nodes, onSelect) => {
         container.innerHTML = '<div class="net-inline-note"><span class="material-symbols-rounded">wifi_off</span><span>Nessun nodo rilevato. Inserisci manualmente l indirizzo IPv4 del computer da contattare.</span></div>';
         return;
     }
-    container.innerHTML = nodes.map(node => `
-        <div class="net-scan-item" data-node-ip="${esc(node.ip || node.host)}" data-node-port="${esc(node.port || DEFAULT_PORT)}" data-node-name="${esc(node.name || 'Nodo KORADEST')}">
+    container.innerHTML = nodes.map(node => {
+        const nodeLabel = esc(node.displayName || (node.networkName && node.pcName ? `${node.networkName} (${node.pcName})` : (node.name || 'Nodo KORADEST')));
+        return `
+        <div class="net-scan-item" data-node-ip="${esc(node.ip || node.host)}" data-node-port="${esc(node.port || DEFAULT_PORT)}" data-node-name="${nodeLabel}">
             <span class="material-symbols-rounded">dns</span>
             <div>
-                <strong>${esc(node.name || 'Nodo KORADEST')}</strong><br>
+                <strong>${nodeLabel}</strong><br>
                 <span class="ip">${esc(node.ip || node.host)}:${esc(node.port || DEFAULT_PORT)}</span>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
     container.querySelectorAll('.net-scan-item').forEach(item => {
         item.addEventListener('click', () => {
             container.querySelectorAll('.net-scan-item').forEach(i => i.classList.remove('is-selected'));
@@ -92,7 +90,7 @@ export const openJoinNetworkModal = (host, { onJoined, onProgress }) => {
         modal.setBusy(true);
         if (typeof onProgress === 'function') onProgress('Sincronizzazione della rete in corso...');
         const result = await NetworksService.join({
-            name: modal.value('name'),
+            name: '',
             code,
             host: targetHost,
             port: targetPort,

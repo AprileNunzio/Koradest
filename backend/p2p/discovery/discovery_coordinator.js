@@ -3,7 +3,7 @@ const bus = require('../../core/event_bus');
 const { broadcast, getPhysicalSubnets, accettaPeer } = require('./udp_broadcaster');
 const { discover: discoverMdns } = require('./mdns_resolver');
 const { scanArpTable, getLocalIPs } = require('./arp_scanner');
-const { getNodeId, getNetworkName } = require('../../core/node_identity');
+const { getNodeId, getNetworkName, getNodeDisplayName } = require('../../core/node_identity');
 const { PROTOCOL_VERSION, PORT, UDP_PORT } = require('../protocol/constants');
 const http = require('http');
 function _probeHost(ip, timeoutMs = 500, scoped = true) {
@@ -18,7 +18,10 @@ function _probeHost(ip, timeoutMs = 500, scoped = true) {
                         if (json.status === 'ok' && json.isInitialized !== false && accettaPeer(json.networkPublicId, scoped)) {
                             return resolve({
                                 ip,
-                                name: json.node || 'Koradest Node',
+                                name: json.displayName || json.node || 'Nodo KORADEST',
+                                displayName: json.displayName || json.node || 'Nodo KORADEST',
+                                networkName: json.networkName || null,
+                                pcName: json.pcName || null,
                                 port: PORT,
                                 pingMs: 1,
                                 protocolVersion: json.protocolVersion || 0,
@@ -64,7 +67,7 @@ async function runDiscovery(onProgress, opzioni = {}) {
         const arpIPs = await scanArpTable();
         await Promise.all(arpIPs.map(async ip => { const r = await _probeHost(ip, 500, scoped); if (r) addPeer(r, 'arp'); }));
         _progress('Fase 1: UDP broadcast...');
-        const discoverMsg = `DISCOVER_KORADEST:${getNetworkName() || 'Koradest'}:${PORT}:${PROTOCOL_VERSION}:${getNodeId()}`;
+        const discoverMsg = `DISCOVER_KORADEST:${getNodeDisplayName() || 'Koradest'}:${PORT}:${PROTOCOL_VERSION}:${getNodeId()}`;
         const udpPeers = await broadcast(discoverMsg, UDP_PORT, 1200, scoped);
         if (Array.isArray(udpPeers)) {
             for (const p of udpPeers) addPeer(p, 'udp');

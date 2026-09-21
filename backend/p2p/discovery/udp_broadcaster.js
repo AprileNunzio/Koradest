@@ -59,7 +59,7 @@ function broadcast(message, udpPort, timeoutMs = 1500, scoped = true) {
             const str = msg.toString();
             if (!str.startsWith('I_AM_KORADEST:')) return;
             const parts = str.split(':');
-            const peer = { ip: rinfo.address, name: parts[1] || 'Koradest Node', port: parseInt(parts[2]) || 34567, protocolVersion: parseInt(parts[3]) || 0, nodeId: parts[4] || null, updateReadyVersion: parts[5] || null, networkPublicId: parts[6] || null };
+            const peer = { ip: rinfo.address, name: parts[1] || 'Nodo KORADEST', displayName: parts[1] || 'Nodo KORADEST', port: parseInt(parts[2]) || 34567, protocolVersion: parseInt(parts[3]) || 0, nodeId: parts[4] || null, updateReadyVersion: parts[5] || null, networkPublicId: parts[6] || null };
             if (!accettaPeer(peer.networkPublicId, scoped)) return;
             found.push(peer);
             if (scoped) bus.publish('peer:discovered', { ...peer, source: 'udp' });
@@ -99,12 +99,12 @@ function startUdpListener(udpPort, localNodeIdFn, localNameFn, protocolVersion, 
                 server.send(reply, 0, reply.length, rinfo.port, rinfo.address);
                 if (str.includes(':')) {
                     const p = str.split(':');
-                    bus.publish('peer:discovered', { ip: rinfo.address, name: p[1] || 'Sconosciuto', port: parseInt(p[2]) || 34567, protocolVersion: parseInt(p[3]) || 0, nodeId: p[4] || null, source: 'udp-passive' });
+                    bus.publish('peer:discovered', { ip: rinfo.address, name: p[1] || 'Nodo KORADEST', displayName: p[1] || 'Nodo KORADEST', port: parseInt(p[2]) || 34567, protocolVersion: parseInt(p[3]) || 0, nodeId: p[4] || null, source: 'udp-passive' });
                 }
             } else if (str.startsWith('I_AM_KORADEST:')) {
                 const p = str.split(':');
                 if (!accettaPeer(p[6] || null, Boolean(activePublicId()))) return;
-                bus.publish('peer:discovered', { ip: rinfo.address, name: p[1] || 'Koradest Node', port: parseInt(p[2]) || 34567, protocolVersion: parseInt(p[3]) || 0, nodeId: p[4] || null, updateReadyVersion: p[5] || null, networkPublicId: p[6] || null, source: 'udp-passive' });
+                bus.publish('peer:discovered', { ip: rinfo.address, name: p[1] || 'Nodo KORADEST', displayName: p[1] || 'Nodo KORADEST', port: parseInt(p[2]) || 34567, protocolVersion: parseInt(p[3]) || 0, nodeId: p[4] || null, updateReadyVersion: p[5] || null, networkPublicId: p[6] || null, source: 'udp-passive' });
             } else if (str.startsWith('UPDATE_AVAILABLE_P2P:') && onUpdateAvailable) {
                 const p = str.split(':');
                 const version = p[1];

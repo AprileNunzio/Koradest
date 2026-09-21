@@ -180,7 +180,8 @@ async function cloneFromRemoteNode(params, onProgress) {
         return {
             success: true,
             userCount: importRes.userCount,
-            appCount: installedCount
+            appCount: installedCount,
+            networkName: importRes.networkName || bundle.networkName
         };
     } catch (e) {
         return { success: false, error: e.message };

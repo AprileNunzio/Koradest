@@ -201,24 +201,24 @@ const PERMISSION = {
     'store:addRepository': ['amministratore:edit'],
     'store:removeRepository': ['amministratore:edit'],
 
-    'anagrafica:persone:getAll': ['anagrafica:view', 'gestione_personale:view'],
-    'anagrafica:persone:search': ['anagrafica:view', 'gestione_personale:view'],
-    'anagrafica:persone:getById': ['anagrafica:view', 'gestione_personale:view'],
-    'anagrafica:persone:getByUserId': ['anagrafica:view', 'gestione_personale:view'],
-    'anagrafica:persone:getScheda': ['anagrafica:view', 'gestione_personale:view'],
-    'anagrafica:audit:getHistory': ['anagrafica:view', 'gestione_personale:view'],
-    'anagrafica:persone:create': ['anagrafica:create', 'gestione_personale:create'],
-    'anagrafica:persone:update': ['anagrafica:edit', 'gestione_personale:edit'],
-    'anagrafica:persone:remove': ['anagrafica:edit', 'gestione_personale:edit'],
-    'anagrafica:persone:restore': ['anagrafica:edit', 'gestione_personale:edit']
+    'anagrafica:persone:getAll': ['anagrafica:view'],
+    'anagrafica:persone:search': ['anagrafica:view'],
+    'anagrafica:persone:getById': ['anagrafica:view'],
+    'anagrafica:persone:getByUserId': ['anagrafica:view'],
+    'anagrafica:persone:getScheda': ['anagrafica:view'],
+    'anagrafica:audit:getHistory': ['anagrafica:view'],
+    'anagrafica:persone:create': ['anagrafica:create'],
+    'anagrafica:persone:update': ['anagrafica:edit'],
+    'anagrafica:persone:remove': ['anagrafica:edit'],
+    'anagrafica:persone:restore': ['anagrafica:edit']
 };
 
 const ANAGRAFICA_SECTIONS = ['documenti', 'residenza', 'contatti', 'familiari', 'lavoro', 'titoliStudio', 'datiBancari'];
 const ANAGRAFICA_VERBS = {
-    getByPersona: ['anagrafica:view', 'gestione_personale:view'],
-    create: ['anagrafica:create', 'gestione_personale:create'],
-    update: ['anagrafica:edit', 'gestione_personale:edit'],
-    remove: ['anagrafica:edit', 'gestione_personale:edit']
+    getByPersona: ['anagrafica:view'],
+    create: ['anagrafica:create'],
+    update: ['anagrafica:edit'],
+    remove: ['anagrafica:edit']
 };
 for (const section of ANAGRAFICA_SECTIONS) {
     for (const [verb, permissions] of Object.entries(ANAGRAFICA_VERBS)) {

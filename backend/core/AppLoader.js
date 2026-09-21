@@ -139,6 +139,24 @@ async function loadApp(manifest) {
                                 .map(t => t.name)
                                 .filter(nome => locali.indexOf(String(nome).toLowerCase()) === -1);
                             schemaRegistry.registerDynamicDomain(`app_${dbNamespace}`, replicabili);
+                            if (dbNamespace === 'gestione_classi') {
+                                try {
+                                    const { app } = require('electron');
+                                    const path = require('path');
+                                    const fs = require('fs');
+                                    const marker = path.join(app.getPath('userData'), 'gestione_classi_retro_sync.flag');
+                                    if (!fs.existsSync(marker)) {
+                                        const { wrapMutationWithEvent } = require('../db');
+                                        for (const tbl of replicabili) {
+                                            const rows = appDb.query(`SELECT * FROM ${tbl}`);
+                                            for (const r of rows) {
+                                                wrapMutationWithEvent('UPDATE', tbl, r.id, r);
+                                            }
+                                        }
+                                        fs.writeFileSync(marker, 'sync_done');
+                                    }
+                                } catch (_) {}
+                            }
                         }
                     } catch (_) {}
                 }

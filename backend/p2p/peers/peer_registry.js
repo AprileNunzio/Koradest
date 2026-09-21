@@ -3,15 +3,21 @@ const { PeerFSM, STATES } = require('./peer_fsm');
 const bus = require('../../core/event_bus');
 const { PORT } = require('../protocol/constants');
 const _peers = new Map();
-bus.subscribe('peer:discovered', ({ ip, name, port, nodeId, protocolVersion, pingMs, updateReadyVersion, networkPublicId }) => {
+bus.subscribe('peer:discovered', ({ ip, name, displayName, networkName, pcName, port, nodeId, protocolVersion, pingMs, updateReadyVersion, networkPublicId }) => {
     if (!ip || ip === '127.0.0.1') return;
+    const finalName = displayName || name || (networkName && pcName ? `${networkName} (${pcName})` : (networkName || pcName || 'Nodo KORADEST'));
     if (!_peers.has(ip)) {
         const fsm = new PeerFSM(ip);
         fsm.transition(STATES.DISCOVERED);
-        _peers.set(ip, { fsm, meta: { name: name || 'Koradest Node', port: port || PORT, nodeId: nodeId || null, protocolVersion: protocolVersion || 0, pingMs: pingMs || 0, updateReadyVersion: updateReadyVersion || null, networkPublicId: networkPublicId || null, lastSeen: Date.now() } });
+        _peers.set(ip, { fsm, meta: { name: finalName, displayName: finalName, networkName: networkName || null, pcName: pcName || null, port: port || PORT, nodeId: nodeId || null, protocolVersion: protocolVersion || 0, pingMs: pingMs || 0, updateReadyVersion: updateReadyVersion || null, networkPublicId: networkPublicId || null, lastSeen: Date.now() } });
     } else {
         const p = _peers.get(ip);
-        if (name) p.meta.name = name;
+        if (finalName) {
+            p.meta.name = finalName;
+            p.meta.displayName = finalName;
+        }
+        if (networkName) p.meta.networkName = networkName;
+        if (pcName) p.meta.pcName = pcName;
         if (port) p.meta.port = port;
         if (nodeId) p.meta.nodeId = nodeId;
         if (protocolVersion) p.meta.protocolVersion = protocolVersion;

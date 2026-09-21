@@ -24,7 +24,8 @@ async function handleCloneNetwork(node, networkCode) {
     try {
         createCloneProgressModal();
         const modalNodeName = document.getElementById('clone-modal-node-name');
-        if (modalNodeName) modalNodeName.textContent = `Connessione a: ${node.name || 'Nodo Remoto'} (${node.host || node.ip || 'LAN'})`;
+        const nodeLabel = node.displayName || (node.networkName && node.pcName ? `${node.networkName} (${node.pcName})` : (node.name || 'Nodo Remoto'));
+        if (modalNodeName) modalNodeName.textContent = `Connessione a: ${nodeLabel} (${node.host || node.ip || 'LAN'})`;
         if (window.electronAPI && window.electronAPI.onCloneProgress) {
             window.electronAPI.onCloneProgress((prog) => {
                 try { updateCloneStep(prog); } catch (_) {}
@@ -38,7 +39,7 @@ async function handleCloneNetwork(node, networkCode) {
             host: node.host || node.ip,
             port: node.port || 34567,
             networkCode: networkCode,
-            networkName: node.name || 'Network'
+            networkName: null
         });
         if (res === true || (res && res.success)) {
             updateCloneStep({ step: 'settings', label: 'Impostazioni e parametri applicati', status: 'done' });
@@ -70,7 +71,8 @@ function promptNetworkCode(el, node) {
         const confirmBtn = el.querySelector('#btn-modal-confirm');
         const cancelBtn = el.querySelector('#btn-modal-cancel');
         const titleDesc = el.querySelector('#modal-network-name');
-        titleDesc.innerHTML = `Connessione a: <b>${_esc(node.name)}</b><br><span style="font-family: monospace; font-size: 0.85rem; opacity: 0.8;">IPv4: ${_esc(node.host)}</span>`;
+        const modalLabel = node.displayName || (node.networkName && node.pcName ? `${node.networkName} (${node.pcName})` : (node.name || 'Nodo Remoto'));
+        titleDesc.innerHTML = `Connessione a: <b>${_esc(modalLabel)}</b><br><span style="font-family: monospace; font-size: 0.85rem; opacity: 0.8;">IPv4: ${_esc(node.host)}</span>`;
         input.value = '';
         modal.style.display = 'flex';
         input.focus();
@@ -224,10 +226,11 @@ async function executeNetworkScan(el) {
                 try {
                     const card = document.createElement('div');
                     card.className = 'node-card fade-in-up';
+                    const nodeLabel = node.displayName || (node.networkName && node.pcName ? `${node.networkName} (${node.pcName})` : (node.name || 'Nodo KORADEST'));
                     card.innerHTML = `
                         <div class="node-status-indicator"></div>
                         <div style="flex: 1;">
-                            <h3 style="margin: 0 0 0.3rem 0; color: var(--md-primary); font-size: 1.2rem;">${_esc(node.name)}</h3>
+                            <h3 style="margin: 0 0 0.3rem 0; color: var(--md-primary); font-size: 1.2rem;">${_esc(nodeLabel)}</h3>
                             <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: var(--md-on-surface-variant); font-family: monospace;">
                                 <span><span class="material-symbols-rounded" style="font-size: 1rem; vertical-align: bottom;">lan</span> ${_esc(node.ip || node.host || 'Sconosciuto')}</span>
                                 <span><span class="material-symbols-rounded" style="font-size: 1rem; vertical-align: bottom;">cable</span> Port ${_esc(node.port)}</span>

@@ -22,7 +22,7 @@ export default {
                                     <p class="k-page-subtitle">Utenti, ruoli, sicurezza e configurazione del nodo</p>
                                 </div>
                             </div>
-                            <div class="k-input-group" style="flex: 1 1 16rem; max-width: 22rem;">
+                            <div class="k-input-group" style="flex: 1 1 100%;">
                                 <span class="material-symbols-rounded">search</span>
                                 <input type="search" id="subapp-search" class="k-input" placeholder="Cerca modulo..." aria-label="Cerca modulo">
                             </div>
@@ -54,10 +54,12 @@ export default {
                         card.title = app.description || app.name;
                         let iconHtml = '';
                         if (app.icon && !app.icon.includes('.')) {
-                            iconHtml = `<span class="material-symbols-rounded app-icon">${esc(app.icon)}</span>`;
+                            iconHtml = `<span class="material-symbols-rounded app-icon" style="color: var(--md-primary);">${esc(app.icon)}</span>`;
                         } else {
-                            const iconPath = app.icon ? `apps/amministratore/subapps/${app.folder}/${app.icon}` : `icone/applicazione_generica.png`;
-                            iconHtml = `<img src="${esc(iconPath)}" class="app-icon" alt="" onerror="this.src='icone/applicazione_generica.png'">`;
+                            const iconPath = app.icon ? `koradest-app://amministratore/subapps/${app.folder}/${app.icon}` : '';
+                        iconHtml = app.icon && app.icon.includes('.')
+                            ? `<img src="${esc(iconPath)}" class="app-icon" alt="" onerror="this.outerHTML='<span class=&quot;material-symbols-rounded app-icon&quot; style=&quot;color: var(--md-primary);&quot;>extension</span>'">`
+                            : `<span class="material-symbols-rounded app-icon" style="color: var(--md-primary);">extension</span>`;
                         }
                         card.innerHTML = `
                             ${iconHtml}

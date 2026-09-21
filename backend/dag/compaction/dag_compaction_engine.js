@@ -67,12 +67,21 @@ async function createEpochCheckpoint() {
             return { success: true, compacted: false, message: 'Nessun blocco idoneo per il pruning' };
         }
 
+        const merkleSnapshot = require('./merkle_snapshot');
+        let snapshotRecord = null;
+        try {
+            snapshotRecord = merkleSnapshot.createSignedSnapshot(pruneCandidates.map(c => c.block_id), stateHash);
+        } catch (err) {
+            return { success: false, error: 'Snapshot creation failed (Not Root CA?)' };
+        }
+
         const checkpointData = {
-            version: 1,
+            version: 2,
             createdAt: Date.now(),
             stateChecksum: stateHash,
             tips,
-            compactedBlockCount: pruneCandidates.length
+            compactedBlockCount: pruneCandidates.length,
+            p2pSnapshot: snapshotRecord // Inserito per distribuzione P2P
         };
 
         const targetFile = getCheckpointFile();
@@ -93,14 +102,15 @@ async function createEpochCheckpoint() {
         }
 
         await dbManager.saveDatabase('ledger');
-        bus.publish('dag:compacted', { compacted: ids.length, stateHash });
+        bus.publish('dag:compacted', { compacted: ids.length, stateHash, snapshot: snapshotRecord });
 
         return {
             success: true,
             compacted: true,
             prunedBlocks: ids.length,
             remainingBlocks: total - ids.length,
-            stateHash
+            stateHash,
+            snapshot: snapshotRecord
         };
     } catch (e) {
         return { success: false, error: e.message };

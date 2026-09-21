@@ -82,9 +82,11 @@ async function handleCloneBundle(req, res) {
         }
 
         const nodeIdentity = require('../../core/node_identity');
+        const networkSession = require('../../networks/session/network_session');
+        const effectiveNetworkName = (networkSession && networkSession.isActive() ? networkSession.descriptor()?.name : null) || nodeIdentity.getNetworkName() || '';
         res.json({
             status: 'ok',
-            networkName: nodeIdentity.getNetworkName(),
+            networkName: effectiveNetworkName,
             protocolVersion: 2,
             databases,
             apps: thirdPartyApps

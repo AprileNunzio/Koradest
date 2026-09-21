@@ -89,7 +89,7 @@ async function joinNetwork({ name, code, host, port, remember = false }) {
     if (networkSession.isActive()) await teardown.teardownRuntime();
     provisioner.bindWorkspace(entry, normalized);
     const { cloneFromRemoteNode } = require('../../sync/network_cloner');
-    const result = await cloneFromRemoteNode({ host, port, networkCode: normalized, networkName: cleanName || null });
+    const result = await cloneFromRemoteNode({ host, port, networkCode: normalized, networkName: null });
     if (!result || !result.success) {
         if (!known) {
             try { registry.remove(entry.id, { rawCode: normalized, purgeData: true }); } catch (_) {}
@@ -98,9 +98,9 @@ async function joinNetwork({ name, code, host, port, remember = false }) {
         return { success: false, error: (result && result.error) || 'Sincronizzazione non riuscita' };
     }
     let definitivo = entry;
-    if (!cleanName) {
-        const nomeCreatore = _nomeDalCreatore();
-        if (nomeCreatore && nomeCreatore !== entry.name) definitivo = registry.rename(entry.id, nomeCreatore);
+    const nomeCreatore = _nomeDalCreatore() || (result && result.networkName);
+    if (nomeCreatore && nomeCreatore !== entry.name) {
+        definitivo = registry.rename(entry.id, nomeCreatore);
     }
     networkSession.activate(definitivo, normalized);
     registry.touch(definitivo.id);

@@ -77,13 +77,21 @@ function verificaSchema(nome, schema) {
     }
 }
 
-function creaArchivio(namespace, dbManager) {
+function creaArchivio(namespace, dbManager, replicaFn) {
+    let _txQueue = null;
+    const pushReplica = (action, table, id, row) => {
+        if (!replicaFn) return;
+        if (_txQueue) {
+            _txQueue.push({ action, table, id, row });
+        } else {
+            replicaFn(action, table, id, row);
+        }
+    };
+
     const handle = () => {
         let archivio = dbManager.get(namespace);
         if (!archivio) {
-            try {
-                archivio = require('../db/db_manager').getDB(`app_${namespace}`);
-            } catch (_) {}
+            try { archivio = require('../db/db_manager').getDB(`app_${namespace}`); } catch (_) {}
         }
         if (!archivio) throw new ErroreApp('Archivio dell\'app non disponibile: apri una rete', 'ARCHIVIO_ASSENTE');
         return archivio;
@@ -91,16 +99,92 @@ function creaArchivio(namespace, dbManager) {
     return Object.freeze({
         tutti: (sql, parametri = []) => handle().query(sql, parametri),
         uno: (sql, parametri = []) => handle().query(sql, parametri)[0] || null,
-        esegui: (sql, parametri = []) => handle().run(sql, parametri),
+        esegui: (sql, parametri = []) => {
+            const archivio = handle();
+            const str = sql.trim();
+            const strUpper = str.toUpperCase();
+            let isMutating = false;
+            let table = null;
+            let action = null;
+            
+            if (strUpper.startsWith('INSERT INTO ')) {
+                const match = str.match(/INSERT\s+INTO\s+([A-Za-z0-9_]+)/i);
+                if (match) { table = match[1].toLowerCase(); action = 'INSERT'; isMutating = true; }
+            } else if (strUpper.startsWith('UPDATE ')) {
+                const match = str.match(/UPDATE\s+([A-Za-z0-9_]+)/i);
+                if (match) { table = match[1].toLowerCase(); action = 'UPDATE'; isMutating = true; }
+            } else if (strUpper.startsWith('DELETE FROM ')) {
+                const match = str.match(/DELETE\s+FROM\s+([A-Za-z0-9_]+)/i);
+                if (match) { table = match[1].toLowerCase(); action = 'DELETE'; isMutating = true; }
+            }
+
+            let modifiedIds = [];
+            if (isMutating && action !== 'INSERT') {
+                try {
+                    const match = str.match(/WHERE\s+(.*)$/i);
+                    let dove = match ? match[1] : '';
+                    if (dove) {
+                        const count = (strUpper.substring(0, strUpper.indexOf('WHERE')).match(/\?/g) || []).length;
+                        const whereParams = parametri.slice(count);
+                        const rows = archivio.query(`SELECT id FROM ${table} WHERE ${dove}`, whereParams);
+                        modifiedIds = rows.map(r => r.id);
+                    }
+                } catch(e) {}
+            }
+
+            const risultato = archivio.run(sql, parametri);
+
+            if (isMutating) {
+                try {
+                    if (action === 'INSERT') {
+                        const colMatch = str.match(/\(([^)]+)\)/);
+                        let id = null;
+                        if (colMatch) {
+                            const cols = colMatch[1].split(',').map(c => c.trim().toLowerCase());
+                            const idIndex = cols.indexOf('id');
+                            if (idIndex !== -1 && parametri.length > idIndex) {
+                                id = parametri[idIndex];
+                            }
+                        }
+                        if (id) {
+                            const row = archivio.query(`SELECT * FROM ${table} WHERE id = ?`, [id])[0];
+                            if (row) pushReplica('INSERT', table, id, row);
+                        }
+                    } else if (action === 'UPDATE') {
+                        for (const id of modifiedIds) {
+                            const row = archivio.query(`SELECT * FROM ${table} WHERE id = ?`, [id])[0];
+                            if (row) pushReplica('UPDATE', table, id, row);
+                        }
+                    } else if (action === 'DELETE') {
+                        for (const id of modifiedIds) {
+                            pushReplica('DELETE', table, id, { id, deleted_at: new Date().toISOString() });
+                        }
+                    }
+                } catch(e) {}
+            }
+            return risultato;
+        },
         transazione: (funzione) => {
             const archivio = handle();
+            const isRootTx = (_txQueue === null);
+            if (isRootTx) _txQueue = [];
+            
             archivio.run('BEGIN', []);
             try {
                 const esito = funzione();
                 archivio.run('COMMIT', []);
+                
+                if (isRootTx) {
+                    const queue = _txQueue;
+                    _txQueue = null;
+                    if (replicaFn) {
+                        for (const op of queue) replicaFn(op.action, op.table, op.id, op.row);
+                    }
+                }
                 return esito;
             } catch (errore) {
                 archivio.run('ROLLBACK', []);
+                if (isRootTx) _txQueue = null;
                 throw errore;
             }
         },
@@ -119,7 +203,14 @@ const archivioAssente = new Proxy({}, {
 function crea(manifest, dipendenze = {}) {
     const appId = manifest.id;
     const nomeApp = manifest.name || appId;
-    const namespace = (manifest.db && manifest.db.namespace) || (manifest.data && (manifest.data.namespace || manifest.id)) || null;
+    const branchManager = require('../dag/application/branch_manager');
+    const baseNamespace = (manifest.db && manifest.db.namespace) || (manifest.data && (manifest.data.namespace || manifest.id)) || null;
+    
+    let namespace = baseNamespace;
+    if (baseNamespace && branchManager.getCurrentBranch() !== 'main') {
+        namespace = `${baseNamespace}_${branchManager.getCurrentBranch()}`;
+    }
+
     const kernel = dipendenze.kernel;
     const dbManager = dipendenze.dbManager || require('./AppDbManager');
     const permessiUtente = dipendenze.permessiUtente
@@ -187,7 +278,7 @@ function crea(manifest, dipendenze = {}) {
     const api = Object.freeze({
         app: Object.freeze({ id: appId, nome: nomeApp, versione: manifest.version || null }),
         azione,
-        db: namespace ? creaArchivio(namespace, dbManager) : archivioAssente,
+        db: namespace ? creaArchivio(namespace, dbManager, dipendenze.replica) : archivioAssente,
         kernel,
         replica: dipendenze.replica || (() => false),
         errore: (messaggio, codice) => {

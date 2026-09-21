@@ -16,7 +16,6 @@ const MIGRATIONS = {
 
 async function importClonedBundle(bundle, networkCode, networkName) {
     try {
-        const targetNode = networkName || bundle.networkName || 'Koradest Network';
         const ident = require('../networks/registry/network_identity').identityOf(networkCode);
         if (!dbManager.basePath) return { success: false, error: 'Nessuno spazio di lavoro di rete associato' };
         if (!dbManager.setDeviceKey(ident.dbKey)) return { success: false, error: 'Chiave di cifratura non valida' };
@@ -52,6 +51,16 @@ async function importClonedBundle(bundle, networkCode, networkName) {
 
         const nodeId = crypto.randomBytes(16).toString('hex');
         const configDb = dbManager.getDB('config');
+        let targetNode = (bundle && bundle.networkName) ? bundle.networkName : null;
+        if (!targetNode) {
+            try {
+                const existing = await configDb.query("SELECT key_value FROM network_config WHERE key_name = 'network_name'");
+                if (existing && existing.length > 0 && existing[0].key_value) targetNode = existing[0].key_value;
+            } catch (_) {}
+        }
+        if (!targetNode && networkName) targetNode = networkName;
+        if (!targetNode) targetNode = 'Rete Koradest';
+
         await configDb.execute("INSERT OR REPLACE INTO network_config (key_name, key_value) VALUES (?, ?)", ['network_code_hash', ident.membershipHash]);
         await configDb.execute("INSERT OR REPLACE INTO network_config (key_name, key_value) VALUES (?, ?)", ['network_code', ident.code]);
         await configDb.execute("INSERT OR REPLACE INTO network_config (key_name, key_value) VALUES (?, ?)", ['network_public_id', ident.publicId]);
@@ -74,6 +83,7 @@ async function importClonedBundle(bundle, networkCode, networkName) {
         return {
             success: true,
             userCount,
+            networkName: targetNode,
             apps: bundle.apps || []
         };
     } catch (e) {

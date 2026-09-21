@@ -16,10 +16,23 @@ async function sweep() {
                 if (b.status === 'Online' && a.status !== 'Online') return 1;
                 return (b.lastSeen || 0) - (a.lastSeen || 0);
             });
+        const mst = require('./merkle_search_tree');
+        const localRootHash = await mst.calculateRootHash();
         let syncedAny = false;
+
         for (const peer of peers) {
+            const { getPeerState } = require('../../p2p/peers/peer_registry');
+            const peerState = getPeerState(peer.ip);
+
+            if (peerState && peerState.lastRootHash === localRootHash) {
+                continue;
+            }
+
             const ok = await syncWithPeer(peer.ip, peer.port || PORT).catch(() => false);
-            if (ok) syncedAny = true;
+            if (ok) {
+                syncedAny = true;
+                if (peerState) peerState.lastRootHash = localRootHash;
+            }
         }
         try { await require('./realignment_engine').realign(); } catch (_) {}
         if (peers.length === 0) bus.publish('sync:state', { state: 'Sincronizzato' });

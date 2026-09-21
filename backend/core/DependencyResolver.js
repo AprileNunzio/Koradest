@@ -12,8 +12,7 @@ const CORE_MODULES = new Set([
     'core:auth',
     'core:notifications',
     'core:session',
-    'anagrafica',
-    'gestione_personale'
+    'anagrafica'
 ]);
 
 function isCoreModule(id) {

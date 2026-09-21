@@ -11,7 +11,20 @@ function registerSocket(nodeId, ws) {
 function getSocket(nodeId) {
     if (!nodeId) return null;
     const ws = _sockets.get(nodeId);
-    return ws && ws.readyState === WebSocket.OPEN ? ws : null;
+    
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        const webrtcNode = require('./webrtc_node');
+        if (webrtcNode.peers.has(nodeId) && webrtcNode.peers.get(nodeId).state === 'connected') {
+            return {
+                readyState: WebSocket.OPEN,
+                send: (data) => webrtcNode.send(nodeId, data),
+                close: () => {}
+            };
+        }
+        return null;
+    }
+    
+    return ws;
 }
 function getAll() { return _sockets; }
 function closeAll() {
