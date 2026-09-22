@@ -32,6 +32,7 @@ const notificationsHandlers = require('../handlers/notifications');
 const storeHandlers = require('../handlers/store');
 const collegamentiHandlers = require('../handlers/collegamenti');
 const datiAziendaHandlers = require('../handlers/dati_azienda');
+const ollamaHandlers = require('../handlers/ollama');
 const appsRegistry = require('./appsRegistry');
 const { registerNetworkChannels } = require('../networks/handlers/networks_channels');
 const accessGuard = require('./access_guard');
@@ -158,28 +159,51 @@ function registerAllIPCHandlers(windowManager) {
                         const usersRes = db.getDB('auth')?.query('SELECT COUNT(*) as c FROM users');
                         if (usersRes && usersRes[0] && usersRes[0].c === 0) allowed = true;
                     }
-                } catch(e) {
-                    allowed = true; 
+                } catch (e) {
+                    allowed = true;
                 }
                 if (!allowed) return { success: false, error: 'Permesso negato' };
                 const pathsToWipe = [
-                    path.join(app.getPath('appData'), 'Koradest'), 
+                    path.join(app.getPath('appData'), 'Koradest'),
                     path.join(app.getPath('userData'), 'dbs'),
                     path.join(app.getPath('userData'), 'Log'),
-                    path.join(app.getPath('userData'), 'backups')
+                    path.join(app.getPath('userData'), 'backups'),
+                    path.join(app.getPath('userData'), 'p2p_storage'),
+                    path.join(app.getPath('userData'), 'apps_storage')
                 ];
                 for (const p of pathsToWipe) {
                     try {
                         if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true });
-                    } catch(rmErr) { console.error('[Reset] rmSync error:', rmErr); }
+                    } catch (rmErr) {
+                        console.error('[Reset] rmSync error:', rmErr);
+                    }
                 }
-                const configPath = path.join(app.getPath('userData'), 'config.enc');
-                const keyPath = path.join(app.getPath('userData'), 'device.key');
-                try { if (fs.existsSync(configPath)) fs.unlinkSync(configPath); } catch(_) {}
-                try { if (fs.existsSync(keyPath)) fs.unlinkSync(keyPath); } catch(_) {}
+                const filesToUnlink = [
+                    'config.enc',
+                    'device.key',
+                    'networks.vault',
+                    'networks.vault.key',
+                    'active_node.json',
+                    'active_network.json',
+                    'active_network_code.json',
+                    'node_key.json',
+                    'pki_ca.json',
+                    'pki_ca.crt',
+                    'pki_ca.key'
+                ];
+                for (const f of filesToUnlink) {
+                    try {
+                        const targetFile = path.join(app.getPath('userData'), f);
+                        if (fs.existsSync(targetFile)) fs.unlinkSync(targetFile);
+                    } catch (_) {
+                        continue;
+                    }
+                }
                 app.relaunch();
                 app.exit();
-            } catch(e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+            }
         });
         ipcMain.removeHandler('dbGetBackupStatus');
         ipcMain.handle('dbGetBackupStatus', () => {
@@ -226,6 +250,20 @@ function registerAllIPCHandlers(windowManager) {
         ipcMain.handle('hasConfig', configHandlers.hasConfig);
         ipcMain.handle('readConfig', configHandlers.readConfig);
         ipcMain.handle('saveConfig', configHandlers.saveConfig);
+        ipcMain.removeHandler('ollama:getStatus');
+        ipcMain.handle('ollama:getStatus', ollamaHandlers.getStatus);
+        ipcMain.removeHandler('ollama:getConfig');
+        ipcMain.handle('ollama:getConfig', ollamaHandlers.getConfig);
+        ipcMain.removeHandler('ollama:saveConfig');
+        ipcMain.handle('ollama:saveConfig', ollamaHandlers.saveConfig);
+        ipcMain.removeHandler('ollama:testConnection');
+        ipcMain.handle('ollama:testConnection', ollamaHandlers.testConnection);
+        ipcMain.removeHandler('ollama:listModels');
+        ipcMain.handle('ollama:listModels', ollamaHandlers.listModels);
+        ipcMain.removeHandler('ollama:chat');
+        ipcMain.handle('ollama:chat', ollamaHandlers.chat);
+        ipcMain.removeHandler('ollama:getRegisteredTools');
+        ipcMain.handle('ollama:getRegisteredTools', ollamaHandlers.getRegisteredTools);
         ipcMain.handle('clearAppCache', async () => {
             try {
                 const { session } = require('electron');

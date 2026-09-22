@@ -19,6 +19,11 @@
             "id": "smtp",
             "name": "Server SMTP",
             "icon": "mail"
+        },
+        {
+            "id": "ollama",
+            "name": "Server Ollama & AI",
+            "icon": "psychology"
         }
     ],
     "rbacPermissions": [

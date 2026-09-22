@@ -10,7 +10,12 @@ function _legacyKey() {
     return crypto.pbkdf2Sync(_LEGACY_SECRET, _LEGACY_SALT, 100000, 32, 'sha256');
 }
 function _getConfigPath() {
-    return path.join(app.getPath('userData'), 'config.enc');
+    try {
+        const base = (app && typeof app.getPath === 'function') ? app.getPath('userData') : path.join(__dirname, '..');
+        return path.join(base, 'config.enc');
+    } catch (_) {
+        return path.join(__dirname, '..', 'config.enc');
+    }
 }
 function _decrypt(fileBuffer, key) {
     const iv = fileBuffer.subarray(0, 16);

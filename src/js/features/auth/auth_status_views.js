@@ -1,4 +1,5 @@
-import { conferma } from '../../utils.js';
+import { conferma, Router } from '../../utils.js';
+import { leaveActiveNetwork } from '../../shell/session_state.js';
 
 const AuthStatusViews = {
     renderUnlockForm: (el) => {
@@ -82,20 +83,49 @@ const AuthStatusViews = {
                     <div class="card-status status-warning" style="margin: 0; width: 100%;">
                         <span class="material-symbols-rounded icon-large">person_off</span>
                         <h1 class="text-title">Nessun utente trovato</h1>
-                        <p class="text-subtitle">Il database di questa rete è vuoto. Ripristina l'ambiente per creare un nuovo account amministratore.</p>
-                        <button id="btn-reset-empty" class="k-btn k-btn--primary k-btn--lg" style="margin-top: var(--k-space-3);">
-                            <span class="material-symbols-rounded">restart_alt</span>Ripristina dispositivo
-                        </button>
+                        <p class="text-subtitle">Il database di questa rete è vuoto. Configura il primo account amministratore oppure gestisci le reti.</p>
+                        <div class="k-stack" style="--k-gap: var(--k-space-2); width: 100%; margin-top: var(--k-space-3);">
+                            <button id="btn-create-admin" class="k-btn k-btn--primary k-btn--block k-btn--lg">
+                                <span class="material-symbols-rounded">person_add</span>Crea amministratore
+                            </button>
+                            <button id="btn-goto-networks" class="k-btn k-btn--tonal k-btn--block">
+                                <span class="material-symbols-rounded">hub</span>Gestione reti
+                            </button>
+                            <button id="btn-reset-empty" class="k-btn k-btn--danger-ghost k-btn--block" style="margin-top: var(--k-space-2);">
+                                <span class="material-symbols-rounded">restart_alt</span>Ripristina dispositivo
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
+            const btnCreate = el.querySelector('#btn-create-admin');
+            if (btnCreate) {
+                btnCreate.addEventListener('click', () => {
+                    try {
+                        Router.navigate('auth_register');
+                    } catch (e) {
+                        console.error('[Accesso] Navigazione registrazione non riuscita:', e);
+                    }
+                });
+            }
+            const btnNetworks = el.querySelector('#btn-goto-networks');
+            if (btnNetworks) {
+                btnNetworks.addEventListener('click', async () => {
+                    try {
+                        await leaveActiveNetwork();
+                        Router.navigate('networks');
+                    } catch (e) {
+                        console.error('[Accesso] Ritorno a reti non riuscito:', e);
+                    }
+                });
+            }
             const btn = el.querySelector('#btn-reset-empty');
             if (btn) {
                 btn.addEventListener('click', async () => {
                     try {
                         const ok = await conferma({
                             titolo: 'Ripristinare il dispositivo?',
-                            testo: 'Il database locale verrà eliminato e potrai configurare di nuovo la postazione.',
+                            testo: 'Verranno eliminate tutte le reti registrate su questo PC, i loro archivi cifrati e la configurazione locale.',
                             etichetta: 'Ripristina',
                             pericolosa: true
                         });

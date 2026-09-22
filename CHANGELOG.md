@@ -3,6 +3,22 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.1.23] - 2026-09-22
+
+### Aggiunto
+- **Assistente Jarvis e server Ollama**: nuovo modulo *Server Ollama & AI* in Amministratore per configurare host, modelli e parametri di un server LLM locale, con test di connessione. Jarvis è un assistente in finestra flottante, anche vocale, che legge il contesto della pagina aperta e usa come strumenti le azioni dichiarate nei manifest delle app installate, filtrate sui permessi di chi lo interroga. Prompt e risposte passano da un filtro che maschera i dati personali e blocca i tentativi di prompt injection; ogni domanda resta nel registro di audit.
+- **Permessi dell'assistente**: la chat è disponibile a ogni utente autenticato; modificare la configurazione, provare la connessione ed elencare i modelli richiedono i permessi `amministratore:ollama:edit`, `:test` e `:view`.
+- **Fondamenta dell'architettura**: bus di eventi universale con consegna idempotente, livello di accesso ai dati (repository e unità di lavoro su SQLite), gateway anti-corruzione con registro degli schemi canonici, risoluzione dei conflitti per dominio, agenti autonomi di riconciliazione e auto-riparazione, motore di policy zero-trust con firma HMAC dell'IPC, gateway di comunicazione, registro di audit con radice di Merkle e marca temporale RFC 3161.
+- **Primo avvio su rete vuota**: dalla schermata del database vuoto si può creare subito l'amministratore o tornare alla gestione delle reti, senza dover ripristinare il dispositivo.
+
+### Corretto
+- **Margini delle app interne**: Amministratore, Impostazioni e le loro sotto-app erano attaccate ai bordi della finestra, perché il contenitore delle app toglie la spaziatura per far posto all'iframe delle app v2. Ora il contenitore applica la stessa spaziatura e lo stesso scorrimento delle pagine del core a ogni app interna, senza CSS dedicato; le app v2 isolate restano a tutta pagina e ricevono la spaziatura dall'SDK.
+- **Backend delle app v2**: oltre ad `attiva(koradest)` il caricatore accetta anche `registerBackendHandlers`, così le app migrate dal manifest v1 funzionano senza riscrivere il backend.
+- **Errori non più ignorati in silenzio** nel caricatore delle app, nel gestore degli archivi e nei moduli dell'assistente: ogni errore viene registrato.
+
+### Rimosso
+- **Anagrafica non è più un'app di sistema**: la cartella `src/apps/anagrafica` e le sue sotto-app sono state eliminate; i dati delle persone appartengono ad Alunni e Gestione del Personale, pubblicate nel Marketplace.
+
 ## [1.1.20] - 2026-09-21
 
 ### Aggiunto

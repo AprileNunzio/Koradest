@@ -3,8 +3,6 @@ const { protocol, net, app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// Le app con manifest v2 girano in un iframe con origine opaca: caricano solo i propri file
-// e l'SDK, non aprono connessioni di rete e non possono incorporare altre pagine.
 const CSP_APP = [
     "default-src 'none'",
     'script-src koradest-app:',
@@ -12,12 +10,12 @@ const CSP_APP = [
     'img-src koradest-app: data: blob:',
     'font-src koradest-app: data:',
     'media-src koradest-app: blob:',
-    "connect-src 'none'",
+    "connect-src koradest-app:",
     "frame-src 'none'",
     "object-src 'none'",
     "form-action 'none'",
     "base-uri 'none'",
-    'frame-ancestors http://127.0.0.1:* http://localhost:*'
+    'frame-ancestors koradest: koradest-app: http://127.0.0.1:* http://localhost:* \'self\''
 ].join('; ');
 
 const CARTELLE_SDK_CONDIVISE = ['css', 'fonts', 'assets'];

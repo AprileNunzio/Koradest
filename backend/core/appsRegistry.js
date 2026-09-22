@@ -76,7 +76,8 @@ async function getAppsRegistry() {
 }
 async function getSubAppsRegistry(event, appId) {
     try {
-        const subAppsPath = path.join(__dirname, '../../src', 'apps', appId, 'subapps');
+        const targetId = (typeof event === 'string') ? event : appId;
+        const subAppsPath = path.join(__dirname, '../../src', 'apps', targetId, 'subapps');
         if (!fs.existsSync(subAppsPath)) return [];
         const apps = [];
         const dirs = fs.readdirSync(subAppsPath, { withFileTypes: true });

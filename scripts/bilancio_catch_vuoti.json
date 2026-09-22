@@ -1,12 +1,13 @@
 {
-  "totale": 516,
+  "totale": 502,
   "perArea": {
-    "backend/core": 130,
-    "backend/dag": 36,
-    "backend/db": 30,
+    "backend/ai": 1,
+    "backend/core": 134,
+    "backend/dag": 37,
+    "backend/db": 31,
     "backend/db.js": 5,
     "backend/diagnostics_auth.js": 2,
-    "backend/handlers": 41,
+    "backend/handlers": 40,
     "backend/logger.js": 11,
     "backend/networks": 7,
     "backend/observability": 13,
@@ -14,8 +15,8 @@
     "backend/security": 23,
     "backend/sync": 8,
     "backend/updates_manager.js": 4,
-    "src/apps": 16,
-    "src/js": 139
+    "src/apps": 7,
+    "src/js": 128
   },
-  "aggiornatoIl": "2026-09-14T10:05:44.347Z"
+  "aggiornatoIl": "2026-09-21T11:07:04.786Z"
 }

@@ -1,0 +1,21 @@
+{
+    "id": "ollama",
+    "name": "Server Ollama & Intelligenza Artificiale",
+    "description": "Configura il server LLM Ollama, modelli, parametri e assistente Jarvis",
+    "icon": "psychology",
+    "main": "app.js",
+    "rbacPermissions": [
+        {
+            "id": "view",
+            "label": "Visualizza Configurazione Ollama"
+        },
+        {
+            "id": "edit",
+            "label": "Modifica Parametri e Modelli Ollama"
+        },
+        {
+            "id": "test",
+            "label": "Esegui Test Connessione & Modelli"
+        }
+    ]
+}

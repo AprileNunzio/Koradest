@@ -54,6 +54,11 @@ const PUBLIC = [
 ];
 
 const SESSION = [
+    // Assistente Jarvis: ogni utente autenticato, gli strumenti sono filtrati sui suoi permessi.
+    'ollama:getStatus',
+    'ollama:getConfig',
+    'ollama:chat',
+    'ollama:getRegisteredTools',
     'koradestNative:callAppApi',
     'appBus:registerWindow',
     'appBus:sendMessage',
@@ -182,6 +187,10 @@ const PERMISSION = {
 
     'testSmtpConnection': ['amministratore:smtp:edit'],
     'sendMail': ['amministratore:smtp:edit'],
+
+    'ollama:saveConfig': ['amministratore:ollama:edit'],
+    'ollama:testConnection': ['amministratore:ollama:test'],
+    'ollama:listModels': ['amministratore:ollama:view'],
     'saveUpdateSettings': ['amministratore:credenziali:edit'],
 
     'getDistributedLogs': ['amministratore:errori:view'],

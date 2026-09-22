@@ -83,6 +83,16 @@ function syncPermissionsFromManifests(event) {
         
         const appsPath = path.join(__dirname, '..', '..', 'src', 'apps');
         _processAppsDir(appsPath, db, ts);
+
+        const builtinCore = [
+            { id: 'anagrafica:view', label: 'Visualizza Anagrafica', desc: 'Permesso di visualizzazione anagrafica' },
+            { id: 'anagrafica:create', label: 'Crea Scheda Anagrafica', desc: 'Permesso di creazione anagrafica' },
+            { id: 'anagrafica:edit', label: 'Modifica Scheda Anagrafica', desc: 'Permesso di modifica anagrafica' },
+            { id: 'anagrafica:delete', label: 'Elimina Scheda Anagrafica', desc: 'Permesso di eliminazione anagrafica' }
+        ];
+        for (const bp of builtinCore) {
+            _upsertPermission(db, bp.id, bp, bp.desc, ts, 'Anagrafica Core');
+        }
         
         
         try {

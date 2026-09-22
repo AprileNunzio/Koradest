@@ -106,7 +106,16 @@ class DatabaseManager {
                 if (!fs.existsSync(this.basePath)) fs.mkdirSync(this.basePath, { recursive: true });
                 return;
             }
-            const activeNodeFile = path.join(app.getPath('userData'), 'active_node.json');
+            let uData = null;
+            try {
+                if (app && typeof app.getPath === 'function') uData = app.getPath('userData');
+            } catch (pathErr) {
+                console.warn('[DbManager] Cartella userData non disponibile:', pathErr.message);
+            }
+            if (!uData) {
+                uData = process.env.APPDATA ? path.join(process.env.APPDATA, 'Koradest') : path.join(process.cwd(), '.koradest_data');
+            }
+            const activeNodeFile = path.join(uData, 'active_node.json');
             let activeNode = 'default';
             if (fs.existsSync(activeNodeFile)) {
                 try {
@@ -114,7 +123,7 @@ class DatabaseManager {
                     if (data.node) activeNode = data.node;
                 } catch (_) {}
             }
-            this.basePath = path.join(app.getPath('userData'), 'dbs', activeNode);
+            this.basePath = path.join(uData, 'dbs', activeNode);
             if (!fs.existsSync(this.basePath)) {
                 fs.mkdirSync(this.basePath, { recursive: true });
             }
@@ -423,7 +432,14 @@ class DatabaseManager {
     isRegistered() {
         try {
             this.initPaths();
-            return fs.existsSync(path.join(this.basePath, 'auth.enc')) || fs.existsSync(path.join(this.basePath, 'config.enc'));
+            const authDb = this.databases.auth;
+            if (authDb && typeof authDb.query === 'function') {
+                const res = authDb.query('SELECT COUNT(*) AS total FROM users WHERE is_deleted = 0');
+                if (res && res.length > 0 && res[0].total !== undefined) {
+                    return Number(res[0].total) > 0;
+                }
+            }
+            return false;
         } catch (_) {
             return false;
         }

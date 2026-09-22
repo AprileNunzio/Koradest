@@ -11,7 +11,7 @@ export default {
         try {
             el.innerHTML = `
                 <div class="dati-azienda-container fade-in-up" style="display:flex; flex-direction:column; height:100%; overflow:hidden;">
-                    <div style="padding: 1.5rem 1.5rem 0 1.5rem;">
+                    <div>
                         <h2 style="margin:0 0 0.4rem; font-size:2rem; color:var(--md-on-surface); font-weight:800; letter-spacing:-0.02em;">Dati Azienda</h2>
                         <p style="margin:0; color:var(--md-on-surface-variant); font-size:1.05rem; max-width:640px;">Gestione dei dati anagrafici, fiscali e sedi dell'ente o dell'azienda.</p>
                         
@@ -25,7 +25,7 @@ export default {
                         </div>
                     </div>
                     
-                    <div class="tab-content" id="tab-content-container" style="flex:1; overflow-y:auto; padding:1.5rem; position:relative;">
+                    <div class="tab-content" id="tab-content-container" style="flex:1; overflow-y:auto; padding-top:1.5rem; position:relative;">
                         <!-- Content rendered dynamically -->
                     </div>
                 </div>

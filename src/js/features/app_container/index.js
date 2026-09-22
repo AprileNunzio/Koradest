@@ -187,6 +187,7 @@ export default {
             try {
                 if (appManifest && appManifest.manifestVersion === 2) {
                     const { montaAppIsolata } = await import('../../shell/app_bridge.js');
+                    mountPoint.classList.add('is-isolated');
                     const istanza = montaAppIsolata(mountPoint, appManifest, params || {});
                     window.__currentMountedApp = { unmount: istanza.distruggi };
                 } else {

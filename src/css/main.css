@@ -52,6 +52,23 @@ body {
     overflow: hidden;
     scrollbar-gutter: auto;
 }
+/* Contenitore unico delle app: stessi margini e scorrimento delle pagine del core.
+   Le app v2 (iframe isolato) gestiscono da sole spaziatura e scorrimento tramite l'SDK. */
+#app-mount-point {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: var(--k-page-pad);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+}
+#app-mount-point.is-isolated {
+    padding: 0;
+    overflow: hidden;
+    scrollbar-gutter: auto;
+}
 h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     font-weight: 700;

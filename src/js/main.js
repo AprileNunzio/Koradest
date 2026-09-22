@@ -5,6 +5,7 @@ import initStatusBar from './shell/status_bar.js';
 import initUpdateOverlay from './shell/update_overlay.js';
 import initSessionEvents from './shell/session_events.js';
 import initGlobalErrorHandling from './shell/global_errors.js';
+import initJarvis from './shell/jarvis/index.js';
 
 const SPLASH_DELAY_MS = 2000;
 const SPLASH_FADE_MS = 800;
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initStatusBar();
     initUpdateOverlay();
     initSessionEvents();
+    initJarvis();
     await ensureLocalConfig();
     Router.navigate(await landingPage());
 });

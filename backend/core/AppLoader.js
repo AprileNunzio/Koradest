@@ -233,7 +233,14 @@ async function loadApp(manifest) {
         } else {
             _loaded.set(appId, { manifest: manifest, isProcess: false });
         }
-
+        try {
+            const { toolRegistry } = require('../ai/ollama');
+            if (toolRegistry && typeof toolRegistry.registerAppManifest === 'function') {
+                toolRegistry.registerAppManifest(manifest);
+            }
+        } catch (aiErr) {
+            console.warn(`[AppLoader] Strumenti AI di ${appId} non registrati:`, aiErr.message);
+        }
         auditLogger.logEvent('system', 'APP_LOADED', 'app', appId, { version: manifest.version });
         return true;
     } catch (e) {
@@ -243,8 +250,6 @@ async function loadApp(manifest) {
     }
 }
 
-// Backend delle app v2: il modulo esporta attiva(koradest) e riceve dal runtime
-// azioni, archivio, chiamate verso le altre app e servizi del kernel.
 async function caricaAppV2(manifest, appDir) {
     const appId = manifest.id;
     const aliases = aliasesOf(manifest);
@@ -269,15 +274,36 @@ async function caricaAppV2(manifest, appDir) {
             delete require.cache[percorso];
         } catch (_) {}
         const modulo = require(percorso);
-        if (!modulo || typeof modulo.attiva !== 'function') {
-            throw new Error('entry.backend deve esportare la funzione attiva(koradest)');
+        if (modulo && typeof modulo.attiva === 'function') {
+            const runtime = require('./app_runtime_v2').crea(manifest, {
+                kernel: kernel.creaKernel(manifest),
+                replica: creaReplicatore(manifest)
+            });
+            await modulo.attiva(runtime.api);
+            runtime.registraNelBroker(capabilityBroker, aliases);
+        } else if (modulo && typeof modulo.registerBackendHandlers === 'function') {
+            const { app: electronApp } = require('electron');
+            const { getDB, saveDB } = require('../db');
+            const koradestConfig = require('../config');
+            const registerApi = (action, fn) => {
+                try {
+                    for (const a of aliases) {
+                        capabilityBroker.registerApiHandler(a, action, (sourceAppId, payload) => fn(null, payload));
+                    }
+                } catch (regErr) {
+                    console.warn(`[AppLoader] Azione ${action} di ${appId} non registrata:`, regErr.message);
+                }
+            };
+            const ok = modulo.registerBackendHandlers(registerApi, electronApp, {
+                getDB, saveDB, AppDbManager,
+                readConfig: () => koradestConfig.readConfig(),
+                replica: creaReplicatore(manifest),
+                kernel: kernel.creaKernel(manifest)
+            });
+            if (ok === false) throw new Error('registerBackendHandlers ha restituito false');
+        } else {
+            throw new Error('entry.backend deve esportare attiva(koradest) o registerBackendHandlers');
         }
-        const runtime = require('./app_runtime_v2').crea(manifest, {
-            kernel: kernel.creaKernel(manifest),
-            replica: creaReplicatore(manifest)
-        });
-        await modulo.attiva(runtime.api);
-        runtime.registraNelBroker(capabilityBroker, aliases);
     }
 
     for (const a of aliases) {
@@ -312,6 +338,14 @@ async function unloadApp(appId) {
         for (const a of aliases) {
             _loaded.delete(a);
             kernel.rilascia(a);
+        }
+        try {
+            const { toolRegistry } = require('../ai/ollama');
+            if (toolRegistry && typeof toolRegistry.unregisterApp === 'function') {
+                toolRegistry.unregisterApp(appId);
+            }
+        } catch (aiErr) {
+            console.warn(`[AppLoader] Strumenti AI di ${appId} non rimossi:`, aiErr.message);
         }
 
         try {
