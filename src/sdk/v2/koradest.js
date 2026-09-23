@@ -2,9 +2,6 @@ import { richiesta, su, dentroKoradest } from './ponte.js';
 import { esc, html, sicuro, formato, valida, HtmlSicuro } from './utilita.js';
 import './componenti.js';
 
-// SDK KORADEST v2: l'unico import che serve a un'app.
-//   import { koradest, html } from 'koradest-app://sdk/v2/koradest.js';
-
 (function caricaStile() {
     if (document.querySelector('link[data-koradest-sdk]')) return;
     const link = document.createElement('link');
@@ -14,9 +11,8 @@ import './componenti.js';
     document.head.appendChild(link);
 })();
 
-// Tinte delle sezioni: assegnate in ordine di menu se l'app non ne dichiara una,
-// così anche le applicazioni già pubblicate ottengono la codifica cromatica.
 const TINTE = ['indaco', 'violetto', 'acqua', 'verde', 'ambra', 'rosa', 'ardesia'];
+
 
 let contesto = { app: null, utente: null, ruoli: [], parametri: {} };
 let classiBodyApplicate = [];
@@ -50,9 +46,8 @@ const ui = {
     chiedi: (opzioni = {}) => richiesta('chiedi', opzioni)
 };
 
-// ---- Router e guscio dell'app -------------------------------------------------
-
 function compila(percorso) {
+
     const pulito = percorso === '/' ? '/' : String(percorso).replace(/\/+$/, '');
     const nomi = [];
     const sorgente = pulito === '/' ? '^/?$' : `^${pulito.split('/').map((parte) => {
@@ -197,6 +192,8 @@ async function avvia({ titolo, icona = 'apps', menu = [], rotte = [], contenitor
     await mostra();
 }
 
+import { collegaCampiLive, apriStoricoModifiche, iniettaStileLive } from './live_save.js';
+
 export const koradest = {
     pronto,
     get app() { return contesto.app; },
@@ -215,8 +212,14 @@ export const koradest = {
     percorso: () => leggiHash().percorso,
     su,
     formato,
-    valida
+    valida,
+    liveSave: {
+        collega: collegaCampiLive,
+        apriStorico: apriStoricoModifiche,
+        iniettaStile: iniettaStileLive
+    }
 };
 
-export { html, esc, sicuro, formato, valida, HtmlSicuro };
+export { html, esc, sicuro, formato, valida, HtmlSicuro, collegaCampiLive, apriStoricoModifiche };
 export default koradest;
+

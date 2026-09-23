@@ -104,6 +104,9 @@ if (!gotTheLock) {
                 const BootManager = require('./backend/core/BootManager');
                 await BootManager.runStartupSequence();
                 BootManager.runBackgroundTasks();
+                require('./backend/ai/gateway').gateway().avvio()
+                    .then(esito => { if (esito.precaricato) console.log("[AI] Modello precaricato in memoria all'avvio"); })
+                    .catch(errore => console.warn('[AI] Precaricamento del modello non riuscito:', errore.message));
 
                 const localAppServer = require('./backend/core/localAppServer');
                 const appUrl = await localAppServer.startLocalAppServer();

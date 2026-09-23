@@ -20,7 +20,9 @@ const tornaAllaHome = () => {
 };
 
 async function smontaAppCorrente() {
-    document.getElementById('main-content')?.classList.remove('is-app-container');
+    const principale = document.getElementById('main-content');
+    principale?.classList.remove('is-app-container');
+    if (principale) delete principale.dataset.appAttiva;
     const corrente = window.__currentMountedApp;
     window.__currentMountedApp = null;
     if (corrente && typeof corrente.unmount === 'function') {
@@ -183,6 +185,7 @@ export default {
             const appFolder = appManifest?.folder || appManifest?.id || appId;
             impostaTitoloPagina(PAGINA, appManifest?.name || appId);
             await smontaAppCorrente();
+            el.dataset.appAttiva = appManifest?.id || appId;
 
             try {
                 if (appManifest && appManifest.manifestVersion === 2) {

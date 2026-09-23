@@ -33,6 +33,7 @@ const storeHandlers = require('../handlers/store');
 const collegamentiHandlers = require('../handlers/collegamenti');
 const datiAziendaHandlers = require('../handlers/dati_azienda');
 const ollamaHandlers = require('../handlers/ollama');
+const aiGatewayHandlers = require('../handlers/ai_gateway');
 const appsRegistry = require('./appsRegistry');
 const { registerNetworkChannels } = require('../networks/handlers/networks_channels');
 const accessGuard = require('./access_guard');
@@ -264,6 +265,26 @@ function registerAllIPCHandlers(windowManager) {
         ipcMain.handle('ollama:chat', ollamaHandlers.chat);
         ipcMain.removeHandler('ollama:getRegisteredTools');
         ipcMain.handle('ollama:getRegisteredTools', ollamaHandlers.getRegisteredTools);
+        ipcMain.removeHandler('ai:getConfig');
+        ipcMain.handle('ai:getConfig', aiGatewayHandlers.getConfig);
+        ipcMain.removeHandler('ai:saveConfig');
+        ipcMain.handle('ai:saveConfig', aiGatewayHandlers.saveConfig);
+        ipcMain.removeHandler('ai:getStatus');
+        ipcMain.handle('ai:getStatus', aiGatewayHandlers.getStatus);
+        ipcMain.removeHandler('ai:listModels');
+        ipcMain.handle('ai:listModels', aiGatewayHandlers.listModels);
+        ipcMain.removeHandler('ai:saveApiKey');
+        ipcMain.handle('ai:saveApiKey', aiGatewayHandlers.saveApiKey);
+        ipcMain.removeHandler('ai:removeApiKey');
+        ipcMain.handle('ai:removeApiKey', aiGatewayHandlers.removeApiKey);
+        ipcMain.removeHandler('ai:getJarvisState');
+        ipcMain.handle('ai:getJarvisState', aiGatewayHandlers.getJarvisState);
+        ipcMain.removeHandler('ai:setJarvisState');
+        ipcMain.handle('ai:setJarvisState', aiGatewayHandlers.setJarvisState);
+        ipcMain.removeHandler('ai:loadModel');
+        ipcMain.handle('ai:loadModel', aiGatewayHandlers.loadModel);
+        ipcMain.removeHandler('ai:releaseModel');
+        ipcMain.handle('ai:releaseModel', aiGatewayHandlers.releaseModel);
         ipcMain.handle('clearAppCache', async () => {
             try {
                 const { session } = require('electron');

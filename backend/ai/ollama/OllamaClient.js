@@ -58,7 +58,7 @@ class OllamaClient {
         }
     }
 
-    async chat({ messages = [], tools = [], model = null, format = null, stream = false } = {}) {
+    async chat({ messages = [], tools = [], model = null, format = null, stream = false, options = null, keepAlive = null } = {}) {
         try {
             const payload = {
                 model: model || this.defaultModel,
@@ -74,6 +74,14 @@ class OllamaClient {
                 payload.format = format;
             }
 
+            if (options && typeof options === 'object') {
+                payload.options = options;
+            }
+
+            if (keepAlive !== null && keepAlive !== undefined) {
+                payload.keep_alive = keepAlive;
+            }
+
             const response = await this._request('POST', '/api/chat', payload);
             if (response.statusCode >= 200 && response.statusCode < 300) {
                 return { success: true, data: response.data };
@@ -82,6 +90,71 @@ class OllamaClient {
         } catch (e) {
             return { success: false, error: e.message };
         }
+    }
+
+    async impostaMemoria({ model = null, keepAlive = '5m' } = {}) {
+        const response = await this._request('POST', '/api/generate', { model: model || this.defaultModel, prompt: '', stream: false, keep_alive: keepAlive });
+        if (response.statusCode >= 200 && response.statusCode < 300) return { success: true };
+        return { success: false, error: response.data && response.data.error ? response.data.error : `Ollama ha risposto ${response.statusCode}` };
+    }
+
+    async mostra(model = null) {
+        const response = await this._request('POST', '/api/show', { model: model || this.defaultModel });
+        if (response.statusCode >= 200 && response.statusCode < 300) return { success: true, data: response.data };
+        return { success: false, statusCode: response.statusCode, error: response.data && response.data.error ? response.data.error : `Ollama ha risposto ${response.statusCode}` };
+    }
+
+    scarica({ model, onProgress = () => {} }) {
+        const parsedUrl = new URL(`${this.host}/api/pull`);
+        const transport = parsedUrl.protocol === 'https:' ? https : http;
+        const postData = JSON.stringify({ model, stream: true });
+        let richiesta = null;
+        const promessa = new Promise((resolve, reject) => {
+            richiesta = transport.request({
+                method: 'POST',
+                hostname: parsedUrl.hostname,
+                port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+                path: parsedUrl.pathname,
+                headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+            }, (res) => {
+                let resto = '';
+                let ultimo = null;
+                const leggiRiga = (riga) => {
+                    if (!riga.trim()) return;
+                    const evento = JSON.parse(riga);
+                    if (evento.error) throw new Error(evento.error);
+                    ultimo = evento;
+                    onProgress(evento);
+                };
+                res.setEncoding('utf8');
+                res.on('data', (blocco) => {
+                    const righe = (resto + blocco).split('\n');
+                    resto = righe.pop();
+                    try {
+                        righe.forEach(leggiRiga);
+                    } catch (errore) {
+                        res.destroy();
+                        reject(errore);
+                    }
+                });
+                res.on('end', () => {
+                    try {
+                        leggiRiga(resto);
+                    } catch (errore) {
+                        reject(errore);
+                        return;
+                    }
+                    if (res.statusCode < 200 || res.statusCode >= 300) reject(new Error(`Ollama ha risposto ${res.statusCode}`));
+                    else if (!ultimo || ultimo.status !== 'success') reject(new Error('Scaricamento interrotto prima del termine'));
+                    else resolve({ success: true });
+                });
+                res.on('error', reject);
+            });
+            richiesta.on('error', reject);
+            richiesta.write(postData);
+            richiesta.end();
+        });
+        return { promessa, annulla: () => richiesta && richiesta.destroy(new Error('Scaricamento annullato')) };
     }
 
     async generate({ prompt = '', system = '', model = null } = {}) {

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const RADICE = path.join(__dirname, '..');
-const RADICI_SORGENTI = [path.join(RADICE, 'src', 'js')];
+const RADICI_SORGENTI = ['js', 'apps', 'sdk', 'ui'].map(cartella => path.join(RADICE, 'src', cartella));
 const PAGINA = path.join(RADICE, 'src', 'index.html');
 
 const ESPRESSIONI = [

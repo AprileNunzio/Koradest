@@ -1,4 +1,4 @@
-import nodesManager from '../../../../js/pages/nodes/index.js';
+import nodesManager from '../../../../js/features/nodes/index.js';
 
 export default {
     render: async (el) => {

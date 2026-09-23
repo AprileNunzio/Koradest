@@ -4,6 +4,9 @@
 // ruoli, validazione, risposta, salvataggio dell'archivio e contesto utente li gestisce il core.
 
 const crypto = require('crypto');
+const changeCapture = require('./change_capture');
+const fieldAudit = require('./field_audit');
+const contestoOperazione = require('./operation_context/contesto_operazione');
 
 const NOME_AZIONE = /^[A-Za-z][\w.-]{0,79}$/;
 
@@ -77,117 +80,32 @@ function verificaSchema(nome, schema) {
     }
 }
 
+function archivioDi(dbManager, namespace) {
+    const archivio = dbManager.get(namespace);
+    if (!archivio) throw new ErroreApp("Archivio dell'app non disponibile: apri una rete", 'ARCHIVIO_ASSENTE');
+    return archivio;
+}
+
 function creaArchivio(namespace, dbManager, replicaFn) {
-    let _txQueue = null;
-    const pushReplica = (action, table, id, row) => {
-        if (!replicaFn) return;
-        if (_txQueue) {
-            _txQueue.push({ action, table, id, row });
-        } else {
-            replicaFn(action, table, id, row);
-        }
+    const handle = () => archivioDi(dbManager, namespace);
+
+    const traccia = (funzione) => {
+        const archivio = handle();
+        fieldAudit.prepara(archivio);
+        const { risultato, cambi } = changeCapture.traccia(
+            archivio,
+            funzione,
+            elenco => fieldAudit.registra(archivio, elenco, contestoOperazione.operatore())
+        );
+        changeCapture.inoltra(archivio, cambi, replicaFn);
+        return risultato;
     };
 
-    const handle = () => {
-        let archivio = dbManager.get(namespace);
-        if (!archivio) {
-            try { archivio = require('../db/db_manager').getDB(`app_${namespace}`); } catch (_) {}
-        }
-        if (!archivio) throw new ErroreApp('Archivio dell\'app non disponibile: apri una rete', 'ARCHIVIO_ASSENTE');
-        return archivio;
-    };
     return Object.freeze({
         tutti: (sql, parametri = []) => handle().query(sql, parametri),
         uno: (sql, parametri = []) => handle().query(sql, parametri)[0] || null,
-        esegui: (sql, parametri = []) => {
-            const archivio = handle();
-            const str = sql.trim();
-            const strUpper = str.toUpperCase();
-            let isMutating = false;
-            let table = null;
-            let action = null;
-            
-            if (strUpper.startsWith('INSERT INTO ')) {
-                const match = str.match(/INSERT\s+INTO\s+([A-Za-z0-9_]+)/i);
-                if (match) { table = match[1].toLowerCase(); action = 'INSERT'; isMutating = true; }
-            } else if (strUpper.startsWith('UPDATE ')) {
-                const match = str.match(/UPDATE\s+([A-Za-z0-9_]+)/i);
-                if (match) { table = match[1].toLowerCase(); action = 'UPDATE'; isMutating = true; }
-            } else if (strUpper.startsWith('DELETE FROM ')) {
-                const match = str.match(/DELETE\s+FROM\s+([A-Za-z0-9_]+)/i);
-                if (match) { table = match[1].toLowerCase(); action = 'DELETE'; isMutating = true; }
-            }
-
-            let modifiedIds = [];
-            if (isMutating && action !== 'INSERT') {
-                try {
-                    const match = str.match(/WHERE\s+(.*)$/i);
-                    let dove = match ? match[1] : '';
-                    if (dove) {
-                        const count = (strUpper.substring(0, strUpper.indexOf('WHERE')).match(/\?/g) || []).length;
-                        const whereParams = parametri.slice(count);
-                        const rows = archivio.query(`SELECT id FROM ${table} WHERE ${dove}`, whereParams);
-                        modifiedIds = rows.map(r => r.id);
-                    }
-                } catch(e) {}
-            }
-
-            const risultato = archivio.run(sql, parametri);
-
-            if (isMutating) {
-                try {
-                    if (action === 'INSERT') {
-                        const colMatch = str.match(/\(([^)]+)\)/);
-                        let id = null;
-                        if (colMatch) {
-                            const cols = colMatch[1].split(',').map(c => c.trim().toLowerCase());
-                            const idIndex = cols.indexOf('id');
-                            if (idIndex !== -1 && parametri.length > idIndex) {
-                                id = parametri[idIndex];
-                            }
-                        }
-                        if (id) {
-                            const row = archivio.query(`SELECT * FROM ${table} WHERE id = ?`, [id])[0];
-                            if (row) pushReplica('INSERT', table, id, row);
-                        }
-                    } else if (action === 'UPDATE') {
-                        for (const id of modifiedIds) {
-                            const row = archivio.query(`SELECT * FROM ${table} WHERE id = ?`, [id])[0];
-                            if (row) pushReplica('UPDATE', table, id, row);
-                        }
-                    } else if (action === 'DELETE') {
-                        for (const id of modifiedIds) {
-                            pushReplica('DELETE', table, id, { id, deleted_at: new Date().toISOString() });
-                        }
-                    }
-                } catch(e) {}
-            }
-            return risultato;
-        },
-        transazione: (funzione) => {
-            const archivio = handle();
-            const isRootTx = (_txQueue === null);
-            if (isRootTx) _txQueue = [];
-            
-            archivio.run('BEGIN', []);
-            try {
-                const esito = funzione();
-                archivio.run('COMMIT', []);
-                
-                if (isRootTx) {
-                    const queue = _txQueue;
-                    _txQueue = null;
-                    if (replicaFn) {
-                        for (const op of queue) replicaFn(op.action, op.table, op.id, op.row);
-                    }
-                }
-                return esito;
-            } catch (errore) {
-                archivio.run('ROLLBACK', []);
-                if (isRootTx) _txQueue = null;
-                throw errore;
-            }
-        },
+        esegui: (sql, parametri = []) => traccia(archivio => archivio.run(sql, parametri)),
+        transazione: funzione => traccia(() => funzione()),
         nuovoId: () => crypto.randomUUID(),
         adesso: () => new Date().toISOString(),
         salva: () => dbManager.save(namespace)
@@ -221,6 +139,14 @@ function crea(manifest, dipendenze = {}) {
         .filter(r => r.default === true)
         .map(r => r.id);
     const azioni = new Map();
+    if (namespace) {
+        fieldAudit.azioniDiSistema({
+            archivio: () => archivioDi(dbManager, namespace),
+            ruoliDichiarati,
+            ErroreApp,
+            ...(dipendenze.risolviNomiOperatori ? { risolviNomi: dipendenze.risolviNomiOperatori } : {})
+        }).forEach(([nome, voce]) => azioni.set(nome, voce));
+    }
 
     function azione(nome, opzioni, funzione) {
         if (typeof opzioni === 'function') {
@@ -228,6 +154,7 @@ function crea(manifest, dipendenze = {}) {
             opzioni = {};
         }
         if (!NOME_AZIONE.test(String(nome || ''))) throw new Error(`Nome di azione non valido: ${JSON.stringify(nome)}`);
+        if (fieldAudit.nomeRiservato(nome)) throw new Error(`Azione "${nome}": il prefisso "koradest." e riservato al core`);
         if (azioni.has(nome)) throw new Error(`Azione "${nome}" registrata due volte`);
         if (typeof funzione !== 'function') throw new Error(`Azione "${nome}" senza funzione`);
         const ruoli = opzioni.ruolo === undefined ? [] : [].concat(opzioni.ruolo);
@@ -235,14 +162,15 @@ function crea(manifest, dipendenze = {}) {
             throw new Error(`Azione "${nome}": il ruolo "${r}" non e dichiarato in "roles" del manifest`);
         });
         if (opzioni.valida) verificaSchema(nome, opzioni.valida);
-        azioni.set(nome, { funzione, ruoli, valida: opzioni.valida || null, modifica: opzioni.modifica === true });
+        azioni.set(nome, { funzione, ruoli, valida: opzioni.valida || null, modifica: opzioni.modifica === true, descrizione: typeof opzioni.descrizione === 'string' ? opzioni.descrizione.slice(0, 500) : null });
     }
 
     function contestoPer(sourceAppId, contesto) {
         const userId = contesto && contesto.userId ? contesto.userId : null;
         const permessi = userId ? (permessiUtente(userId) || []) : [];
         const tutti = permessi.includes('*') || permessi.includes(`${appId}:*`);
-        const ruoli = ruoliDichiarati.filter(r => tutti || ruoliPredefiniti.includes(r) || permessi.includes(`${appId}:${r}`));
+        const accedeAllApp = tutti || permessi.some(permesso => permesso.startsWith(`${appId}:`));
+        const ruoli = ruoliDichiarati.filter(r => tutti || (accedeAllApp && ruoliPredefiniti.includes(r)) || permessi.includes(`${appId}:${r}`));
         return Object.freeze({
             utente: userId ? { id: userId } : null,
             ruoli,
@@ -264,7 +192,11 @@ function crea(manifest, dipendenze = {}) {
             if (errori.length > 0) throw new ErroreApp(`Dati non validi: ${errori.join('; ')}`, 'DATI_NON_VALIDI');
         }
         try {
-            const risultato = await voce.funzione(payload && typeof payload === 'object' ? payload : {}, ctx);
+            const dati = payload && typeof payload === 'object' ? payload : {};
+            const risultato = await contestoOperazione.esegui(
+                { operatoreId: ctx.utente ? ctx.utente.id : null, app: appId, azione: nome },
+                () => voce.funzione(dati, ctx)
+            );
             if (voce.modifica && namespace) await dbManager.save(namespace);
             return risultato === undefined ? null : risultato;
         } catch (errore) {
@@ -290,6 +222,8 @@ function crea(manifest, dipendenze = {}) {
     return {
         api,
         azioni: () => Array.from(azioni.keys()),
+        descriviAzioni: () => Array.from(azioni.entries()).map(([nome, voce]) => ({ nome, ruoli: voce.ruoli, valida: voce.valida, modifica: voce.modifica, descrizione: voce.descrizione || null })),
+        ruoliPredefiniti,
         esegui,
         registraNelBroker: (capabilityBroker, aliases = []) => {
             const targets = Array.from(new Set([appId, ...(Array.isArray(aliases) ? aliases : [])]));

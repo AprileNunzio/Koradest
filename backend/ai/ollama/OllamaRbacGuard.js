@@ -1,6 +1,7 @@
 'use strict';
 
 const MatterAuditEngine = require('../../observability/MatterAuditEngine');
+const { accessoConsentito } = require('../gateway/strumenti_runtime');
 
 class OllamaRbacGuard {
     constructor() {
@@ -34,6 +35,15 @@ class OllamaRbacGuard {
                 return { allowed: true };
             }
 
+            if (toolMetadata && toolMetadata.accesso) {
+                if (!accessoConsentito(user, toolMetadata.accesso)) {
+                    this._logViolation(userId, userRole, toolName, 'APP_ACCESS_DENIED');
+                    return { allowed: false, error: `L'utente non ha accesso all'applicazione ${toolMetadata.accesso.appId}` };
+                }
+                this._logSuccess(userId, userRole, toolName);
+                return { allowed: true };
+            }
+
             if (toolMetadata) {
                 if (toolMetadata.requiredRole && toolMetadata.requiredRole === 'admin') {
                     this._logViolation(userId, userRole, toolName, 'ROLE_INSUFFICIENT');
@@ -42,7 +52,7 @@ class OllamaRbacGuard {
 
                 if (toolMetadata.requiredPermission) {
                     const hasPerm = userPermissions.includes('*') || userPermissions.includes(toolMetadata.requiredPermission);
-                    if (!hasPerm && userPermissions.length > 0) {
+                    if (!hasPerm) {
                         this._logViolation(userId, userRole, toolName, 'PERMISSION_DENIED');
                         return { allowed: false, error: `User lacks required permission: ${toolMetadata.requiredPermission}` };
                     }

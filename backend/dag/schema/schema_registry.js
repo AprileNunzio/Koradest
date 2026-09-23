@@ -116,6 +116,7 @@ function isTableSyncable(tableName) {
         if (!tableName || typeof tableName !== 'string') return false;
         const lower = tableName.toLowerCase();
         if (lower.startsWith('sqlite_')) return false;
+        if (lower.startsWith('_k_')) return false;
         if (SYSTEM_EXCLUDED_TABLES.has(lower)) return false;
         if (_localTables.has(lower)) return false;
         return true;

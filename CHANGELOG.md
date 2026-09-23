@@ -3,6 +3,53 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.1.26] - 2026-09-22
+
+### Corretto
+- **Jarvis superava il contesto del modello** (51.034 token contro 8.192): a ogni domanda venivano inviate tutte le azioni di tutte le app (289 strumenti). Ora il core sceglie da solo i pochi strumenti pertinenti. Pesano le parole della richiesta, l'app aperta e l'intenzione (aggiungere, modificare, eliminare, consultare), più gli elenchi che servono a trovare gli identificativi. Una richiesta tipica scende da circa 37.000 a meno di 2.000 token.
+
+### Aggiunto
+- **Manuale consultabile dall'assistente**: se gli strumenti proposti non bastano, il modello chiede da solo quali app ci sono, quali strumenti ha un'app e carica solo quelli che gli servono, un passo alla volta.
+- **Contesto sempre rispettato**: budget configurabile comunicato a Ollama (`num_ctx`), risultati lunghi troncati con il totale, risultati già usati compattati quando la conversazione cresce. Le istruzioni operative includono la data di oggi.
+- **Controllo di Jarvis**: stato attivo, disattivo o "da chiedere"; dopo il login un amministratore riceve una volta la domanda se attivarlo. Da disattivato il core rifiuta le richieste e libera la memoria del modello.
+- **Memoria del modello**: precaricamento all'avvio di KORADEST (facoltativo), tempo di permanenza in memoria, pulsanti "Carica ora" e "Libera memoria".
+- **Pagina Intelligenza artificiale riorganizzata**: stato, motore, server Ollama, Jarvis (personalità, voce, invio del contesto della pagina), memoria, ragionamento, prova e strumenti raggruppati per app con ricerca, con un solo pulsante Salva.
+- **App sconosciute comprese in automatico**: le azioni senza descrizione ricevono una descrizione dedotta dal nome e dai parametri; le app con backend in stile v1 (`registerBackendHandlers`) pubblicano comunque i loro strumenti. Un'azione dal nome di scrittura è trattata come scrittura anche se l'app si è dimenticata di dichiararlo.
+
+### Rimosso
+- Impostazioni che non avevano effetto: "instradamento dai nodi", il vecchio interruttore del widget di Jarvis, la temperatura e la durata di memoria della vecchia sezione Ollama, sostituite dalle nuove.
+
+## [1.1.25] - 2026-09-22
+
+### Corretto
+- **Pulsante Chiudi nei moduli automatici**: con il salvataggio automatico il modulo nascondeva l'intera barra dei pulsanti, compreso "Chiudi"; ora resta visibile solo il pulsante di chiusura.
+- **Storico leggibile**: gli importi salvati in centesimi compaiono in euro (campo con `archivio: 'centesimi'`), le date in formato italiano, le caselle come Sì/No e le tendine con la loro etichetta.
+- **Storico senza rumore**: le colonne tecniche `created_at` e `updated_at` non generano più voci a ogni salvataggio.
+- **Storico disponibile anche senza archivio utenti**: se i nomi degli operatori non si possono risolvere, lo storico mostra l'identificativo invece di fallire.
+
+### Rimosso
+- API `presaServizio` dal preload: puntavano a canali senza gestore.
+
+## [1.1.24] - 2026-09-22
+
+### Aggiunto
+- **Storico legale di ogni campo**: ogni inserimento, modifica ed eliminazione fatta dalle app viene registrata campo per campo con operatore, data e valore precedente, in un registro immutabile protetto da una catena di impronte SHA-256 che rende rilevabile qualunque manomissione. Accanto a ogni campo dei moduli compare l'icona dello storico; su mobile lo storico si apre come pannello dal basso.
+- **Moduli con validazione in tempo reale e salvataggio automatico**: bordo verde per il campo corretto, rosso con il messaggio d'errore sotto il campo. Con il nuovo gestore `onSalva` il modulo salva da solo mentre si scrive, crea il record appena i campi obbligatori sono completi e mostra lo stato del salvataggio.
+- **Motore AI con più fornitori**: oltre a Ollama è disponibile Google Gemini tramite chiave API. La chiave è cifrata con il portachiavi del sistema operativo, non torna mai all'interfaccia e viaggia solo nell'intestazione delle richieste. L'assistente lavora in più passi consecutivi entro un limite configurabile; verso un fornitore cloud codici fiscali, IBAN e credenziali vengono mascherati e i dati che contengono istruzioni sospette vengono bloccati.
+- **Strumenti AI automatici**: ogni azione delle app installate diventa uno strumento dell'assistente, con i parametri ricavati dalla sua validazione, visibile solo a chi ha accesso all'app e al ruolo richiesto.
+- **Pipeline di rilascio**: verifica automatica a ogni push, rilascio da tag con controllo del pacchetto, note dal CHANGELOG e impronte SHA-256.
+
+### Corretto
+- **Replica dei dati affidabile**: le modifiche vengono catturate dal database stesso invece che interpretando il testo SQL; ora si replicano anche upsert, aggiornamenti con sottoquery, inserimenti senza `id` esplicito e colonne aggiunte dopo l'avvio. Le transazioni annidate funzionano e un errore annulla dati, storico e repliche insieme.
+- **Impostazioni di Ollama non salvate**: il salvataggio chiamava la scrittura della configurazione con i parametri invertiti e non scriveva nulla. Ora un aggiornamento non può più sovrascrivere l'intera configurazione se questa non è leggibile.
+- **Jarvis con tema chiaro**: l'assistente usa i colori del design system invece di una tavolozza scura fissa, si apre come pannello dal basso su mobile ed è raggiungibile da tastiera.
+- **Ruoli predefiniti concessi a tutti**: un ruolo `default` vale ora solo per chi ha accesso all'app, non per ogni utente autenticato.
+- **Guardia degli strumenti AI**: un utente senza permessi veniva autorizzato; ora la guardia nega per default.
+- **Nodi e Rete**: la sotto-app importava un file inesistente e non si apriva; il controllo degli import copre ora anche app interne e SDK.
+
+### Rimosso
+- Il componente `k-campo-live`, mai caricato e con errori di sintassi, sostituito dal nuovo modulo.
+
 ## [1.1.23] - 2026-09-22
 
 ### Aggiunto

@@ -91,7 +91,10 @@ async function main() {
     check('una chiamata verso un altra app porta con se l utente', inoltro && inoltro[0] === 'alunni' && inoltro[4].contesto.userId === 'docente');
 
     runtime.registraNelBroker(broker);
-    check('tutte le azioni vengono registrate nel broker', chiamate.filter(c => c[0] === 'registrata').length === 4);
+    const registrate = chiamate.filter(c => c[0] === 'registrata').map(c => c[2]);
+    check('tutte le azioni vengono registrate nel broker', registrate.length === 6);
+    check('il core aggiunge lo storico di audit a ogni app con archivio', registrate.includes('koradest.storico') && registrate.includes('koradest.storico.verifica'));
+    check('il prefisso koradest. e riservato al core', lancia(() => k.azione('koradest.furto', async () => null)) !== null);
 
     const senzaArchivio = crea({ id: 'note', name: 'Note' }, { dbManager, broker, permessiUtente: () => [] });
     check('un app senza "data" riceve un errore esplicito se usa l archivio',

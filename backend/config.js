@@ -9,13 +9,12 @@ const _LEGACY_SALT = Buffer.from('KoradestSalt1234', 'utf8');
 function _legacyKey() {
     return crypto.pbkdf2Sync(_LEGACY_SECRET, _LEGACY_SALT, 100000, 32, 'sha256');
 }
+function _cartellaFuoriDaElectron() {
+    return process.env.KORADEST_CONFIG_DIR || path.join(require('os').tmpdir(), 'koradest-config');
+}
 function _getConfigPath() {
-    try {
-        const base = (app && typeof app.getPath === 'function') ? app.getPath('userData') : path.join(__dirname, '..');
-        return path.join(base, 'config.enc');
-    } catch (_) {
-        return path.join(__dirname, '..', 'config.enc');
-    }
+    const base = (app && typeof app.getPath === 'function') ? app.getPath('userData') : _cartellaFuoriDaElectron();
+    return path.join(base, 'config.enc');
 }
 function _decrypt(fileBuffer, key) {
     const iv = fileBuffer.subarray(0, 16);
@@ -96,4 +95,17 @@ function saveConfig(event, dataObj) {
         return false;
     }
 }
-module.exports = { hasConfig, readConfig, saveConfig };
+function aggiornaSezione(nomeSezione, modifica) {
+    const attuale = readConfig();
+    if (attuale === null && hasConfig()) {
+        throw new Error('La configurazione esistente non è leggibile: salvataggio annullato per non perdere dati');
+    }
+    const base = attuale || {};
+    const sezione = modifica(base[nomeSezione]);
+    if (!saveConfig(null, { ...base, [nomeSezione]: sezione })) {
+        throw new Error('Scrittura della configurazione non riuscita');
+    }
+    return sezione;
+}
+
+module.exports = { hasConfig, readConfig, saveConfig, aggiornaSezione };

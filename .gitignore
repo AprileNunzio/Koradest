@@ -115,3 +115,6 @@ service-account*.json
 # ── File duplicati Windows (Google Drive sync) ───────────────
 *\ \(1\).*
 *\(1\).*
+
+# ── GitHub Actions Workflows ─────────────────────────────────
+.github/workflows/

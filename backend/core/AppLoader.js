@@ -49,6 +49,31 @@ function creaReplicatore(manifest) {
     };
 }
 
+function pubblicaStrumentiAI(manifest, runtime) {
+    const { toolRegistry } = require('../ai/ollama');
+    const { definizioni } = require('../ai/gateway/strumenti_runtime');
+    const pubblicati = toolRegistry.registerTools(manifest.id, definizioni({
+        appId: manifest.id,
+        nomeApp: manifest.name || manifest.id,
+        descrizioneApp: manifest.description || null,
+        azioni: runtime.descriviAzioni(),
+        ruoliPredefiniti: runtime.ruoliPredefiniti
+    }));
+    console.log(`[AppLoader] ${manifest.id}: ${pubblicati} strumenti AI disponibili`);
+}
+
+function pubblicaStrumentiSenzaContratto(manifest, nomiAzioni) {
+    const { toolRegistry } = require('../ai/ollama');
+    const { definizioniSenzaContratto } = require('../ai/gateway/strumenti_runtime');
+    const pubblicati = toolRegistry.registerTools(manifest.id, definizioniSenzaContratto({
+        appId: manifest.id,
+        nomeApp: manifest.name || manifest.id,
+        descrizioneApp: manifest.description || null,
+        nomiAzioni
+    }));
+    console.log(`[AppLoader] ${manifest.id}: ${pubblicati} strumenti AI dedotti dalle azioni senza contratto`);
+}
+
 function permessiDi(manifest) {
     if (Array.isArray(manifest.permissions)) return manifest.permissions;
     return manifest.core === true ? ['*'] : [];
@@ -137,7 +162,8 @@ async function loadApp(manifest) {
                         if (tables && tables.length > 0) {
                             const replicabili = tables
                                 .map(t => t.name)
-                                .filter(nome => locali.indexOf(String(nome).toLowerCase()) === -1);
+                                .filter(nome => locali.indexOf(String(nome).toLowerCase()) === -1)
+                                .filter(nome => !String(nome).toLowerCase().startsWith('_k_'));
                             schemaRegistry.registerDynamicDomain(`app_${dbNamespace}`, replicabili);
                             if (dbNamespace === 'gestione_classi') {
                                 try {
@@ -192,7 +218,9 @@ async function loadApp(manifest) {
                             capabilityBroker.generateAppToken(a, permessiDi(manifest));
                         } catch (tokenErr) {}
                     }
+                    const azioniRegistrate = [];
                     const registerApi = (action, fn) => {
+                        azioniRegistrate.push(action);
                         try {
                             for (const a of aliases) {
                                 capabilityBroker.registerApiHandler(a, action, (sourceAppId, payload) => fn(null, payload));
@@ -206,6 +234,7 @@ async function loadApp(manifest) {
                         kernel: kernel.creaKernel(manifest)
                     });
                     if (ok === false) throw new Error('registerBackendHandlers ha restituito false');
+                    pubblicaStrumentiSenzaContratto(manifest, azioniRegistrate);
                     for (const a of aliases) {
                         _loaded.set(a, { manifest: manifest, isProcess: false, directBackend: true });
                     }
@@ -281,11 +310,14 @@ async function caricaAppV2(manifest, appDir) {
             });
             await modulo.attiva(runtime.api);
             runtime.registraNelBroker(capabilityBroker, aliases);
+            pubblicaStrumentiAI(manifest, runtime);
         } else if (modulo && typeof modulo.registerBackendHandlers === 'function') {
             const { app: electronApp } = require('electron');
             const { getDB, saveDB } = require('../db');
             const koradestConfig = require('../config');
+            const azioniRegistrate = [];
             const registerApi = (action, fn) => {
+                azioniRegistrate.push(action);
                 try {
                     for (const a of aliases) {
                         capabilityBroker.registerApiHandler(a, action, (sourceAppId, payload) => fn(null, payload));
@@ -301,6 +333,7 @@ async function caricaAppV2(manifest, appDir) {
                 kernel: kernel.creaKernel(manifest)
             });
             if (ok === false) throw new Error('registerBackendHandlers ha restituito false');
+            pubblicaStrumentiSenzaContratto(manifest, azioniRegistrate);
         } else {
             throw new Error('entry.backend deve esportare attiva(koradest) o registerBackendHandlers');
         }

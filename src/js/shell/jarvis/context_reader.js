@@ -37,7 +37,8 @@ export function ottieniContestoVisivo() {
         return {
             route,
             titolo,
-            dettagliPagina
+            dettagliPagina,
+            appAttiva: main && main.dataset.appAttiva ? main.dataset.appAttiva : null
         };
     } catch (e) {
         return {

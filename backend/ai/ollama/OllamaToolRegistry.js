@@ -1,6 +1,7 @@
 'use strict';
 
 const UniversalEventBus = require('../../core/bus/UniversalEventBus');
+const { accessoConsentito } = require('../gateway/strumenti_runtime');
 
 class OllamaToolRegistry {
     constructor() {
@@ -43,6 +44,7 @@ class OllamaToolRegistry {
             if (!manifest || !manifest.id) return false;
             const appId = manifest.id;
             const actions = manifest.actions || (manifest.ipc && manifest.ipc.actions) || {};
+            if (Object.keys(actions).length === 0) return false;
             const registeredCount = [];
 
             for (const [actionName, actionDef] of Object.entries(actions)) {
@@ -77,6 +79,17 @@ class OllamaToolRegistry {
         } catch (e) {
             return false;
         }
+    }
+
+    registerTools(appId, definizioni) {
+        const chiavi = definizioni.map((definizione) => {
+            this.tools.set(definizione.function.name, definizione);
+            return definizione.function.name;
+        });
+        const precedenti = (this.appActionsMap.get(appId) || []).filter(chiave => !chiavi.includes(chiave));
+        this.appActionsMap.set(appId, [...precedenti, ...chiavi]);
+        UniversalEventBus.publish('koradest.ai.schema_update', { appId, registeredTools: chiavi });
+        return chiavi.length;
     }
 
     unregisterApp(appId) {
@@ -121,6 +134,10 @@ class OllamaToolRegistry {
 
             for (const [key, tool] of this.tools.entries()) {
                 const meta = tool.metadata;
+                if (meta.accesso) {
+                    if (role === 'admin' || role === 'system' || accessoConsentito(user, meta.accesso)) result.push({ type: tool.type, function: tool.function });
+                    continue;
+                }
                 if (role === 'admin' || role === 'system') {
                     result.push({ type: tool.type, function: tool.function });
                     continue;

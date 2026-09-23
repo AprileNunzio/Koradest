@@ -5,6 +5,7 @@ const configHandlers = require('../config');
 const sessionManager = require('../core/session_manager');
 const rbac = require('./rbac');
 const auditLogger = require('../observability/auditLogger');
+const { gateway } = require('../ai/gateway');
 
 const DEFAULT_CONFIG = {
     host: 'http://127.0.0.1:11434',
@@ -99,14 +100,18 @@ async function saveConfig(event, dati) {
         if (!dati || typeof dati !== 'object') {
             return { success: false, error: 'Dati di configurazione non validi' };
         }
-        let raw = configHandlers.readConfig();
-        if (!raw || typeof raw !== 'object') {
-            raw = {};
+        const consentiti = Object.fromEntries(Object.entries(dati).filter(([chiave]) => Object.prototype.hasOwnProperty.call(DEFAULT_CONFIG, chiave)));
+        if (consentiti.host !== undefined && !/^https?:\/\/[A-Za-z0-9.\-[\]:]+(:\d{1,5})?\/?$/.test(String(consentiti.host))) {
+            return { success: false, error: 'L\'indirizzo del server Ollama non è valido' };
         }
-        const current = raw.ollama && typeof raw.ollama === 'object' ? raw.ollama : DEFAULT_CONFIG;
-        const aggiornata = Object.assign({}, current, dati);
-        raw.ollama = aggiornata;
-        configHandlers.saveConfig(raw);
+        if (consentiti.systemPrompt !== undefined) consentiti.systemPrompt = String(consentiti.systemPrompt).slice(0, 4000);
+        if (consentiti.voiceRate !== undefined) consentiti.voiceRate = Math.min(1.4, Math.max(0.7, Number(consentiti.voiceRate) || 1));
+        if (consentiti.voiceEnabled !== undefined) consentiti.voiceEnabled = consentiti.voiceEnabled === true;
+        const aggiornata = configHandlers.aggiornaSezione('ollama', attuale => ({
+            ...DEFAULT_CONFIG,
+            ...(attuale && typeof attuale === 'object' ? attuale : {}),
+            ...consentiti
+        }));
         applicaARuntime(aggiornata);
         auditLogger.logEvent('ollama', 'CONFIG_UPDATED', 'ollama_config', aggiornata.host, { defaultModel: aggiornata.defaultModel }, 'SUCCESS');
         return { success: true, data: aggiornata };
@@ -150,33 +155,29 @@ async function listModels(event, dati = {}) {
     }
 }
 
+function contestoPagina(payload) {
+    if (!payload.pageContext && !payload.activeRoute) return '';
+    const grezzo = `Pagina/Modulo attuale: ${String(payload.activeRoute || 'Dashboard').slice(0, 200)}
+Contenuto visibile a schermo:
+${String(payload.pageContext || 'Nessun dettaglio aggiuntivo').slice(0, 6000)}`;
+    const controllo = dataProtector.sanitizeInputPrompt(grezzo);
+    return controllo.safe ? `
+[CONTESTO OPERATIVO UTENTE]
+${controllo.text}
+[FINE CONTESTO]` : '';
+}
+
 async function chat(event, payload = {}) {
     try {
-        const prompt = String(payload.prompt || '').trim();
-        if (!prompt) {
-            return { success: false, error: 'Prompt vuoto' };
-        }
         const conf = ottieniConfigurazione();
         applicaARuntime(conf);
-        const user = await ottieniUtenteAttuale();
-
-        let systemPrompt = payload.systemPrompt || conf.systemPrompt || '';
-        if (payload.pageContext || payload.activeRoute) {
-            systemPrompt += `\n[CONTESTO OPERATIVO UTENTE]\nPagina/Modulo attuale: ${payload.activeRoute || 'Dashboard'}\nContenuto visibile a schermo:\n${payload.pageContext || 'Nessun dettaglio aggiuntivo'}\n[FINE CONTESTO]`;
-        }
-
-        const res = await bridge.ask({
-            user,
-            prompt,
-            model: payload.model || conf.defaultModel,
-            systemPrompt
+        const utente = await ottieniUtenteAttuale();
+        return await gateway().chiedi({
+            utente,
+            prompt: payload.prompt,
+            appAttiva: /^[a-z][a-z0-9_]{1,39}$/.test(String(payload.appAttiva || '')) ? payload.appAttiva : null,
+            sistema: `${conf.systemPrompt || ''}${gateway().descrivi().inviaContestoPagina ? contestoPagina(payload || {}) : ''}`
         });
-
-        if (res && res.success) {
-            auditLogger.logEvent(user.id, 'AI_ASSISTANT_QUERY', 'jarvis', 'chat', { toolCallsExecuted: res.toolCallsExecuted || 0 }, 'SUCCESS');
-        }
-
-        return res;
     } catch (e) {
         return { success: false, error: e.message };
     }

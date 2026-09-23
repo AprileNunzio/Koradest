@@ -34,17 +34,17 @@ export class JarvisChatWindow {
                 <div class="jarvis-header">
                     <div class="jarvis-brand">
                         <div class="jarvis-orb">
-                            <span class="material-symbols-rounded" style="font-size: 1.2rem;">psychology</span>
+                            <span class="material-symbols-rounded" aria-hidden="true">psychology</span>
                         </div>
                         <div class="jarvis-title-wrap">
                             <span class="jarvis-name">Jarvis AI</span>
-                            <span class="jarvis-status"><span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>Operativo</span>
+                            <span class="jarvis-status"><span class="jarvis-status-punto" aria-hidden="true"></span>Operativo</span>
                         </div>
                     </div>
                     <span id="jarvis-context-pill" class="jarvis-context-pill" title="Contesto attivo">Dashboard</span>
                     <div class="jarvis-controls">
-                        <button id="jarvis-btn-clear" class="jarvis-btn-icon" title="Pulisci cronologia"><span class="material-symbols-rounded" style="font-size: 1.1rem;">delete_sweep</span></button>
-                        <button id="jarvis-btn-minimize" class="jarvis-btn-icon" title="Riduci a icona"><span class="material-symbols-rounded" style="font-size: 1.1rem;">close</span></button>
+                        <button id="jarvis-btn-clear" class="jarvis-btn-icon" title="Pulisci cronologia"><span class="material-symbols-rounded" aria-hidden="true">delete_sweep</span></button>
+                        <button id="jarvis-btn-minimize" class="jarvis-btn-icon" title="Riduci a icona"><span class="material-symbols-rounded" aria-hidden="true">close</span></button>
                     </div>
                 </div>
                 <div id="jarvis-body" class="jarvis-body">
@@ -55,8 +55,8 @@ export class JarvisChatWindow {
                 <div class="jarvis-footer">
                     <div class="jarvis-input-bar">
                         <textarea id="jarvis-input" class="jarvis-input" rows="1" placeholder="Chiedi o impartisci un comando..."></textarea>
-                        <button id="jarvis-btn-mic" class="jarvis-btn-mic" title="Ascolta con microfono"><span class="material-symbols-rounded" style="font-size: 1.2rem;">mic</span></button>
-                        <button id="jarvis-btn-send" class="jarvis-btn-send" title="Invia"><span class="material-symbols-rounded" style="font-size: 1.1rem;">send</span></button>
+                        <button id="jarvis-btn-mic" class="jarvis-btn-mic" title="Ascolta con microfono"><span class="material-symbols-rounded" aria-hidden="true">mic</span></button>
+                        <button id="jarvis-btn-send" class="jarvis-btn-send" title="Invia"><span class="material-symbols-rounded" aria-hidden="true">send</span></button>
                     </div>
                 </div>
             `;
@@ -159,7 +159,7 @@ export class JarvisChatWindow {
 
             let htmlContent = '';
             if (toolCallCount > 0) {
-                htmlContent += `<div class="jarvis-msg-tool"><span class="material-symbols-rounded" style="font-size: 0.9rem;">build</span>Eseguiti ${toolCallCount} comandi Matter</div>`;
+                htmlContent += `<div class="jarvis-msg-tool"><span class="material-symbols-rounded" aria-hidden="true">build</span>Eseguiti ${toolCallCount} comandi Matter</div>`;
             }
 
             const formatted = esc(text).replace(/\n/g, '<br>');
@@ -255,6 +255,7 @@ export class JarvisChatWindow {
                 const res = await window.electronAPI.ollama.chat({
                     prompt: text,
                     activeRoute: visualContext.route,
+                    appAttiva: visualContext.appAttiva,
                     pageContext: visualContext.dettagliPagina
                 });
 

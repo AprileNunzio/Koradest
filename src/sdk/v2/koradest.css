@@ -2,6 +2,7 @@
 @import url('../css/fonts.css');
 @import url('../css/variables.css');
 @import url('../css/componenti.css');
+@import url('./modulo/modulo.css');
 
 *, *::before, *::after { box-sizing: border-box; }
 
