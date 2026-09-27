@@ -2,15 +2,35 @@
 
 const MatterAuditEngine = require('../../observability/MatterAuditEngine');
 
+const RATE_RECORD_TTL_MS = 5 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
 class OllamaRbacGuard {
     constructor() {
         try {
             this.executionCounts = new Map();
             this.maxExecutionsPerMinute = 30;
+            this._startCleanup();
         } catch (e) {
             this.executionCounts = new Map();
             this.maxExecutionsPerMinute = 30;
         }
+    }
+
+    _startCleanup() {
+        try {
+            const timer = setInterval(() => {
+                try {
+                    const now = Date.now();
+                    for (const [userId, record] of this.executionCounts.entries()) {
+                        if (now > record.resetAt + RATE_RECORD_TTL_MS) {
+                            this.executionCounts.delete(userId);
+                        }
+                    }
+                } catch (e) {}
+            }, CLEANUP_INTERVAL_MS);
+            if (timer.unref) timer.unref();
+        } catch (e) {}
     }
 
     validateExecution(user, toolMetadata, toolName) {
@@ -42,7 +62,7 @@ class OllamaRbacGuard {
 
                 if (toolMetadata.requiredPermission) {
                     const hasPerm = userPermissions.includes('*') || userPermissions.includes(toolMetadata.requiredPermission);
-                    if (!hasPerm && userPermissions.length > 0) {
+                    if (!hasPerm) {
                         this._logViolation(userId, userRole, toolName, 'PERMISSION_DENIED');
                         return { allowed: false, error: `User lacks required permission: ${toolMetadata.requiredPermission}` };
                     }

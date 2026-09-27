@@ -2,6 +2,91 @@
 
 const UniversalEventBus = require('../../core/bus/UniversalEventBus');
 
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function containsDangerousKeys(obj, depth = 0) {
+    if (depth > 12 || !obj || typeof obj !== 'object') return { ok: true };
+    for (const key of Object.keys(obj)) {
+        if (DANGEROUS_KEYS.has(key)) return { ok: false, key };
+        const val = obj[key];
+        if (val && typeof val === 'object') {
+            const nested = containsDangerousKeys(val, depth + 1);
+            if (!nested.ok) return nested;
+        }
+    }
+    return { ok: true };
+}
+
+function normalizeArgs(rawArgs) {
+    if (rawArgs === undefined || rawArgs === null) return {};
+    if (typeof rawArgs === 'object' && !Array.isArray(rawArgs)) return rawArgs;
+    if (typeof rawArgs === 'string') {
+        const trimmed = rawArgs.trim();
+        if (!trimmed) return {};
+        try {
+            const parsed = JSON.parse(trimmed);
+            return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : null;
+        } catch (e) {
+            return null;
+        }
+    }
+    return null;
+}
+
+const TYPE_CHECKERS = {
+    string: v => typeof v === 'string',
+    number: v => typeof v === 'number' && !Number.isNaN(v),
+    integer: v => Number.isInteger(v),
+    boolean: v => typeof v === 'boolean',
+    object: v => v !== null && typeof v === 'object' && !Array.isArray(v),
+    array: v => Array.isArray(v)
+};
+
+function validateAgainstSchema(value, schema, path = 'root') {
+    try {
+        if (!schema || typeof schema !== 'object') return { valid: true };
+
+        if (schema.type === 'object') {
+            if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+                return { valid: false, error: `Il parametro "${path}" deve essere un oggetto` };
+            }
+            const required = Array.isArray(schema.required) ? schema.required : [];
+            for (const req of required) {
+                if (!(req in value)) {
+                    return { valid: false, error: `Parametro obbligatorio mancante: "${req}"` };
+                }
+            }
+            const props = schema.properties || {};
+            for (const [key, propSchema] of Object.entries(props)) {
+                if (key in value) {
+                    const childResult = validateAgainstSchema(value[key], propSchema, `${path}.${key}`);
+                    if (!childResult.valid) return childResult;
+                }
+            }
+            return { valid: true };
+        }
+
+        if (schema.type && TYPE_CHECKERS[schema.type] && !TYPE_CHECKERS[schema.type](value)) {
+            return { valid: false, error: `Il campo "${path}" deve essere di tipo ${schema.type}` };
+        }
+
+        if (Array.isArray(schema.enum) && !schema.enum.includes(value)) {
+            return { valid: false, error: `Il valore di "${path}" deve essere uno tra: ${schema.enum.join(', ')}` };
+        }
+
+        if (schema.type === 'array' && schema.items && Array.isArray(value)) {
+            for (let i = 0; i < value.length; i++) {
+                const itemResult = validateAgainstSchema(value[i], schema.items, `${path}[${i}]`);
+                if (!itemResult.valid) return itemResult;
+            }
+        }
+
+        return { valid: true };
+    } catch (e) {
+        return { valid: false, error: e.message };
+    }
+}
+
 class OllamaToolRegistry {
     constructor() {
         try {
@@ -130,7 +215,7 @@ class OllamaToolRegistry {
                     continue;
                 }
 
-                if (meta.requiredPermission && userPermissions.length > 0 && !userPermissions.includes(meta.requiredPermission) && !userPermissions.includes('*')) {
+                if (meta.requiredPermission && !userPermissions.includes(meta.requiredPermission) && !userPermissions.includes('*')) {
                     continue;
                 }
 
@@ -140,6 +225,31 @@ class OllamaToolRegistry {
             return result;
         } catch (e) {
             return [];
+        }
+    }
+
+    validateArguments(toolKey, rawArgs) {
+        try {
+            const tool = this.tools.get(toolKey);
+            if (!tool) return { valid: false, error: `Tool sconosciuto: ${toolKey}` };
+
+            const args = normalizeArgs(rawArgs);
+            if (args === null) {
+                return { valid: false, error: 'Argomenti non validi: JSON malformato' };
+            }
+
+            const dangerousKeyCheck = containsDangerousKeys(args);
+            if (!dangerousKeyCheck.ok) {
+                return { valid: false, error: `Chiave non consentita rilevata negli argomenti: "${dangerousKeyCheck.key}"` };
+            }
+
+            const schema = (tool.function && tool.function.parameters) || { type: 'object', properties: {}, required: [] };
+            const schemaCheck = validateAgainstSchema(args, schema);
+            if (!schemaCheck.valid) return schemaCheck;
+
+            return { valid: true, args };
+        } catch (e) {
+            return { valid: false, error: e.message };
         }
     }
 

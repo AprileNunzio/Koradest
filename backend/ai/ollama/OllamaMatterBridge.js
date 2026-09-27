@@ -4,7 +4,18 @@ const OllamaClient = require('./OllamaClient');
 const toolRegistry = require('./OllamaToolRegistry');
 const rbacGuard = require('./OllamaRbacGuard');
 const dataProtector = require('./OllamaDataProtector');
+const conversationMemory = require('./OllamaConversationMemory');
 const UniversalEventBus = require('../../core/bus/UniversalEventBus');
+
+function isLoopbackHost(host) {
+    try {
+        const { URL } = require('url');
+        const hostname = new URL(host).hostname.toLowerCase();
+        return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+    } catch (e) {
+        return false;
+    }
+}
 
 class OllamaMatterBridge {
     constructor(options = {}) {
@@ -18,8 +29,17 @@ class OllamaMatterBridge {
         }
     }
 
-    setServer(host, model = null) {
+    setServer(host, model = null, options = {}) {
         try {
+            const allowRemote = options.allowRemoteNodeAccess !== false;
+            if (!allowRemote && !isLoopbackHost(host)) {
+                try {
+                    const auditLogger = require('../../observability/auditLogger');
+                    auditLogger.logEvent('system', 'AI_REMOTE_HOST_BLOCKED', 'ollama_config', host, { reason: 'allowRemoteNodeAccess disabilitato' }, 'BLOCKED');
+                } catch (eAudit) {}
+                return false;
+            }
+
             this.client.setHost(host);
             if (model) {
                 this.client.setDefaultModel(model);
@@ -48,7 +68,7 @@ class OllamaMatterBridge {
                 try {
                     if (!envelope || !envelope.payload) return;
                     const { user, prompt, model, systemPrompt, conversationId } = envelope.payload;
-                    const response = await this.ask({ user, prompt, model, systemPrompt });
+                    const response = await this.ask({ user, prompt, model, systemPrompt, conversationId });
 
                     UniversalEventBus.publish('koradest.ai.completion', {
                         conversationId,
@@ -65,7 +85,7 @@ class OllamaMatterBridge {
         }
     }
 
-    async ask({ user = { id: 'anonymous', role: 'guest' }, prompt = '', model = null, systemPrompt = '' } = {}) {
+    async ask({ user = { id: 'anonymous', role: 'guest' }, prompt = '', model = null, systemPrompt = '', conversationId = null } = {}) {
         try {
             const promptCheck = dataProtector.sanitizeInputPrompt(prompt);
             if (!promptCheck.safe) {
@@ -82,6 +102,8 @@ class OllamaMatterBridge {
             if (systemPrompt) {
                 messages.push({ role: 'system', content: systemPrompt });
             }
+            const history = conversationMemory.getHistory(user && user.id, conversationId);
+            messages.push(...history);
             messages.push({ role: 'user', content: cleanPrompt });
 
             const toolsForUser = toolRegistry.getToolsForUser(user);
@@ -105,6 +127,9 @@ class OllamaMatterBridge {
                 return { success: false, error: 'Empty message response from Ollama' };
             }
 
+            let finalContent = null;
+            let toolCallsExecuted = 0;
+
             if (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
                 const executedToolResults = [];
 
@@ -121,10 +146,21 @@ class OllamaMatterBridge {
                         continue;
                     }
 
-                    const execResult = await this._executeTool(fn.name, fn.arguments, user);
+                    const argsCheck = toolRegistry.validateArguments(fn.name, fn.arguments);
+                    if (!argsCheck.valid) {
+                        executedToolResults.push({
+                            role: 'tool',
+                            content: JSON.stringify({ error: argsCheck.error, status: 'INVALID_ARGUMENTS' })
+                        });
+                        continue;
+                    }
+
+                    const execResult = await this._executeTool(fn.name, argsCheck.args, user);
+                    const rawResultText = JSON.stringify(execResult);
+                    const outputCheck = dataProtector.sanitizeToolOutput(rawResultText);
                     executedToolResults.push({
                         role: 'tool',
-                        content: JSON.stringify(execResult)
+                        content: outputCheck.text
                     });
                 }
 
@@ -134,21 +170,25 @@ class OllamaMatterBridge {
                     model
                 });
 
+                toolCallsExecuted = executedToolResults.length;
+
                 if (finalRes.success && finalRes.data && finalRes.data.message) {
-                    const sanitizedContent = dataProtector.sanitizeModelOutput(finalRes.data.message.content);
-                    return {
-                        success: true,
-                        content: sanitizedContent,
-                        toolCallsExecuted: executedToolResults.length
-                    };
+                    finalContent = dataProtector.sanitizeModelOutput(finalRes.data.message.content);
                 }
+            } else {
+                finalContent = dataProtector.sanitizeModelOutput(message.content);
             }
 
-            const sanitizedContent = dataProtector.sanitizeModelOutput(message.content);
+            if (finalContent === null) {
+                return { success: false, error: 'Empty final response from Ollama', toolCallsExecuted };
+            }
+
+            conversationMemory.appendTurn(user && user.id, conversationId, cleanPrompt, finalContent);
+
             return {
                 success: true,
-                content: sanitizedContent,
-                toolCallsExecuted: 0
+                content: finalContent,
+                toolCallsExecuted
             };
         } catch (e) {
             return { success: false, error: e.message };
