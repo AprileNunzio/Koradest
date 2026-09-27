@@ -3,6 +3,18 @@
 Tutte le modifiche rilevanti di KORADEST sono documentate in questo file.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it-IT/1.1.0/) e il progetto usa il [versionamento semantico](https://semver.org/lang/it/).
 
+## [1.1.40] - 2026-09-27
+
+### Corretto
+- **Bypass dei permessi nell'assistente Jarvis**: un utente autenticato senza permessi espliciti assegnati poteva far eseguire a Jarvis qualunque azione Matter non riservata esplicitamente agli amministratori, perché il controllo RBAC e il filtro degli strumenti disponibili trattavano un elenco di permessi vuoto come "nessuna restrizione" invece che come "nessun permesso concesso". Ora entrambi negano per difetto.
+- **Rilevamento del prompt injection limitato all'inglese**: i tentativi scritti in italiano ("ignora le istruzioni precedenti", "modalità sviluppatore", ecc.) non venivano riconosciuti dal filtro di sicurezza. Aggiunti i pattern italiani e una normalizzazione Unicode del testo in ingresso.
+- **Injection indiretta tramite i risultati degli strumenti**: il contenuto restituito dalle azioni Matter rientrava nel contesto del modello senza alcun controllo; ora passa dallo stesso filtro anti-injection e anti-PII applicato al prompt dell'utente.
+- **Interruttore "Consenti instradamento dai nodi di rete" non applicato**: era visibile e salvabile nel pannello Amministratore ma nessun punto del codice lo verificava davvero. Ora, se disattivato, il bridge Ollama rifiuta di collegarsi a un host diverso da localhost.
+
+### Aggiunto
+- **Memoria conversazionale di Jarvis**: le richieste nella stessa sessione di chat mantengono ora il contesto dei turni precedenti (troncato automaticamente per non saturare la finestra del modello), invece di essere trattate come domande isolate senza memoria. "Pulisci cronologia" azzera anche la memoria lato server.
+- **Validazione degli argomenti degli strumenti Matter**: prima di eseguire un'azione richiesta dal modello, gli argomenti vengono validati contro lo schema dichiarato nel manifest e viene bloccato ogni tentativo di prototype pollution (`__proto__`, `constructor`, `prototype`).
+
 ## [1.1.23] - 2026-09-22
 
 ### Aggiunto

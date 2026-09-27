@@ -18,6 +18,8 @@ export class JarvisChatWindow {
             this.isVoiceEnabled = false;
             this.voiceRate = 1.0;
             this.isListening = false;
+            this.isSending = false;
+            this.conversationId = this._generateConversationId();
             this._buildDOM();
         } catch (e) {
             console.error(e);
@@ -87,6 +89,26 @@ export class JarvisChatWindow {
         }
     }
 
+    _generateConversationId() {
+        try {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+            return `conv_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        } catch (_) {
+            return `conv_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        }
+    }
+
+    _setInputEnabled(enabled) {
+        try {
+            if (this.inputEl) this.inputEl.disabled = !enabled;
+            const sendBtn = this.panelEl && this.panelEl.querySelector('#jarvis-btn-send');
+            if (sendBtn) sendBtn.disabled = !enabled;
+            if (enabled && this.inputEl) this.inputEl.focus();
+        } catch (err) { console.warn('[Jarvis]', err && err.message ? err.message : err); }
+    }
+
     async _loadSettings() {
         try {
             if (window.electronAPI && window.electronAPI.ollama) {
@@ -147,8 +169,14 @@ export class JarvisChatWindow {
 
     clearChat() {
         try {
+            const oldConversationId = this.conversationId;
             this.messagesContainer.innerHTML = '';
             this.addMessage('assistant', 'Cronologia pulita. Sono pronto per una nuova richiesta.');
+            this.conversationId = this._generateConversationId();
+
+            if (window.electronAPI && window.electronAPI.ollama && window.electronAPI.ollama.resetConversation) {
+                window.electronAPI.ollama.resetConversation({ conversationId: oldConversationId }).catch(() => {});
+            }
         } catch (err) { console.warn('[Jarvis]', err && err.message ? err.message : err); }
     }
 
@@ -242,10 +270,13 @@ export class JarvisChatWindow {
     }
 
     async sendCurrentMessage() {
+        if (this.isSending) return;
         try {
             const text = this.inputEl.value.trim();
             if (!text) return;
             this.inputEl.value = '';
+            this.isSending = true;
+            this._setInputEnabled(false);
 
             this.addMessage('user', text);
             this.showThinking();
@@ -255,7 +286,8 @@ export class JarvisChatWindow {
                 const res = await window.electronAPI.ollama.chat({
                     prompt: text,
                     activeRoute: visualContext.route,
-                    pageContext: visualContext.dettagliPagina
+                    pageContext: visualContext.dettagliPagina,
+                    conversationId: this.conversationId
                 });
 
                 this.hideThinking();
@@ -275,6 +307,9 @@ export class JarvisChatWindow {
         } catch (e) {
             this.hideThinking();
             this.addMessage('assistant', `Si è verificata un'eccezione: ${e.message}`);
+        } finally {
+            this.isSending = false;
+            this._setInputEnabled(true);
         }
     }
 }

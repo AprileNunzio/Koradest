@@ -1,6 +1,6 @@
 'use strict';
 
-const { bridge, toolRegistry, rbacGuard, dataProtector, OllamaClient } = require('../ai/ollama');
+const { bridge, toolRegistry, rbacGuard, dataProtector, conversationMemory, OllamaClient } = require('../ai/ollama');
 const configHandlers = require('../config');
 const sessionManager = require('../core/session_manager');
 const rbac = require('./rbac');
@@ -35,7 +35,7 @@ function ottieniConfigurazione() {
 function applicaARuntime(conf) {
     try {
         if (conf && conf.host) {
-            bridge.setServer(conf.host, conf.defaultModel || null);
+            bridge.setServer(conf.host, conf.defaultModel || null, { allowRemoteNodeAccess: conf.allowRemoteNodeAccess !== false });
         }
     } catch (err) { console.warn('[Ollama]', err && err.message ? err.message : err); }
 }
@@ -169,7 +169,8 @@ async function chat(event, payload = {}) {
             user,
             prompt,
             model: payload.model || conf.defaultModel,
-            systemPrompt
+            systemPrompt,
+            conversationId: payload.conversationId || null
         });
 
         if (res && res.success) {
@@ -177,6 +178,16 @@ async function chat(event, payload = {}) {
         }
 
         return res;
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+}
+
+async function resetConversation(event, payload = {}) {
+    try {
+        const user = await ottieniUtenteAttuale();
+        conversationMemory.reset(user.id, payload && payload.conversationId);
+        return { success: true };
     } catch (e) {
         return { success: false, error: e.message };
     }
@@ -199,5 +210,6 @@ module.exports = {
     testConnection,
     listModels,
     chat,
+    resetConversation,
     getRegisteredTools
 };

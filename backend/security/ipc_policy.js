@@ -58,6 +58,7 @@ const SESSION = [
     'ollama:getStatus',
     'ollama:getConfig',
     'ollama:chat',
+    'ollama:resetConversation',
     'ollama:getRegisteredTools',
     'koradestNative:callAppApi',
     'appBus:registerWindow',

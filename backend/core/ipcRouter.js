@@ -262,6 +262,8 @@ function registerAllIPCHandlers(windowManager) {
         ipcMain.handle('ollama:listModels', ollamaHandlers.listModels);
         ipcMain.removeHandler('ollama:chat');
         ipcMain.handle('ollama:chat', ollamaHandlers.chat);
+        ipcMain.removeHandler('ollama:resetConversation');
+        ipcMain.handle('ollama:resetConversation', ollamaHandlers.resetConversation);
         ipcMain.removeHandler('ollama:getRegisteredTools');
         ipcMain.handle('ollama:getRegisteredTools', ollamaHandlers.getRegisteredTools);
         ipcMain.handle('clearAppCache', async () => {
