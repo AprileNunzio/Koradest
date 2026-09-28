@@ -202,7 +202,12 @@ const AuthLoginForm = {
             if (result && result.success) {
                 try {
                     sessionStorage.setItem('currentUserId', credentials.id);
+                    const targetUser = (AuthState.users && AuthState.users.find(u => u.id === credentials.id)) || {};
+                    const nameToStore = targetUser.username || `${targetUser.nome || ''} ${targetUser.cognome || ''}`.trim() || 'Utente';
+                    sessionStorage.setItem('currentUser', nameToStore);
+                    localStorage.setItem('currentUserName', nameToStore);
                     localStorage.setItem('lastLoggedInUserId', credentials.id);
+                    window.currentUser = targetUser;
                     if (window.electronAPI && window.electronAPI.broadcastLogin) {
                         window.electronAPI.broadcastLogin(credentials.id).catch(() => {});
                     }

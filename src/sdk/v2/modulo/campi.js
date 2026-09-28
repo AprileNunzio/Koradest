@@ -50,21 +50,36 @@ function pulsanteStorico(campo) {
 }
 
 export function markupCampo(campo, { uid, valore, conStorico }) {
-    const id = `k-campo-${uid}-${campo.nome}`;
     const tipo = tipoDi(campo);
+    if (tipo === 'sezione') {
+        return html`
+        <div class="k-field k-field--full" style="grid-column: 1 / -1; margin-top: 1rem; border-bottom: 1px solid var(--md-outline-variant, #cbd5e1); padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+            <h4 style="margin: 0; color: var(--md-primary, #0d9488); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                ${campo.etichetta}
+            </h4>
+            ${campo.descrizione ? html`<p class="k-text-small k-muted" style="margin: 4px 0 0 0;">${campo.descrizione}</p>` : ''}
+        </div>`;
+    }
+
+    const id = `k-campo-${uid}-${campo.nome}`;
     const pieno = campo.pieno || tipo === 'textarea';
     const idMessaggio = `${id}-messaggio`;
     const idAiuto = `${id}-aiuto`;
     const descrittori = campo.suggerimento ? `${idMessaggio} ${idAiuto}` : idMessaggio;
     const valoreIniziale = tipo === 'data' && typeof valore === 'string' ? valore.slice(0, 10) : valore;
     const etichetta = tipo === 'checkbox'
-        ? html`<span class="k-label">${campo.etichetta}${campo.obbligatorio ? html`<span class="k-required" aria-hidden="true">*</span>` : ''}</span>`
-        : html`<label class="k-label" for="${id}">${campo.etichetta}${campo.obbligatorio ? html`<span class="k-required" aria-hidden="true">*</span>` : ''}</label>`;
+        ? html`<span class="k-label" style="display: flex; align-items: center; gap: 4px; justify-content: flex-start;">${campo.descrizione ? html`<span class="gp-tooltip-container" data-tooltip="${campo.descrizione}"><span class="material-symbols-rounded gp-info-icon" style="margin-left: 0; margin-right: 4px; font-size: 18px;">info</span></span>` : ''}${campo.etichetta}${campo.obbligatorio ? html`<span class="k-required" aria-hidden="true">*</span>` : ''}</span>`
+        : html`<label class="k-label" for="${id}" style="display: flex; align-items: center; gap: 4px; justify-content: flex-start;">${campo.descrizione ? html`<span class="gp-tooltip-container" data-tooltip="${campo.descrizione}"><span class="material-symbols-rounded gp-info-icon" style="margin-left: 0; margin-right: 4px; font-size: 18px;">info</span></span>` : ''}${campo.etichetta}${campo.obbligatorio ? html`<span class="k-required" aria-hidden="true">*</span>` : ''}</label>`;
+    
     return html`
         <div class="k-field k-campo${pieno ? ' k-field--full' : ''}" data-campo="${campo.nome}">
             ${etichetta}
+            
             <div class="k-campo-riga">
-                <div class="k-campo-controllo">${controllo(campo, id, valoreIniziale, descrittori)}</div>
+                <div class="k-campo-controllo">
+                    ${controllo(campo, id, valoreIniziale, descrittori)}
+                    
+                </div>
                 ${conStorico ? pulsanteStorico(campo) : ''}
             </div>
             ${campo.suggerimento ? html`<span class="k-hint" id="${idAiuto}">${campo.suggerimento}</span>` : ''}

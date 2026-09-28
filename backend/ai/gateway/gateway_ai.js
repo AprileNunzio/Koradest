@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { FORNITORI, MODELLO_CONSIGLIATO } = require('./configurazione_ai');
 const { creaSessione, istruzioniOperative } = require('./sessione_richiesta');
+const { instrada } = require('./agents/router_agent');
 
 const LUNGHEZZA_MASSIMA_PROMPT = 8000;
 const DURATA_CONFERMA_MS = 10 * 60 * 1000;
@@ -72,11 +73,23 @@ function creaGateway({ configurazione, cassaforte, fornitori, hostOllama, toolRe
         if (!controllo.safe) return { success: false, error: controllo.error, blocked: true };
 
         const conf = configurazione.leggi();
-        if (conf.jarvis === 'disattivo') return { success: false, error: 'Jarvis è disattivato: si riattiva da Amministratore › Server Ollama & AI' };
+        if (conf.jarvis === 'disattivo') return { success: false, error: 'Jarvis è disattivato: si riattiva da Amministratore › Jarvis' };
         const fornitore = istanzia(conf.fornitore, conf);
-        const sessione = creaSessione({ conf, fornitore, utente, testo: controllo.text, sistema, appAttiva, dipendenze });
+        
+        let sessione;
+        let agenteNome = 'default';
+        if (conf.multiAgente === true) {
+            const res = await instrada({ conf, fornitore, utente, testo: controllo.text, appAttiva, dipendenze });
+            sessione = res.sessione;
+            agenteNome = res.agenteNome;
+        } else {
+            sessione = creaSessione({ conf, fornitore, utente, testo: controllo.text, sistema, appAttiva, dipendenze });
+        }
+
         const esito = await sessione.avvia();
-        return concludi({ sessione, esito, utente, testo: controllo.text, conf, fornitore });
+        const response = concludi({ sessione, esito, utente, testo: controllo.text, conf, fornitore });
+        response.agente = agenteNome;
+        return response;
     }
 
     async function conferma({ utente, id, approvata }) {

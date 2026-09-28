@@ -1,6 +1,6 @@
 'use strict';
 
-const FORNITORI = Object.freeze(['ollama', 'gemini']);
+const FORNITORI = Object.freeze(['ollama', 'gemini', 'claude', 'openai']);
 const STATI_JARVIS = Object.freeze(['attivo', 'disattivo', 'da_chiedere']);
 const PERMANENZE = Object.freeze(['0', '5m', '30m', '1h', '4h', '24h', '-1']);
 const MODELLO = /^[A-Za-z0-9._:\/-]{1,128}$/;
@@ -10,7 +10,7 @@ const MODELLO_CONSIGLIATO = 'minicpm-v4.6';
 
 const PREDEFINITA = Object.freeze({
     fornitore: 'ollama',
-    modelli: Object.freeze({ ollama: MODELLO_CONSIGLIATO, gemini: 'gemini-2.5-flash' }),
+    modelli: Object.freeze({ ollama: MODELLO_CONSIGLIATO, gemini: 'gemini-2.5-flash', claude: 'claude-3-5-sonnet-latest', openai: 'gpt-4o-mini' }),
     passiMassimi: 8,
     timeoutMs: 60000,
     temperatura: 0.4,

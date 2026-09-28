@@ -10,7 +10,7 @@ const sessioneAttiva = () => Boolean(sessionStorage.getItem('currentUserId'));
 async function chiediAttivazione() {
     return conferma({
         titolo: 'Attivare Jarvis?',
-        testo: 'Jarvis è l\'assistente AI di KORADEST: risponde alle domande e può operare nelle applicazioni con i permessi di chi lo usa. Puoi cambiare idea quando vuoi da Amministratore › Server Ollama & AI.',
+        testo: 'Jarvis è l\'assistente AI di KORADEST: risponde alle domande e può operare nelle applicazioni con i permessi di chi lo usa. Puoi cambiare idea quando vuoi da Amministratore › Jarvis.',
         etichetta: 'Attiva Jarvis',
         annulla: 'Tienilo spento',
         icona: 'smart_toy'

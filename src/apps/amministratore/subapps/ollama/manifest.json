@@ -1,7 +1,7 @@
 {
     "id": "ollama",
-    "name": "Server Ollama & Intelligenza Artificiale",
-    "description": "Configura il server LLM Ollama, modelli, parametri e assistente Jarvis",
+    "name": "Jarvis",
+    "description": "Configura l'assistente Jarvis, i modelli, i provider esterni e i parametri di sistema",
     "icon": "psychology",
     "main": "app.js",
     "rbacPermissions": [

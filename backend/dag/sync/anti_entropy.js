@@ -24,9 +24,7 @@ async function sweep() {
             const { getPeerState } = require('../../p2p/peers/peer_registry');
             const peerState = getPeerState(peer.ip);
 
-            if (peerState && peerState.lastRootHash === localRootHash) {
-                continue;
-            }
+            // Skip logic based on lastRootHash removed because it wrongly assumes peer ingested everything without errors.
 
             const ok = await syncWithPeer(peer.ip, peer.port || PORT).catch(() => false);
             if (ok) {

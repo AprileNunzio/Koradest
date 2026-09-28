@@ -1,9 +1,11 @@
 import { JarvisChatWindow } from './chat_window.js';
 import { valutaAttivazione, paginaSenzaSessione, azzera } from './attivazione.js';
+import { WakeWordEngine } from './wake_word_engine.js';
 
 let jarvisInstance = null;
 let triggerEl = null;
 let attivo = false;
+let wakeWordEngine = null;
 
 function caricaFoglioStile() {
     if (document.querySelector('link[data-jarvis-css]')) return;
@@ -53,11 +55,25 @@ function nascondi() {
 
 const valuta = () => valutaAttivazione({ mostra, nascondi });
 
-export function initJarvis() {
+export async function initJarvis() {
     caricaFoglioStile();
     triggerEl = creaTrigger();
-    if (!jarvisInstance) jarvisInstance = new JarvisChatWindow();
+    if (!jarvisInstance) {
+        jarvisInstance = new JarvisChatWindow();
+        wakeWordEngine = new WakeWordEngine(jarvisInstance);
+    }
     jarvisInstance.hide();
+
+    try {
+        if (window.electronAPI && window.electronAPI.ai) {
+            const res = await window.electronAPI.ai.getConfig();
+            if (res && res.success && res.data && res.data.ascoltoContinuo) {
+                wakeWordEngine.start();
+            }
+        }
+    } catch (e) {
+        console.warn('[Jarvis] Errore nel caricamento della configurazione', e);
+    }
 
     window.addEventListener('keydown', (evento) => {
         const scorciatoia = (evento.altKey && (evento.key === 'j' || evento.key === 'J')) || (evento.ctrlKey && evento.code === 'Space');
@@ -79,10 +95,25 @@ export function initJarvis() {
         valuta();
     });
 
-    window.addEventListener('koradest:jarvis-stato', (evento) => {
+    window.addEventListener('koradest:jarvis-stato', async (evento) => {
         azzera();
         if (evento.detail && evento.detail.stato === 'attivo') mostra();
         else nascondi();
+        
+        try {
+            if (window.electronAPI && window.electronAPI.ai) {
+                const res = await window.electronAPI.ai.getConfig();
+                if (res && res.success && res.data) {
+                    if (res.data.ascoltoContinuo) {
+                        wakeWordEngine.start();
+                    } else {
+                        wakeWordEngine.stop();
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[Jarvis] Errore nell\'aggiornamento dell\'ascolto continuo', e);
+        }
     });
 
     valuta();

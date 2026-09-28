@@ -1,0 +1,37 @@
+{
+    "id": "comuni",
+    "name": "Database Comuni",
+    "description": "Consultazione e gestione del database anagrafico nazionale di comuni, province e CAP",
+    "icon": "location_city",
+    "main": "app.js",
+    "color": "#0284c7",
+    "version": "1.0.0",
+    "author": "KORADEST",
+    "category": "utility",
+    "tags": [
+        "comuni",
+        "territorio",
+        "anagrafica",
+        "istat"
+    ],
+    "core": true,
+    "rbacPermissions": [
+        {
+            "id": "card_view",
+            "label": "Dashboard & Menu: Visualizzazione card e icona applicazione"
+        },
+        {
+            "id": "view",
+            "label": "Visualizza Database Comuni",
+            "default": true
+        },
+        {
+            "id": "create",
+            "label": "Aggiungi Nuovo Comune"
+        },
+        {
+            "id": "edit",
+            "label": "Modifica Informazioni Comune"
+        }
+    ]
+}

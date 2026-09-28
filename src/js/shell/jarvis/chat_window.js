@@ -162,7 +162,12 @@ export class JarvisChatWindow {
                 htmlContent += `<div class="jarvis-msg-tool"><span class="material-symbols-rounded" aria-hidden="true">build</span>Eseguiti ${toolCallCount} comandi Matter</div>`;
             }
 
-            const formatted = esc(text).replace(/\n/g, '<br>');
+            const formatted = esc(text)
+                .replace(/\*\*\*([\s\S]*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                .replace(/\*\*([\s\S]*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*([\s\S]*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]*?)`/g, '<code>$1</code>')
+                .replace(/\n/g, '<br>');
             htmlContent += `<div>${formatted}</div>`;
             msgEl.innerHTML = htmlContent;
 

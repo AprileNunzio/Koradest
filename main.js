@@ -151,6 +151,9 @@ if (!gotTheLock) {
 
         app.on('window-all-closed', () => {
             try {
+                try {
+                    require('./backend/db/db_manager').flushAll();
+                } catch (_) {}
                 if (process.platform !== 'darwin') {
                 }
             } catch (e) {

@@ -61,8 +61,11 @@ function registerAllIPCHandlers(windowManager) {
             if (!data || !data.sourceApp || !data.targetApp || !data.action) {
                 throw new Error('Parametri IPC non validi');
             }
-            const contesto = data.contesto && typeof data.contesto.userId === 'string' && data.contesto.userId
-                ? { userId: data.contesto.userId }
+            const contesto = data.contesto && typeof data.contesto === 'object'
+                ? {
+                    userId: (typeof data.contesto.userId === 'string' && data.contesto.userId) || null,
+                    userName: (typeof data.contesto.userName === 'string' && data.contesto.userName) || null
+                }
                 : null;
             await capabilityBroker.ensureAppLoaded(data.sourceApp);
             if (data.sourceApp !== data.targetApp) {
@@ -570,7 +573,7 @@ function registerAllIPCHandlers(windowManager) {
                 const myIp = myIps.length > 0 ? myIps[0] : '127.0.0.1';
                 const networkHash = await getNetworkCodeHash();
                 nodes.forEach(node => {
-                    const req = http.request(`http://${node.ip}:${node.port || 34567}/sync/force-nuke`, {
+                    const req = http.request(`http://${node.ip}:${node.port || 34567}/sync/resync`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'x-koradest-network': networkHash || '' },
                         timeout: 3000
@@ -772,7 +775,7 @@ function registerAllIPCHandlers(windowManager) {
                     const myIp = myIps.length > 0 ? myIps[0] : '127.0.0.1';
                     const networkHash = await getNetworkCodeHash();
                     return new Promise((resolve) => {
-                        const req = http.request(`http://${ip}:${p}/sync/force-nuke`, {
+                        const req = http.request(`http://${ip}:${p}/sync/resync`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'x-koradest-network': networkHash || '' },
                             timeout: 3000
@@ -1102,6 +1105,76 @@ function registerAllIPCHandlers(windowManager) {
             } catch(e) {
                 console.error('Errore getAllComuni', e);
                 return [];
+            }
+        });
+        ipcMain.handle('comuni:getAll', async () => {
+            try {
+                if (!global.comuniData) {
+                    const comuniPath = path.join(__dirname, '..', 'data', 'comuni.json');
+                    global.comuniData = JSON.parse(fs.readFileSync(comuniPath, 'utf8'));
+                }
+                return global.comuniData || [];
+            } catch (e) {
+                return [];
+            }
+        });
+        ipcMain.handle('comuni:search', async (_, { query, limit = 20 } = {}) => {
+            try {
+                if (!global.comuniData) {
+                    const comuniPath = path.join(__dirname, '..', 'data', 'comuni.json');
+                    global.comuniData = JSON.parse(fs.readFileSync(comuniPath, 'utf8'));
+                }
+                const q = (query || '').trim().toLowerCase();
+                if (!q) return (global.comuniData || []).slice(0, limit);
+                const results = [];
+                for (const c of (global.comuniData || [])) {
+                    const nome = (c.nome || '').toLowerCase();
+                    const sigla = (c.sigla || '').toLowerCase();
+                    const cap = Array.isArray(c.cap) ? c.cap.join(' ') : (c.cap || '');
+                    if (nome.startsWith(q) || sigla === q || cap.includes(q)) {
+                        results.push(c);
+                        if (results.length >= limit) break;
+                    }
+                }
+                return results;
+            } catch (e) {
+                return [];
+            }
+        });
+        ipcMain.handle('comuni:save', async (_, comune) => {
+            try {
+                if (!comune || !comune.nome) throw new Error('Nome comune obbligatorio');
+                const comuniPath = path.join(__dirname, '..', 'data', 'comuni.json');
+                if (!global.comuniData) {
+                    global.comuniData = JSON.parse(fs.readFileSync(comuniPath, 'utf8'));
+                }
+                const idx = global.comuniData.findIndex(c => (c.codiceCatastale && c.codiceCatastale === comune.codiceCatastale) || (c.nome.toLowerCase() === comune.nome.toLowerCase() && c.sigla === comune.sigla));
+                if (idx >= 0) {
+                    global.comuniData[idx] = { ...global.comuniData[idx], ...comune };
+                } else {
+                    global.comuniData.unshift(comune);
+                }
+                fs.writeFileSync(comuniPath, JSON.stringify(global.comuniData, null, 2), 'utf8');
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        ipcMain.handle('comuni:delete', async (_, { codiceCatastale, nome, sigla }) => {
+            try {
+                const comuniPath = path.join(__dirname, '..', 'data', 'comuni.json');
+                if (!global.comuniData) {
+                    global.comuniData = JSON.parse(fs.readFileSync(comuniPath, 'utf8'));
+                }
+                global.comuniData = global.comuniData.filter(c => {
+                    if (codiceCatastale && c.codiceCatastale === codiceCatastale) return false;
+                    if (nome && sigla && c.nome.toLowerCase() === nome.toLowerCase() && c.sigla === sigla) return false;
+                    return true;
+                });
+                fs.writeFileSync(comuniPath, JSON.stringify(global.comuniData, null, 2), 'utf8');
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
             }
         });
         ipcMain.handle('anagrafica:riferimenti:getSuggestions', (e, args) => anagraficaRiferimentiHandlers.getSuggestions(e, args));

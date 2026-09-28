@@ -38,7 +38,7 @@ function unisciRisposteStrumenti(contenuti) {
 }
 
 function crea({ chiave, timeoutMs, temperatura, esegui = fetch }) {
-    if (!chiave) throw new Error('Chiave API di Gemini non configurata: inseriscila in Amministratore › Server Ollama & AI');
+    if (!chiave) throw new Error('Chiave API di Gemini non configurata: inseriscila in Amministratore › Jarvis');
 
     const chiama = async (percorso, corpo = null) => {
         const risposta = await esegui(`${BASE}/${percorso}`, {

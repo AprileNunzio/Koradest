@@ -332,10 +332,10 @@ class DatabaseManager {
             }
             this._writeTimers.clear();
 
-            const dirty = [...this._dirtyDomains];
+            const domainsToFlush = new Set([...this._dirtyDomains, ...Object.keys(this.databases)]);
             this._dirtyDomains.clear();
 
-            for (const domain of dirty) {
+            for (const domain of domainsToFlush) {
                 try {
                     if (!this.databases[domain] || !this.deviceKey || !this.basePath) continue;
                     const dataBuffer = this.databases[domain].exportData();

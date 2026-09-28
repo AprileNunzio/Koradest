@@ -166,18 +166,46 @@ function crea(manifest, dipendenze = {}) {
     }
 
     function contestoPer(sourceAppId, contesto) {
-        const userId = contesto && contesto.userId ? contesto.userId : null;
+        let userId = (contesto && contesto.userId) || null;
+        if (!userId) {
+            try {
+                userId = require('./session_manager').getCurrentUserId() || null;
+            } catch (_) {}
+        }
+        let nomeUtente = (contesto && contesto.userName) || null;
+        if (!nomeUtente && userId) {
+            try {
+                const authDb = require('../db').getDB('auth');
+                if (authDb) {
+                    const row = authDb.query('SELECT username, nome, cognome FROM users WHERE id = ?', [userId])[0];
+                    if (row) nomeUtente = row.username || `${row.nome || ''} ${row.cognome || ''}`.trim() || null;
+                }
+            } catch (_) {}
+        }
+        if (!nomeUtente) {
+            try {
+                const authDb = require('../db').getDB('auth');
+                if (authDb) {
+                    const rows = authDb.query('SELECT id, username, nome, cognome FROM users ORDER BY last_login DESC');
+                    if (rows && rows.length > 0) {
+                        const target = rows[0];
+                        if (!userId) userId = target.id;
+                        nomeUtente = target.username || `${target.nome || ''} ${target.cognome || ''}`.trim() || null;
+                    }
+                }
+            } catch (_) {}
+        }
         const permessi = userId ? (permessiUtente(userId) || []) : [];
         const tutti = permessi.includes('*') || permessi.includes(`${appId}:*`);
         const accedeAllApp = tutti || permessi.some(permesso => permesso.startsWith(`${appId}:`));
         const ruoli = ruoliDichiarati.filter(r => tutti || (accedeAllApp && ruoliPredefiniti.includes(r)) || permessi.includes(`${appId}:${r}`));
         return Object.freeze({
-            utente: userId ? { id: userId } : null,
+            utente: userId ? { id: userId, nome: nomeUtente } : (nomeUtente ? { id: nomeUtente, nome: nomeUtente } : null),
             ruoli,
             haRuolo: ruolo => ruoli.includes(ruolo),
             chiamante: sourceAppId,
             chiama: (altraApp, nomeAzione, dati = {}) =>
-                broker().routeIpcCall(appId, altraApp, nomeAzione, dati, { origin: 'ipc', contesto: userId ? { userId } : null })
+                broker().routeIpcCall(appId, altraApp, nomeAzione, dati, { origin: 'ipc', contesto: userId ? { userId, userName: nomeUtente } : null })
         });
     }
 
@@ -197,7 +225,7 @@ function crea(manifest, dipendenze = {}) {
                 { operatoreId: ctx.utente ? ctx.utente.id : null, app: appId, azione: nome },
                 () => voce.funzione(dati, ctx)
             );
-            if (voce.modifica && namespace) await dbManager.save(namespace);
+            if (voce.modifica && namespace) await dbManager.save(namespace, true);
             return risultato === undefined ? null : risultato;
         } catch (errore) {
             if (!(errore instanceof ErroreApp) && kernel && kernel.log) {

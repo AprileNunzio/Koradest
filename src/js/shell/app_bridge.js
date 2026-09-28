@@ -45,7 +45,8 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
     const parametriApp = soloPrimitivi(parametri);
     delete parametriApp.appId;
     delete parametriApp.subAppId;
-    const utenteId = () => sessionStorage.getItem('currentUserId') || null;
+    const utenteId = () => sessionStorage.getItem('currentUserId') || localStorage.getItem('lastLoggedInUserId') || null;
+    const utenteNome = () => sessionStorage.getItem('currentUser') || localStorage.getItem('currentUserName') || (window.currentUser && (window.currentUser.username || window.currentUser.nome)) || null;
 
     contenitore.innerHTML = `
         <div style="position: relative; height: 100%; width: 100%;">
@@ -97,10 +98,9 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
     const metodi = {
         pronto: async () => {
             mostra();
-            const utente = window.currentUser || {};
             return {
                 app: { id: appId, nome: manifest.name || appId, versione: manifest.version || null },
-                utente: utenteId() ? { id: utenteId(), nome: utente.username || utente.nome || null } : null,
+                utente: (utenteId() || utenteNome()) ? { id: utenteId() || utenteNome(), nome: utenteNome() } : null,
                 ruoli: await ruoliUtente(),
                 parametri: parametriApp,
                 tema: statoTema()
@@ -109,12 +109,14 @@ export function montaAppIsolata(contenitore, manifest, parametri = {}) {
         chiama: async ({ azione, payload, app } = {}) => {
             if (typeof azione !== 'string' || !azione) throw new Error('Azione non indicata');
             if (app !== undefined && typeof app !== 'string') throw new Error('Applicazione di destinazione non valida');
+            const idAttuale = utenteId();
+            const nomeAttuale = utenteNome();
             const risposta = await window.koradestNative.callAppApi({
                 sourceApp: appId,
                 targetApp: app || appId,
                 action: azione,
                 payload: payload === undefined ? {} : payload,
-                contesto: utenteId() ? { userId: utenteId() } : null
+                contesto: (idAttuale || nomeAttuale) ? { userId: idAttuale || nomeAttuale, userName: nomeAttuale } : null
             });
             if (!risposta || risposta.success !== true) {
                 throw new Error((risposta && risposta.error) || 'Operazione non riuscita');

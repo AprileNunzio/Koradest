@@ -2,8 +2,10 @@
 
 const ollama = require('./ollama');
 const gemini = require('./gemini');
+const claude = require('./claude');
+const openai = require('./openai');
 
-const FABBRICHE = Object.freeze({ ollama, gemini });
+const FABBRICHE = Object.freeze({ ollama, gemini, claude, openai });
 
 function crea(nome, opzioni) {
     const fabbrica = FABBRICHE[nome];

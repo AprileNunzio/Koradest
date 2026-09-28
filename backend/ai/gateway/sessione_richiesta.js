@@ -41,12 +41,12 @@ function descriviChiamata(chiamata, strumento) {
     };
 }
 
-function creaSessione({ conf, fornitore, utente, testo, sistema, appAttiva, dipendenze }) {
+function creaSessione({ conf, fornitore, utente, testo, sistema, appAttiva, dipendenze, filtroStrumenti = () => true }) {
     const { toolRegistry, rbacGuard, dataProtector, broker, audit, apprendimento } = dipendenze;
     const impara = conf.apprendimento && apprendimento;
     const caratteriContesto = conf.contestoMassimo * CARATTERI_PER_TOKEN;
     const budgetStrumenti = Math.floor(caratteriContesto * QUOTA_STRUMENTI);
-    const grezzi = schemaStrumenti.daRegistro(toolRegistry.getToolsForUser(utente), nome => (toolRegistry.getTool(nome) || {}).metadata);
+    const grezzi = schemaStrumenti.daRegistro(toolRegistry.getToolsForUser(utente), nome => (toolRegistry.getTool(nome) || {}).metadata).filter(filtroStrumenti);
     const disponibili = impara ? grezzi.map(apprendimento.arricchisci) : grezzi;
     const perNome = new Map(disponibili.map(strumento => [strumento.nome, strumento]));
     const suggeriti = impara ? apprendimento.suggerimenti(testo) : { pesi: new Map(), piano: null };

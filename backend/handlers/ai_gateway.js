@@ -7,7 +7,8 @@ const rbac = require('./rbac');
 
 const CAMPI_CONFIGURABILI = [
     'fornitore', 'modelli', 'passiMassimi', 'timeoutMs', 'temperatura', 'contestoMassimo', 'strumentiMassimi',
-    'jarvis', 'precaricaAllAvvio', 'mantieniInMemoria', 'inviaContestoPagina'
+    'jarvis', 'precaricaAllAvvio', 'mantieniInMemoria', 'inviaContestoPagina', 'confermaScritture', 'apprendimento',
+    'memoriaUtente', 'ascoltoContinuo', 'restaInAscoltoSecondi', 'variantiAttivazione'
 ];
 const PERMESSO_DECISIONE = 'amministratore:ollama:edit';
 
