@@ -1,8 +1,5 @@
 'use strict';
 
-// Scheletro del backend per le app v2. L'app scrive solo le proprie azioni:
-// ruoli, validazione, risposta, salvataggio dell'archivio e contesto utente li gestisce il core.
-
 const crypto = require('crypto');
 const changeCapture = require('./change_capture');
 const fieldAudit = require('./field_audit');
@@ -173,34 +170,46 @@ function crea(manifest, dipendenze = {}) {
             } catch (_) {}
         }
         let nomeUtente = (contesto && contesto.userName) || null;
-        if (!nomeUtente && userId) {
-            try {
-                const authDb = require('../db').getDB('auth');
-                if (authDb) {
-                    const row = authDb.query('SELECT username, nome, cognome FROM users WHERE id = ?', [userId])[0];
-                    if (row) nomeUtente = row.username || `${row.nome || ''} ${row.cognome || ''}`.trim() || null;
+        let utenteUsername = null;
+        let utenteDisplayName = null;
+        try {
+            const authDb = require('../db').getDB('auth');
+            if (authDb) {
+                let row = null;
+                if (userId) {
+                    row = authDb.query('SELECT id, username, nome, cognome FROM users WHERE id = ?', [userId])[0];
                 }
-            } catch (_) {}
-        }
-        if (!nomeUtente) {
-            try {
-                const authDb = require('../db').getDB('auth');
-                if (authDb) {
+                if (!row && nomeUtente) {
+                    row = authDb.query('SELECT id, username, nome, cognome FROM users WHERE username = ? OR lower(username) = lower(?)', [nomeUtente, nomeUtente])[0];
+                }
+                if (!row && !userId && !nomeUtente) {
                     const rows = authDb.query('SELECT id, username, nome, cognome FROM users ORDER BY last_login DESC');
-                    if (rows && rows.length > 0) {
-                        const target = rows[0];
-                        if (!userId) userId = target.id;
-                        nomeUtente = target.username || `${target.nome || ''} ${target.cognome || ''}`.trim() || null;
-                    }
+                    if (rows && rows.length > 0) row = rows[0];
                 }
-            } catch (_) {}
-        }
+                if (row) {
+                    if (!userId) userId = row.id;
+                    utenteUsername = row.username || null;
+                    utenteDisplayName = `${row.nome || ''} ${row.cognome || ''}`.trim() || null;
+                    if (!nomeUtente) nomeUtente = utenteUsername || utenteDisplayName;
+                }
+            }
+        } catch (_) {}
         const permessi = userId ? (permessiUtente(userId) || []) : [];
         const tutti = permessi.includes('*') || permessi.includes(`${appId}:*`);
         const accedeAllApp = tutti || permessi.some(permesso => permesso.startsWith(`${appId}:`));
         const ruoli = ruoliDichiarati.filter(r => tutti || (accedeAllApp && ruoliPredefiniti.includes(r)) || permessi.includes(`${appId}:${r}`));
         return Object.freeze({
-            utente: userId ? { id: userId, nome: nomeUtente } : (nomeUtente ? { id: nomeUtente, nome: nomeUtente } : null),
+            utente: userId ? {
+                id: userId,
+                nome: nomeUtente,
+                username: utenteUsername || nomeUtente,
+                displayName: utenteDisplayName || nomeUtente
+            } : (nomeUtente ? {
+                id: nomeUtente,
+                nome: nomeUtente,
+                username: nomeUtente,
+                displayName: nomeUtente
+            } : null),
             ruoli,
             haRuolo: ruolo => ruoli.includes(ruolo),
             chiamante: sourceAppId,
