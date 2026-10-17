@@ -116,16 +116,26 @@ async function listRepositories() {
             };
         }
 
+        try {
+            db.run('CREATE TABLE IF NOT EXISTS app_configs (key TEXT PRIMARY KEY, value TEXT)');
+        } catch (_) {}
+
         let rows = db.query('SELECT * FROM custom_repositories ORDER BY added_at ASC') || [];
         if (rows.length === 0) {
-            const initializedFlag = db.query("SELECT key FROM app_configs WHERE key = 'repos_initialized'");
-            if (!initializedFlag || initializedFlag.length === 0) {
+            let initialized = false;
+            try {
+                const initializedFlag = db.query("SELECT key FROM app_configs WHERE key = 'repos_initialized'");
+                initialized = initializedFlag && initializedFlag.length > 0;
+            } catch (_) {}
+            if (!initialized) {
                 const ts = getTimestamp();
                 db.run(
                     'INSERT OR IGNORE INTO custom_repositories (id, label, type, url, added_at, added_by, enabled, last_checked, last_status, last_error) VALUES (?, ?, ?, ?, ?, NULL, 1, ?, ?, NULL)',
                     ['nunziotech', 'NunzioTech Marketplace', 'official', PRIMARY_MARKETPLACE_URL, ts, ts, 'ok']
                 );
-                db.run("INSERT OR REPLACE INTO app_configs (key, value) VALUES ('repos_initialized', '1')");
+                try {
+                    db.run("INSERT OR REPLACE INTO app_configs (key, value) VALUES ('repos_initialized', '1')");
+                } catch (_) {}
                 await saveDB('store');
                 rows = db.query('SELECT * FROM custom_repositories ORDER BY added_at ASC') || [];
             }

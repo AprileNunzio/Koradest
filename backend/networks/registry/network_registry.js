@@ -26,7 +26,43 @@ function workspacePathOf(entry) {
 }
 
 function list() {
-    return vault.read().networks.slice().sort((a, b) => (b.lastAccessAt || 0) - (a.lastAccessAt || 0));
+    try {
+        const stored = vault.read().networks.slice();
+        const root = _workspaceRoot();
+        if (fs.existsSync(root)) {
+            const entries = fs.readdirSync(root, { withFileTypes: true });
+            let changed = false;
+            for (const dirent of entries) {
+                if (dirent.isDirectory() && dirent.name.startsWith('net-')) {
+                    const slug = dirent.name;
+                    const existsInStored = stored.some(n => n.slug === slug);
+                    if (!existsInStored) {
+                        const publicIdPart = slug.slice(4);
+                        const orphan = {
+                            id: crypto.randomUUID(),
+                            name: `Rete locale (${slug})`,
+                            publicId: publicIdPart,
+                            slug: slug,
+                            membershipHash: '',
+                            sealedCode: null,
+                            autoStart: false,
+                            role: 'owner',
+                            color: identity.colorOf(publicIdPart),
+                            createdAt: Date.now(),
+                            lastAccessAt: 0,
+                            pendingMinNodes: null
+                        };
+                        stored.push(orphan);
+                        changed = true;
+                    }
+                }
+            }
+            if (changed) _persist(stored);
+        }
+        return stored.sort((a, b) => (b.lastAccessAt || 0) - (a.lastAccessAt || 0));
+    } catch (_) {
+        return [];
+    }
 }
 
 function getById(id) {

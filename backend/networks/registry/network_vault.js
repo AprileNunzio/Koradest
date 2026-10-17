@@ -36,48 +36,85 @@ function _safeStorage() {
 }
 
 function _loadOrCreateKey() {
-    if (_keyCache) return _keyCache;
-    const store = _safeStorage();
-    const keyPath = _keyPath();
-    if (store && fs.existsSync(keyPath)) {
-        try {
-            const plain = store.decryptString(fs.readFileSync(keyPath));
-            if (plain && plain.length === 64) {
-                _keyCache = Buffer.from(plain, 'hex');
-                return _keyCache;
-            }
-        } catch (_) {}
+    try {
+        if (_keyCache) return _keyCache;
+        const store = _safeStorage();
+        const keyPath = _keyPath();
+        const bakPath = `${keyPath}.bak`;
+        if (store && fs.existsSync(keyPath)) {
+            try {
+                const plain = store.decryptString(fs.readFileSync(keyPath));
+                if (plain && plain.length === 64) {
+                    _keyCache = Buffer.from(plain, 'hex');
+                    try {
+                        if (!fs.existsSync(bakPath)) fs.copyFileSync(keyPath, bakPath);
+                    } catch (_) {}
+                    return _keyCache;
+                }
+            } catch (_) {}
+        }
+        if (store && fs.existsSync(bakPath)) {
+            try {
+                const plain = store.decryptString(fs.readFileSync(bakPath));
+                if (plain && plain.length === 64) {
+                    _keyCache = Buffer.from(plain, 'hex');
+                    try {
+                        fs.copyFileSync(bakPath, keyPath);
+                    } catch (_) {}
+                    return _keyCache;
+                }
+            } catch (_) {}
+        }
+        if (fs.existsSync(keyPath)) {
+            try {
+                if (!fs.existsSync(bakPath)) fs.copyFileSync(keyPath, bakPath);
+            } catch (_) {}
+        }
+        const generated = crypto.randomBytes(32);
+        if (store) {
+            try {
+                const dir = path.dirname(keyPath);
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(keyPath, store.encryptString(generated.toString('hex')));
+            } catch (_) {}
+        }
+        _keyCache = generated;
+        return _keyCache;
+    } catch (_) {
+        return crypto.randomBytes(32);
     }
-    const generated = crypto.randomBytes(32);
-    if (store) {
-        try {
-            const dir = path.dirname(keyPath);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(keyPath, store.encryptString(generated.toString('hex')));
-        } catch (_) {}
-    }
-    _keyCache = generated;
-    return _keyCache;
 }
 
 function _decrypt(buffer, key) {
-    if (buffer.length < IV_LEN + TAG_LEN) return null;
-    const decipher = crypto.createDecipheriv(ALGO, key, buffer.subarray(0, IV_LEN));
-    decipher.setAuthTag(buffer.subarray(IV_LEN, IV_LEN + TAG_LEN));
-    const plain = Buffer.concat([decipher.update(buffer.subarray(IV_LEN + TAG_LEN)), decipher.final()]);
-    return JSON.parse(plain.toString('utf8'));
+    try {
+        if (buffer.length < IV_LEN + TAG_LEN) return null;
+        const decipher = crypto.createDecipheriv(ALGO, key, buffer.subarray(0, IV_LEN));
+        decipher.setAuthTag(buffer.subarray(IV_LEN, IV_LEN + TAG_LEN));
+        const plain = Buffer.concat([decipher.update(buffer.subarray(IV_LEN + TAG_LEN)), decipher.final()]);
+        return JSON.parse(plain.toString('utf8'));
+    } catch (_) {
+        return null;
+    }
 }
 
 function _encrypt(payload, key) {
-    const iv = crypto.randomBytes(IV_LEN);
-    const cipher = crypto.createCipheriv(ALGO, key, iv);
-    const body = Buffer.concat([cipher.update(Buffer.from(JSON.stringify(payload), 'utf8')), cipher.final()]);
-    return Buffer.concat([iv, cipher.getAuthTag(), body]);
+    try {
+        const iv = crypto.randomBytes(IV_LEN);
+        const cipher = crypto.createCipheriv(ALGO, key, iv);
+        const body = Buffer.concat([cipher.update(Buffer.from(JSON.stringify(payload), 'utf8')), cipher.final()]);
+        return Buffer.concat([iv, cipher.getAuthTag(), body]);
+    } catch (e) {
+        throw e;
+    }
 }
 
 function _normalize(vault) {
-    if (!vault || typeof vault !== 'object' || !Array.isArray(vault.networks)) return { ...EMPTY_VAULT };
-    return { version: vault.version || 1, networks: vault.networks };
+    try {
+        if (!vault || typeof vault !== 'object' || !Array.isArray(vault.networks)) return { ...EMPTY_VAULT };
+        return { version: vault.version || 1, networks: vault.networks };
+    } catch (_) {
+        return { ...EMPTY_VAULT };
+    }
 }
 
 function exists() {
@@ -91,10 +128,21 @@ function exists() {
 function read() {
     try {
         const file = _vaultPath();
-        if (!fs.existsSync(file)) return { ...EMPTY_VAULT };
-        return _normalize(_decrypt(fs.readFileSync(file), _loadOrCreateKey()));
-    } catch (e) {
-        console.error('[NetworkVault] Lettura non riuscita:', e.message);
+        const bak = `${file}.bak`;
+        if (fs.existsSync(file)) {
+            try {
+                const decrypted = _decrypt(fs.readFileSync(file), _loadOrCreateKey());
+                if (decrypted) return _normalize(decrypted);
+            } catch (_) {}
+        }
+        if (fs.existsSync(bak)) {
+            try {
+                const decryptedBak = _decrypt(fs.readFileSync(bak), _loadOrCreateKey());
+                if (decryptedBak) return _normalize(decryptedBak);
+            } catch (_) {}
+        }
+        return { ...EMPTY_VAULT };
+    } catch (_) {
         return { ...EMPTY_VAULT };
     }
 }
@@ -105,11 +153,15 @@ function write(vault) {
         const dir = path.dirname(file);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         const tmp = `${file}.tmp`;
-        fs.writeFileSync(tmp, _encrypt(_normalize(vault), _loadOrCreateKey()));
+        const bak = `${file}.bak`;
+        const encrypted = _encrypt(_normalize(vault), _loadOrCreateKey());
+        fs.writeFileSync(tmp, encrypted);
+        try {
+            if (fs.existsSync(file)) fs.copyFileSync(file, bak);
+        } catch (_) {}
         fs.renameSync(tmp, file);
         return true;
-    } catch (e) {
-        console.error('[NetworkVault] Scrittura non riuscita:', e.message);
+    } catch (_) {
         return false;
     }
 }

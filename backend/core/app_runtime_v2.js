@@ -105,7 +105,7 @@ function creaArchivio(namespace, dbManager, replicaFn) {
         transazione: funzione => traccia(() => funzione()),
         nuovoId: () => crypto.randomUUID(),
         adesso: () => new Date().toISOString(),
-        salva: () => dbManager.save(namespace)
+        salva: (immediate = true) => dbManager.save(namespace, immediate)
     });
 }
 

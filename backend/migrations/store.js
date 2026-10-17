@@ -72,6 +72,15 @@ module.exports = [
             ALTER TABLE installed_apps ADD COLUMN is_deleted INTEGER DEFAULT 0;
             ALTER TABLE installed_apps ADD COLUMN last_modified INTEGER;
         `
+    },
+    {
+        version: 6,
+        sql: `
+            CREATE TABLE IF NOT EXISTS app_configs (
+                key   TEXT PRIMARY KEY,
+                value TEXT
+            );
+        `
     }
 ];
 
